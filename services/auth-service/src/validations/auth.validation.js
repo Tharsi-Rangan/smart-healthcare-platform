@@ -45,15 +45,20 @@ export const loginValidation = [
     .notEmpty()
     .withMessage("Password is required"),
 ];
-
-export const verifyEmailValidation = [
-  body("token")
+export const verifyEmailOtpValidation = [
+  body("email")
     .trim()
-    .notEmpty()
-    .withMessage("Verification token is required"),
+    .isEmail()
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
+
+  body("otp")
+    .trim()
+    .isLength({ min: 6, max: 6 })
+    .withMessage("OTP must be 6 digits"),
 ];
 
-export const resendVerificationValidation = [
+export const resendEmailOtpValidation = [
   body("email")
     .trim()
     .isEmail()

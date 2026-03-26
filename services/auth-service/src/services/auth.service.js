@@ -1,19 +1,16 @@
 import bcrypt from "bcryptjs";
 import { User } from "../models/user.model.js";
-import { EmailVerificationToken } from "../models/emailVerificationToken.model.js";
+import { EmailVerificationOtp } from "../models/emailVerificationOtp.model.js";
 import { PasswordResetToken } from "../models/passwordResetToken.model.js";
 import { AppError } from "../utils/appError.js";
 import { hashToken } from "../utils/hashToken.js";
+import {generateAccessToken,generateRandomToken,generateOtp,} from "./token.service.js";
 import {
-  generateAccessToken,
-  generateRandomToken,
-} from "./token.service.js";
-import {
-  sendPasswordResetEmail,
-  sendVerificationEmail,
+ sendPasswordResetEmail,
+ sendVerificationOtpEmail,
 } from "./email.service.js";
 
-const VERIFICATION_TOKEN_EXPIRY_MS = 1000 * 60 * 60 * 24; // 24 hours
+const VERIFICATION_OTP_EXPIRY_MS = 1000 * 60 * 10;
 const RESET_TOKEN_EXPIRY_MS = 1000 * 60 * 30; // 30 minutes
 
 const createUserAccount = async ({ name, email, password, role }) => {
@@ -34,16 +31,19 @@ const createUserAccount = async ({ name, email, password, role }) => {
     accountStatus: "pending_verification",
   });
 
-  const rawToken = generateRandomToken();
-  const tokenHash = hashToken(rawToken);
+const otp = generateOtp();
+const otpHash = hashToken(otp);
 
-  await EmailVerificationToken.create({
-    userId: user._id,
-    tokenHash,
-    expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS),
-  });
+await EmailVerificationOtp.deleteMany({ userId: user._id });
 
-  await sendVerificationEmail(user.email, rawToken);
+await EmailVerificationOtp.create({
+  userId: user._id,
+  otpHash,
+  expiresAt: new Date(Date.now() + VERIFICATION_OTP_EXPIRY_MS),
+  attempts: 0,
+});
+
+await sendVerificationOtpEmail(user.email, otp);
 
   return user;
 };
@@ -99,37 +99,47 @@ export const loginUser = async ({ email, password }) => {
   };
 };
 
-export const verifyEmail = async ({ token }) => {
-  const tokenHash = hashToken(token);
-
-  const verificationRecord = await EmailVerificationToken.findOne({
-    tokenHash,
-  });
-
-  if (!verificationRecord) {
-    throw new AppError("Invalid verification token", 400);
-  }
-
-  if (verificationRecord.expiresAt < new Date()) {
-    throw new AppError("Verification token has expired", 400);
-  }
-
-  const user = await User.findById(verificationRecord.userId);
+export const verifyEmailOtp = async ({ email, otp }) => {
+  const user = await User.findOne({ email });
 
   if (!user) {
     throw new AppError("User not found", 404);
+  }
+
+  const otpHash = hashToken(otp);
+
+  const otpRecord = await EmailVerificationOtp.findOne({
+    userId: user._id,
+  });
+
+  if (!otpRecord) {
+    throw new AppError("OTP not found", 400);
+  }
+
+  if (otpRecord.expiresAt < new Date()) {
+    throw new AppError("OTP has expired", 400);
+  }
+
+  if (otpRecord.attempts >= 5) {
+    throw new AppError("Too many invalid OTP attempts", 429);
+  }
+
+  if (otpRecord.otpHash !== otpHash) {
+    otpRecord.attempts += 1;
+    await otpRecord.save();
+    throw new AppError("Invalid OTP", 400);
   }
 
   user.isEmailVerified = true;
   user.accountStatus = "active";
   await user.save();
 
-  await EmailVerificationToken.deleteMany({ userId: user._id });
+  await EmailVerificationOtp.deleteMany({ userId: user._id });
 
   return user;
 };
 
-export const resendVerificationEmail = async ({ email }) => {
+export const resendEmailOtp = async ({ email }) => {
   const user = await User.findOne({ email });
 
   if (!user) {
@@ -140,18 +150,19 @@ export const resendVerificationEmail = async ({ email }) => {
     throw new AppError("Email is already verified", 400);
   }
 
-  await EmailVerificationToken.deleteMany({ userId: user._id });
+  await EmailVerificationOtp.deleteMany({ userId: user._id });
 
-  const rawToken = generateRandomToken();
-  const tokenHash = hashToken(rawToken);
+  const otp = generateOtp();
+  const otpHash = hashToken(otp);
 
-  await EmailVerificationToken.create({
+  await EmailVerificationOtp.create({
     userId: user._id,
-    tokenHash,
-    expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS),
+    otpHash,
+    expiresAt: new Date(Date.now() + VERIFICATION_OTP_EXPIRY_MS),
+    attempts: 0,
   });
 
-  await sendVerificationEmail(user.email, rawToken);
+  await sendVerificationOtpEmail(user.email, otp);
 
   return true;
 };

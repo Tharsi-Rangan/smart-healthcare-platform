@@ -11,17 +11,16 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendVerificationEmail = async (email, token) => {
-  const verificationUrl = `${env.clientUrl}/verify-email?token=${token}`;
-
+export const sendVerificationOtpEmail = async (email, otp) => {
   await transporter.sendMail({
     from: env.mailFrom,
     to: email,
     subject: "Verify your email",
     html: `
       <h2>Email Verification</h2>
-      <p>Please click the link below to verify your account:</p>
-      <a href="${verificationUrl}">${verificationUrl}</a>
+      <p>Your verification OTP is:</p>
+      <h1>${otp}</h1>
+      <p>This OTP will expire soon.</p>
     `,
   });
 };
