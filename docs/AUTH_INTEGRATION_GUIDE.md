@@ -26,6 +26,9 @@ Doctor approval should be handled in the doctor/admin module.
 
 ```text
 http://localhost:5001
+
+Auth Route Base
+http://localhost:5001/api/auth
 ```
 
 ## User Roles
