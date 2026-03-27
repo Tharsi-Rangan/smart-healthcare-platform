@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AuthCard from "../../components/auth/AuthCard";
 import { forgotPassword } from "../../services/authApi";
+import { Link } from "react-router-dom";
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -16,10 +17,12 @@ function ForgotPasswordPage() {
 
     try {
       const response = await forgotPassword({ email });
-      setSuccessMessage(response.message || "Password reset email sent successfully");
+      setSuccessMessage(
+        response.message || "Password reset email sent successfully",
+      );
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "Failed to send reset email"
+        error?.response?.data?.message || "Failed to send reset email",
       );
     } finally {
       setLoading(false);
@@ -50,11 +53,15 @@ function ForgotPasswordPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>
+            {errorMessage}
+          </div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>{successMessage}</div>
+          <div style={{ color: "#10b981", fontSize: "14px" }}>
+            {successMessage}
+          </div>
         )}
 
         <button
@@ -72,6 +79,13 @@ function ForgotPasswordPage() {
         >
           {loading ? "Sending..." : "Send Reset Email"}
         </button>
+
+        <div style={{ textAlign: "center", fontSize: "14px" }}>
+          <Link to="/login" style={{ color: "#0891b2" }}>
+            Back to Login
+          </Link>
+        </div>
+        
       </form>
     </AuthCard>
   );

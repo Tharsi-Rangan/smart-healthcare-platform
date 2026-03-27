@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { loginUser } from "../../services/authApi";
 import { saveAuthData } from "../../features/auth/authStorage";
+import { Link, useNavigate } from "react-router-dom";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -71,7 +71,9 @@ function LoginPage() {
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
+          <label style={{ display: "block", marginBottom: "8px" }}>
+            Password
+          </label>
           <input
             name="password"
             type="password"
@@ -89,7 +91,9 @@ function LoginPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>
+            {errorMessage}
+          </div>
         )}
 
         <button
@@ -107,6 +111,22 @@ function LoginPage() {
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: "14px",
+          }}
+        >
+          <Link to="/forgot-password" style={{ color: "#0891b2" }}>
+            Forgot Password?
+          </Link>
+
+          <Link to="/register" style={{ color: "#0891b2" }}>
+            Create account
+          </Link>
+        </div>
       </form>
     </AuthCard>
   );

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { resetPassword } from "../../services/authApi";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 
 function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -33,7 +33,7 @@ function ResetPasswordPage() {
       }, 1200);
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "Password reset failed"
+        error?.response?.data?.message || "Password reset failed",
       );
     } finally {
       setLoading(false);
@@ -66,11 +66,15 @@ function ResetPasswordPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>
+            {errorMessage}
+          </div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>{successMessage}</div>
+          <div style={{ color: "#10b981", fontSize: "14px" }}>
+            {successMessage}
+          </div>
         )}
 
         <button
@@ -88,6 +92,11 @@ function ResetPasswordPage() {
         >
           {loading ? "Resetting..." : "Reset Password"}
         </button>
+        <div style={{ textAlign: "center", fontSize: "14px" }}>
+          <Link to="/login" style={{ color: "#0891b2" }}>
+            Back to Login
+          </Link>
+        </div>
       </form>
     </AuthCard>
   );

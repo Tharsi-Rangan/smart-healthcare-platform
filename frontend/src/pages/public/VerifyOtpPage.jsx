@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { resendEmailOtp, verifyEmailOtp } from "../../services/authApi";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function VerifyOtpPage() {
   const location = useLocation();
@@ -29,7 +29,7 @@ function VerifyOtpPage() {
       }, 1200);
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "OTP verification failed"
+        error?.response?.data?.message || "OTP verification failed",
       );
     } finally {
       setLoading(false);
@@ -45,9 +45,7 @@ function VerifyOtpPage() {
       const response = await resendEmailOtp({ email });
       setSuccessMessage(response.message || "OTP resent successfully");
     } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message || "Failed to resend OTP"
-      );
+      setErrorMessage(error?.response?.data?.message || "Failed to resend OTP");
     } finally {
       setResending(false);
     }
@@ -94,11 +92,15 @@ function VerifyOtpPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>
+            {errorMessage}
+          </div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>{successMessage}</div>
+          <div style={{ color: "#10b981", fontSize: "14px" }}>
+            {successMessage}
+          </div>
         )}
 
         <button
@@ -133,6 +135,13 @@ function VerifyOtpPage() {
         >
           {resending ? "Resending..." : "Resend OTP"}
         </button>
+
+        <div style={{ textAlign: "center", fontSize: "14px" }}>
+          <Link to="/login" style={{ color: "#0891b2" }}>
+            Back to Login
+          </Link>
+        </div>
+
       </form>
     </AuthCard>
   );

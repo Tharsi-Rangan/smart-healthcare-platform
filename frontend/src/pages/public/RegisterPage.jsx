@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { registerDoctor, registerPatient } from "../../services/authApi";
+import { Link, useNavigate } from "react-router-dom";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -49,9 +49,7 @@ function RegisterPage() {
         });
       }, 1200);
     } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message || "Registration failed"
-      );
+      setErrorMessage(error?.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -64,7 +62,9 @@ function RegisterPage() {
     >
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Full Name</label>
+          <label style={{ display: "block", marginBottom: "8px" }}>
+            Full Name
+          </label>
           <input
             name="name"
             type="text"
@@ -100,7 +100,9 @@ function RegisterPage() {
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
+          <label style={{ display: "block", marginBottom: "8px" }}>
+            Password
+          </label>
           <input
             name="password"
             type="password"
@@ -137,11 +139,15 @@ function RegisterPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>
+            {errorMessage}
+          </div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>{successMessage}</div>
+          <div style={{ color: "#10b981", fontSize: "14px" }}>
+            {successMessage}
+          </div>
         )}
 
         <button
@@ -159,6 +165,13 @@ function RegisterPage() {
         >
           {loading ? "Registering..." : "Register"}
         </button>
+
+        <div style={{ textAlign: "center", fontSize: "14px" }}>
+          <Link to="/login" style={{ color: "#0891b2" }}>
+            Already have an account? Login
+          </Link>
+        </div>
+
       </form>
     </AuthCard>
   );
