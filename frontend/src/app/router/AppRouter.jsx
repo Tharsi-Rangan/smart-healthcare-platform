@@ -39,6 +39,8 @@ import BookAppointmentPage from "../../pages/shared/BookAppointmentPage";
 import PaymentPage from "../../pages/shared/PaymentPage";
 import ConsultationPage from "../../pages/shared/ConsultationPage";
 
+import ProtectedRoute from "../../components/auth/ProtectedRoute";
+
 function AppRouter() {
   return (
     <BrowserRouter>
@@ -59,30 +61,36 @@ function AppRouter() {
           <Route path="/consultation" element={<ConsultationPage />} />
         </Route>
 
-        <Route path="/patient" element={<PatientLayout />}>
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="medical-history" element={<MedicalHistoryPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="prescriptions" element={<PrescriptionsPage />} />
-          <Route path="appointments" element={<MyAppointmentsPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
+        <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
+          <Route path="/patient" element={<PatientLayout />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="medical-history" element={<MedicalHistoryPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="prescriptions" element={<PrescriptionsPage />} />
+            <Route path="appointments" element={<MyAppointmentsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+          </Route>
         </Route>
 
-        <Route path="/doctor" element={<DoctorLayout />}>
-          <Route path="dashboard" element={<DoctorDashboardPage />} />
-          <Route path="profile" element={<DoctorProfilePage />} />
-          <Route path="availability" element={<AvailabilityPage />} />
-          <Route path="appointments" element={<DoctorAppointmentsPage />} />
-          <Route path="reports" element={<ReportsReviewPage />} />
-          <Route path="prescriptions" element={<PrescriptionPage />} />
+        <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
+          <Route path="/doctor" element={<DoctorLayout />}>
+            <Route path="dashboard" element={<DoctorDashboardPage />} />
+            <Route path="profile" element={<DoctorProfilePage />} />
+            <Route path="availability" element={<AvailabilityPage />} />
+            <Route path="appointments" element={<DoctorAppointmentsPage />} />
+            <Route path="reports" element={<ReportsReviewPage />} />
+            <Route path="prescriptions" element={<PrescriptionPage />} />
+          </Route>
         </Route>
 
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route path="verify-doctors" element={<VerifyDoctorsPage />} />
-          <Route path="manage-users" element={<ManageUsersPage />} />
-          <Route path="manage-doctors" element={<ManageDoctorsPage />} />
+        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="verify-doctors" element={<VerifyDoctorsPage />} />
+            <Route path="manage-users" element={<ManageUsersPage />} />
+            <Route path="manage-doctors" element={<ManageDoctorsPage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

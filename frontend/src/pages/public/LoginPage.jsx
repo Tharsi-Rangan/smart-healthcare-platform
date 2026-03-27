@@ -1,11 +1,12 @@
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import AuthCard from "../../components/auth/AuthCard";
 import { loginUser } from "../../services/authApi";
-import { saveAuthData } from "../../features/auth/authStorage";
-import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -30,7 +31,7 @@ function LoginPage() {
       const response = await loginUser(formData);
       const { token, user } = response.data;
 
-      saveAuthData({ token, user });
+      login({ token, user });
 
       if (user.role === "patient") {
         navigate("/patient/dashboard");
@@ -71,9 +72,7 @@ function LoginPage() {
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>
-            Password
-          </label>
+          <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
           <input
             name="password"
             type="password"
@@ -91,9 +90,7 @@ function LoginPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>
-            {errorMessage}
-          </div>
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
         )}
 
         <button
