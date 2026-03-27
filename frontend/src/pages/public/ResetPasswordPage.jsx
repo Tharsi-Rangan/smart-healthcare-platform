@@ -1,18 +1,59 @@
+import { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
+import { resetPassword } from "../../services/authApi";
 
 function ResetPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const token = searchParams.get("token") || "";
+
+  const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await resetPassword({
+        token,
+        newPassword,
+      });
+
+      setSuccessMessage(response.message || "Password reset successfully");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1200);
+    } catch (error) {
+      setErrorMessage(
+        error?.response?.data?.message || "Password reset failed"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthCard
       title="Reset password"
       subtitle="Enter your new password to complete the reset process."
     >
-      <form style={{ display: "grid", gap: "16px" }}>
+      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
         <div>
           <label style={{ display: "block", marginBottom: "8px" }}>
             New Password
           </label>
           <input
             type="password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
             placeholder="Enter your new password"
             style={{
               width: "100%",
@@ -24,8 +65,17 @@ function ResetPasswordPage() {
           />
         </div>
 
+        {errorMessage && (
+          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+        )}
+
+        {successMessage && (
+          <div style={{ color: "#10b981", fontSize: "14px" }}>{successMessage}</div>
+        )}
+
         <button
           type="submit"
+          disabled={loading}
           style={{
             backgroundColor: "#0891b2",
             color: "#ffffff",
@@ -36,7 +86,7 @@ function ResetPasswordPage() {
             fontWeight: "600",
           }}
         >
-          Reset Password
+          {loading ? "Resetting..." : "Reset Password"}
         </button>
       </form>
     </AuthCard>
