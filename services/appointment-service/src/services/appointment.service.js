@@ -95,8 +95,12 @@ export const createAppointment = async (payload, patientId) => {
     appointmentTime: normalizeAppointmentTime(payload.appointmentTime),
   };
 
-  ensureFutureAppointment(appointmentPayload.appointmentDate, appointmentPayload.appointmentTime);
-  await ensureNoDoubleBooking(appointmentPayload);
+  ensureFutureAppointment(payload.appointmentDate, payload.appointmentTime);
+  await ensureNoDoubleBooking({
+    doctorId: payload.doctorId,
+    appointmentDate: payload.appointmentDate,
+    appointmentTime: payload.appointmentTime,
+  });
 
   try {
     return await Appointment.create(appointmentPayload);
@@ -158,12 +162,12 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
   const nextDate = normalizeAppointmentDate(rescheduleData.appointmentDate);
   const nextTime = normalizeAppointmentTime(rescheduleData.appointmentTime);
 
-  ensureFutureAppointment(nextDate, nextTime);
+  ensureFutureAppointment(rescheduleData.appointmentDate, rescheduleData.appointmentTime);
 
   await ensureNoDoubleBooking({
     doctorId: appointment.doctorId,
-    appointmentDate: nextDate,
-    appointmentTime: nextTime,
+    appointmentDate: rescheduleData.appointmentDate,
+    appointmentTime: rescheduleData.appointmentTime,
     excludeId: appointment._id,
   });
 
