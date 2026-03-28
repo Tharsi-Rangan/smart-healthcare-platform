@@ -2,58 +2,26 @@ import { Outlet, Link } from "react-router-dom";
 
 function PublicLayout() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f8fafb",
-        color: "#1e293b",
-      }}
-    >
-      <header
-        style={{
-          borderBottom: "1px solid #e2e8f0",
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1200px",
-            margin: "0 auto",
-            padding: "16px 24px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Link
-            to="/"
-            style={{
-              fontSize: "20px",
-              fontWeight: "700",
-              color: "#0891b2",
-            }}
-          >
+    <div className="min-h-screen bg-slate-50 text-slate-800">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link to="/" className="text-xl font-bold text-cyan-700">
             Smart Healthcare Platform
           </Link>
 
-          <nav
-            style={{
-              display: "flex",
-              gap: "20px",
-              alignItems: "center",
-            }}
-          >
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-            <Link to="/login">Login</Link>
+          <nav className="flex items-center gap-5 text-sm font-medium text-slate-600">
+            <Link to="/" className="transition hover:text-cyan-700">
+              Home
+            </Link>
+            <Link to="/about" className="transition hover:text-cyan-700">
+              About
+            </Link>
+            <Link to="/login" className="transition hover:text-cyan-700">
+              Login
+            </Link>
             <Link
               to="/register"
-              style={{
-                backgroundColor: "#0891b2",
-                color: "#ffffff",
-                padding: "10px 16px",
-                borderRadius: "8px",
-              }}
+              className="rounded-lg bg-cyan-700 px-4 py-2 text-white transition hover:bg-cyan-600"
             >
               Register
             </Link>
@@ -61,13 +29,7 @@ function PublicLayout() {
         </div>
       </header>
 
-      <main
-        style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
-          padding: "32px 24px",
-        }}
-      >
+      <main className="mx-auto max-w-7xl px-6 py-8">
         <Outlet />
       </main>
     </div>

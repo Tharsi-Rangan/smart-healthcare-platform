@@ -52,75 +52,53 @@ function LoginPage() {
       title="Welcome back"
       subtitle="Login to access your healthcare dashboard."
     >
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Email
+          </label>
           <input
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
             placeholder="Enter your email"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Password
+          </label>
           <input
             name="password"
             type="password"
             value={formData.password}
             onChange={handleChange}
             placeholder="Enter your password"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>{errorMessage}</div>
+          <div className="text-sm text-red-500">{errorMessage}</div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            backgroundColor: "#0891b2",
-            color: "#ffffff",
-            border: "none",
-            padding: "12px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
+          className="rounded-xl bg-cyan-700 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "14px",
-          }}
-        >
-          <Link to="/forgot-password" style={{ color: "#0891b2" }}>
+        <div className="flex justify-between text-sm">
+          <Link to="/forgot-password" className="text-cyan-700 hover:underline">
             Forgot Password?
           </Link>
 
-          <Link to="/register" style={{ color: "#0891b2" }}>
+          <Link to="/register" className="text-cyan-700 hover:underline">
             Create account
           </Link>
         </div>

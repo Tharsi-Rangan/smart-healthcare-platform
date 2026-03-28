@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { resendEmailOtp, verifyEmailOtp } from "../../services/authApi";
-import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function VerifyOtpPage() {
   const location = useLocation();
@@ -29,7 +29,7 @@ function VerifyOtpPage() {
       }, 1200);
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "OTP verification failed",
+        error?.response?.data?.message || "OTP verification failed"
       );
     } finally {
       setLoading(false);
@@ -45,7 +45,9 @@ function VerifyOtpPage() {
       const response = await resendEmailOtp({ email });
       setSuccessMessage(response.message || "OTP resent successfully");
     } catch (error) {
-      setErrorMessage(error?.response?.data?.message || "Failed to resend OTP");
+      setErrorMessage(
+        error?.response?.data?.message || "Failed to resend OTP"
+      );
     } finally {
       setResending(false);
     }
@@ -56,65 +58,45 @@ function VerifyOtpPage() {
       title="Verify your email"
       subtitle="Enter the OTP sent to your email address."
     >
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Email
+          </label>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Enter your email"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>OTP</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            OTP
+          </label>
           <input
             type="text"
             value={otp}
             onChange={(event) => setOtp(event.target.value)}
             placeholder="Enter 6-digit OTP"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>
-            {errorMessage}
-          </div>
+          <div className="text-sm text-red-500">{errorMessage}</div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>
-            {successMessage}
-          </div>
+          <div className="text-sm text-emerald-500">{successMessage}</div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            backgroundColor: "#0891b2",
-            color: "#ffffff",
-            border: "none",
-            padding: "12px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
+          className="rounded-xl bg-cyan-700 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Verifying..." : "Verify OTP"}
         </button>
@@ -123,25 +105,16 @@ function VerifyOtpPage() {
           type="button"
           onClick={handleResendOtp}
           disabled={resending}
-          style={{
-            backgroundColor: "#e0f2fe",
-            color: "#0891b2",
-            border: "1px solid #0891b2",
-            padding: "12px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
+          className="rounded-xl border border-cyan-700 bg-cyan-50 px-4 py-3 font-semibold text-cyan-700 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {resending ? "Resending..." : "Resend OTP"}
         </button>
 
-        <div style={{ textAlign: "center", fontSize: "14px" }}>
-          <Link to="/login" style={{ color: "#0891b2" }}>
+        <div className="text-center text-sm">
+          <Link to="/login" className="text-cyan-700 hover:underline">
             Back to Login
           </Link>
         </div>
-
       </form>
     </AuthCard>
   );

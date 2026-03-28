@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { registerDoctor, registerPatient } from "../../services/authApi";
-import { Link, useNavigate } from "react-router-dom";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -49,7 +49,9 @@ function RegisterPage() {
         });
       }, 1200);
     } catch (error) {
-      setErrorMessage(error?.response?.data?.message || "Registration failed");
+      setErrorMessage(
+        error?.response?.data?.message || "Registration failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -60,9 +62,9 @@ function RegisterPage() {
       title="Create account"
       subtitle="Register as a patient or doctor to continue."
     >
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Full Name
           </label>
           <input
@@ -71,36 +73,26 @@ function RegisterPage() {
             value={formData.name}
             onChange={handleChange}
             placeholder="Enter your full name"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Email
+          </label>
           <input
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
             placeholder="Enter your email"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Password
           </label>
           <input
@@ -109,29 +101,19 @@ function RegisterPage() {
             value={formData.password}
             onChange={handleChange}
             placeholder="Create a password"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Role</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Role
+          </label>
           <select
             name="role"
             value={formData.role}
             onChange={handleChange}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           >
             <option value="patient">Patient</option>
             <option value="doctor">Doctor</option>
@@ -139,39 +121,26 @@ function RegisterPage() {
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>
-            {errorMessage}
-          </div>
+          <div className="text-sm text-red-500">{errorMessage}</div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>
-            {successMessage}
-          </div>
+          <div className="text-sm text-emerald-500">{successMessage}</div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            backgroundColor: "#0891b2",
-            color: "#ffffff",
-            border: "none",
-            padding: "12px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
+          className="rounded-xl bg-cyan-700 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Registering..." : "Register"}
         </button>
 
-        <div style={{ textAlign: "center", fontSize: "14px" }}>
-          <Link to="/login" style={{ color: "#0891b2" }}>
+        <div className="text-center text-sm">
+          <Link to="/login" className="text-cyan-700 hover:underline">
             Already have an account? Login
           </Link>
         </div>
-
       </form>
     </AuthCard>
   );

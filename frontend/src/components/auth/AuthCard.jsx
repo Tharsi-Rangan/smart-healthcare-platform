@@ -1,38 +1,9 @@
 function AuthCard({ title, subtitle, children }) {
   return (
-    <div
-      style={{
-        maxWidth: "480px",
-        margin: "40px auto",
-        backgroundColor: "#ffffff",
-        border: "1px solid #e2e8f0",
-        borderRadius: "16px",
-        padding: "32px",
-        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
-      }}
-    >
-      <h1
-        style={{
-          margin: 0,
-          marginBottom: "8px",
-          fontSize: "28px",
-          color: "#1e293b",
-        }}
-      >
-        {title}
-      </h1>
+    <div className="mx-auto my-10 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+      <h1 className="mb-2 text-3xl font-bold text-slate-800">{title}</h1>
 
-      {subtitle && (
-        <p
-          style={{
-            marginTop: 0,
-            marginBottom: "24px",
-            color: "#64748b",
-          }}
-        >
-          {subtitle}
-        </p>
-      )}
+      {subtitle && <p className="mb-6 text-sm text-slate-500">{subtitle}</p>}
 
       {children}
     </div>
