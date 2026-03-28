@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { forgotPassword } from "../../services/authApi";
-import { Link } from "react-router-dom";
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -17,12 +17,10 @@ function ForgotPasswordPage() {
 
     try {
       const response = await forgotPassword({ email });
-      setSuccessMessage(
-        response.message || "Password reset email sent successfully",
-      );
+      setSuccessMessage(response.message || "Password reset email sent successfully");
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "Failed to send reset email",
+        error?.response?.data?.message || "Failed to send reset email"
       );
     } finally {
       setLoading(false);
@@ -34,58 +32,41 @@ function ForgotPasswordPage() {
       title="Forgot password"
       subtitle="Enter your email to receive a password reset link."
     >
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Email
+          </label>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Enter your email"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>
-            {errorMessage}
-          </div>
+          <div className="text-sm text-red-500">{errorMessage}</div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>
-            {successMessage}
-          </div>
+          <div className="text-sm text-emerald-500">{successMessage}</div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            backgroundColor: "#0891b2",
-            color: "#ffffff",
-            border: "none",
-            padding: "12px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
+          className="rounded-xl bg-cyan-700 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Sending..." : "Send Reset Email"}
         </button>
 
-        <div style={{ textAlign: "center", fontSize: "14px" }}>
-          <Link to="/login" style={{ color: "#0891b2" }}>
+        <div className="text-center text-sm">
+          <Link to="/login" className="text-cyan-700 hover:underline">
             Back to Login
           </Link>
         </div>
-        
       </form>
     </AuthCard>
   );

@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { resetPassword } from "../../services/authApi";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
 
 function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -33,7 +33,7 @@ function ResetPasswordPage() {
       }, 1200);
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.message || "Password reset failed",
+        error?.response?.data?.message || "Password reset failed"
       );
     } finally {
       setLoading(false);
@@ -45,9 +45,9 @@ function ResetPasswordPage() {
       title="Reset password"
       subtitle="Enter your new password to complete the reset process."
     >
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px" }}>
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <div>
-          <label style={{ display: "block", marginBottom: "8px" }}>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             New Password
           </label>
           <input
@@ -55,45 +55,28 @@ function ResetPasswordPage() {
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             placeholder="Enter your new password"
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              outline: "none",
-            }}
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
 
         {errorMessage && (
-          <div style={{ color: "#ef4444", fontSize: "14px" }}>
-            {errorMessage}
-          </div>
+          <div className="text-sm text-red-500">{errorMessage}</div>
         )}
 
         {successMessage && (
-          <div style={{ color: "#10b981", fontSize: "14px" }}>
-            {successMessage}
-          </div>
+          <div className="text-sm text-emerald-500">{successMessage}</div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            backgroundColor: "#0891b2",
-            color: "#ffffff",
-            border: "none",
-            padding: "12px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
+          className="rounded-xl bg-cyan-700 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading ? "Resetting..." : "Reset Password"}
         </button>
-        <div style={{ textAlign: "center", fontSize: "14px" }}>
-          <Link to="/login" style={{ color: "#0891b2" }}>
+
+        <div className="text-center text-sm">
+          <Link to="/login" className="text-cyan-700 hover:underline">
             Back to Login
           </Link>
         </div>
