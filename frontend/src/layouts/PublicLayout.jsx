@@ -16,6 +16,9 @@ function PublicLayout() {
             <Link to="/about" className="transition hover:text-cyan-700">
               About
             </Link>
+            <Link to="/doctors" className="transition hover:text-cyan-700">
+              Find Doctors
+            </Link>
             <Link to="/login" className="transition hover:text-cyan-700">
               Login
             </Link>
