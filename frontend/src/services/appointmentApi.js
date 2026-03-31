@@ -64,3 +64,20 @@ export const rescheduleAppointment = async (appointmentId, payload, token) => {
   );
   return response.data;
 };
+
+export const getDoctorAppointments = async (token) => {
+  const response = await appointmentClient.get(
+    "/api/appointments/doctor/my",
+    getAuthConfig(token)
+  );
+  return response.data;
+};
+
+export const updateAppointmentStatus = async (appointmentId, payload, token) => {
+  const response = await appointmentClient.put(
+    `/api/appointments/${appointmentId}/status`,
+    payload,
+    getAuthConfig(token)
+  );
+  return response.data;
+};
