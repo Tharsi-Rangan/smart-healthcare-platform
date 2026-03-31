@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import hero1Image from "../../assets/hero1.png";
+import { mockDoctors } from "../shared/doctorMockData";
 
 function HomePage() {
+  const sampleDoctorId = mockDoctors[0]?.id || "";
+
   const features = [
     {
       title: "Book Appointments Easily",
@@ -47,14 +50,14 @@ function HomePage() {
       step: "Step 2",
       title: "Review Doctor Details",
       description: "Check profile details, experience, and consultation fee.",
-      to: "/doctors/d1",
+      to: `/doctors/${sampleDoctorId}`,
       action: "View Sample Profile",
     },
     {
       step: "Step 3",
       title: "Book Appointment",
       description: "Choose date, time, and consultation type in one form.",
-      to: "/book-appointment?doctorId=d1",
+      to: `/book-appointment?doctorId=${sampleDoctorId}`,
       action: "Start Booking",
     },
     {
