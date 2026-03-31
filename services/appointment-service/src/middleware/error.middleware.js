@@ -12,9 +12,15 @@ export const errorHandler = (error, req, res, next) => {
     console.error(error);
   }
 
-  res.status(statusCode).json({
+  const response = {
     success: false,
     message,
     data: null,
-  });
+  };
+
+  if (error.errors && error.errors.length > 0) {
+    response.errors = error.errors;
+  }
+
+  res.status(statusCode).json(response);
 };
