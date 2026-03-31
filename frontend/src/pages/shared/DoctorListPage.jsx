@@ -16,7 +16,9 @@ function DoctorListPage() {
         specializationFilter === "all" ||
         doctor.specialization === specializationFilter;
 
-      const searchableText = `${doctor.name} ${doctor.specialization}`.toLowerCase();
+      const searchableText =
+        `${doctor.name} ${doctor.specialization} ${doctor.hospital}`.toLowerCase();
+
       const matchesSearch = searchableText.includes(searchText.toLowerCase().trim());
 
       return matchesSpecialization && matchesSearch;
@@ -28,7 +30,7 @@ function DoctorListPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-800">Find a Doctor</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Search by name or specialization and choose a doctor for your appointment.
+          Search by doctor name or specialization and continue to appointment booking.
         </p>
       </div>
 
@@ -41,7 +43,7 @@ function DoctorListPage() {
             type="text"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
-            placeholder="Search by doctor name or specialization"
+            placeholder="Search by doctor name, specialization, or hospital"
             className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </div>
@@ -73,17 +75,29 @@ function DoctorListPage() {
           {filteredDoctors.map((doctor) => (
             <div
               key={doctor.id}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
-              <h2 className="text-lg font-semibold text-slate-800">{doctor.name}</h2>
-              <p className="mt-1 text-sm font-medium text-cyan-700">
-                {doctor.specialization}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">{doctor.name}</h2>
+                  <p className="mt-1 text-sm font-medium text-cyan-700">
+                    {doctor.specialization}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+                  Available
+                </span>
+              </div>
 
               <div className="mt-4 space-y-2 text-sm text-slate-600">
                 <p>
-                  <span className="font-medium text-slate-700">Consultation Fee:</span> BDT{" "}
-                  {doctor.consultationFee}
+                  <span className="font-medium text-slate-700">Hospital:</span>{" "}
+                  {doctor.hospital}
+                </p>
+                <p>
+                  <span className="font-medium text-slate-700">Consultation Fee:</span>{" "}
+                  BDT {doctor.consultationFee}
                 </p>
                 <p>
                   <span className="font-medium text-slate-700">Availability:</span>{" "}
@@ -91,13 +105,21 @@ function DoctorListPage() {
                 </p>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-5 flex gap-3">
                 <Link
                   to={`/doctors/${doctor.id}`}
                   state={{ doctor }}
                   className="inline-flex rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
                 >
                   View Details
+                </Link>
+
+                <Link
+                  to={`/book-appointment?doctorId=${doctor.id}`}
+                  state={{ doctor }}
+                  className="inline-flex rounded-xl border border-cyan-200 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
+                >
+                  Book Now
                 </Link>
               </div>
             </div>
