@@ -5,23 +5,18 @@ function DoctorDetailsPage() {
   const { id } = useParams();
   const location = useLocation();
 
-  const doctorFromState = location.state?.doctor;
   const doctor =
-    (doctorFromState && doctorFromState.id === id && doctorFromState) ||
-    mockDoctors.find((item) => item.id === id);
+    location.state?.doctor || mockDoctors.find((item) => item.id === id);
 
   if (!doctor) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold text-slate-800">Doctor not found</h1>
-        <p className="text-sm text-slate-500">
-          The doctor profile you requested is unavailable right now.
-        </p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm text-slate-600">Doctor not found.</p>
         <Link
           to="/doctors"
-          className="inline-flex rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
+          className="mt-4 inline-flex rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
         >
-          Back to Doctor List
+          Back to Doctors
         </Link>
       </div>
     );
@@ -29,55 +24,55 @@ function DoctorDetailsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">Doctor Details</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Review the profile and continue to appointment booking.
-        </p>
-      </div>
-
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-slate-800">{doctor.name}</h2>
-            <p className="mt-1 text-sm font-medium text-cyan-700">
+            <h1 className="text-3xl font-bold text-slate-800">{doctor.name}</h1>
+            <p className="mt-2 text-base font-medium text-cyan-700">
               {doctor.specialization}
             </p>
+            <p className="mt-3 text-sm text-slate-600">{doctor.about}</p>
           </div>
 
-          <div className="rounded-xl bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
-            <p className="font-semibold">Fee: BDT {doctor.consultationFee}</p>
-            <p className="mt-1">{doctor.availabilityText}</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 p-4">
-            <h3 className="text-sm font-semibold text-slate-800">Experience</h3>
-            <p className="mt-2 text-sm text-slate-600">{doctor.experience}</p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 p-4">
-            <h3 className="text-sm font-semibold text-slate-800">About Doctor</h3>
-            <p className="mt-2 text-sm text-slate-600">{doctor.about}</p>
+          <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+            <p>
+              <span className="font-semibold">Fee:</span> BDT {doctor.consultationFee}
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold">Hospital:</span> {doctor.hospital}
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold">Availability:</span>{" "}
+              {doctor.availabilityText}
+            </p>
           </div>
         </div>
+      </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            to="/doctors"
-            className="inline-flex rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Back to List
-          </Link>
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Experience</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-600">{doctor.experience}</p>
+        </div>
 
-          <Link
-            to={`/book-appointment?doctorId=${doctor.id}`}
-            state={{ doctor }}
-            className="inline-flex rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
-          >
-            Continue to Booking
-          </Link>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Quick Summary</h2>
+          <ul className="mt-3 space-y-2 text-sm text-slate-600">
+            <li>✔ Trusted specialist consultation</li>
+            <li>✔ Easy appointment booking</li>
+            <li>✔ Online and offline options</li>
+            <li>✔ Secure healthcare workflow</li>
+          </ul>
+
+          <div className="mt-5">
+            <Link
+              to={`/book-appointment?doctorId=${doctor.id}`}
+              state={{ doctor }}
+              className="inline-flex rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600"
+            >
+              Continue to Booking
+            </Link>
+          </div>
         </div>
       </div>
     </div>
