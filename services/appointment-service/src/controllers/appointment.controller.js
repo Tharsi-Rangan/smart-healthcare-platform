@@ -6,6 +6,8 @@ import {
   getAppointmentById,
   cancelAppointment,
   rescheduleAppointment,
+  getDoctorAppointments,
+  updateAppointmentStatus,
 } from "../services/appointment.service.js";
 
 export const createAppointmentController = asyncHandler(async (req, res) => {
@@ -62,6 +64,30 @@ export const rescheduleAppointmentController = asyncHandler(async (req, res) => 
   res.status(200).json({
     success: true,
     message: "Appointment rescheduled successfully",
+    data: appointment,
+  });
+});
+
+export const getDoctorAppointmentsController = asyncHandler(async (req, res) => {
+  const appointments = await getDoctorAppointments(req.user.id);
+
+  res.status(200).json({
+    success: true,
+    message: "Doctor appointments fetched successfully",
+    data: appointments,
+  });
+});
+
+export const updateAppointmentStatusController = asyncHandler(async (req, res) => {
+  const appointment = await updateAppointmentStatus(
+    req.params.id,
+    req.user.id,
+    req.body.status
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Appointment status updated successfully",
     data: appointment,
   });
 });
