@@ -62,7 +62,12 @@ const ensureFutureAppointment = (appointmentDate, appointmentTime) => {
   }
 };
 
-const ensureNoDoubleBooking = async ({ doctorId, appointmentDate, appointmentTime, excludeId }) => {
+const ensureNoDoubleBooking = async ({
+  doctorId,
+  appointmentDate,
+  appointmentTime,
+  excludeId,
+}) => {
   const query = {
     doctorId,
     appointmentDate: normalizeAppointmentDate(appointmentDate),
@@ -88,19 +93,20 @@ const ensureOwnership = (appointment, patientId) => {
 };
 
 export const createAppointment = async (payload, patientId) => {
+  ensureFutureAppointment(payload.appointmentDate, payload.appointmentTime);
+
+  await ensureNoDoubleBooking({
+    doctorId: payload.doctorId,
+    appointmentDate: payload.appointmentDate,
+    appointmentTime: payload.appointmentTime,
+  });
+
   const appointmentPayload = {
     ...payload,
     patientId,
     appointmentDate: normalizeAppointmentDate(payload.appointmentDate),
     appointmentTime: normalizeAppointmentTime(payload.appointmentTime),
   };
-
-  ensureFutureAppointment(payload.appointmentDate, payload.appointmentTime);
-  await ensureNoDoubleBooking({
-    doctorId: payload.doctorId,
-    appointmentDate: payload.appointmentDate,
-    appointmentTime: payload.appointmentTime,
-  });
 
   try {
     return await Appointment.create(appointmentPayload);
@@ -151,18 +157,18 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
 
   ensureOwnership(appointment, patientId);
 
-  if (["cancelled", "completed"].includes(appointment.status)) {
-    if (appointment.status === "cancelled") {
-      throw new AppError("Cannot reschedule a cancelled appointment", 400);
-    }
+  if (appointment.status === "cancelled") {
+    throw new AppError("Cannot reschedule a cancelled appointment", 400);
+  }
 
+  if (appointment.status === "completed") {
     throw new AppError("Cannot reschedule a completed appointment", 400);
   }
 
-  const nextDate = normalizeAppointmentDate(rescheduleData.appointmentDate);
-  const nextTime = normalizeAppointmentTime(rescheduleData.appointmentTime);
-
-  ensureFutureAppointment(rescheduleData.appointmentDate, rescheduleData.appointmentTime);
+  ensureFutureAppointment(
+    rescheduleData.appointmentDate,
+    rescheduleData.appointmentTime
+  );
 
   await ensureNoDoubleBooking({
     doctorId: appointment.doctorId,
@@ -171,8 +177,8 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
     excludeId: appointment._id,
   });
 
-  appointment.appointmentDate = nextDate;
-  appointment.appointmentTime = nextTime;
+  appointment.appointmentDate = normalizeAppointmentDate(rescheduleData.appointmentDate);
+  appointment.appointmentTime = normalizeAppointmentTime(rescheduleData.appointmentTime);
   appointment.status = "pending";
 
   try {
@@ -184,4 +190,27 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
 
     throw error;
   }
+};
+
+export const getDoctorAppointments = async (doctorId) => {
+  return Appointment.find({ doctorId }).sort({ appointmentDate: 1, appointmentTime: 1 });
+};
+
+export const updateAppointmentStatus = async (appointmentId, doctorId, status) => {
+  const appointment = await Appointment.findById(appointmentId);
+
+  if (!appointment) {
+    throw new AppError("Appointment not found", 404);
+  }
+
+  if (String(appointment.doctorId) !== String(doctorId)) {
+    throw new AppError("Unauthorized access to this appointment", 403);
+  }
+
+  if (appointment.status === "cancelled") {
+    throw new AppError("Cannot update a cancelled appointment", 400);
+  }
+
+  appointment.status = status;
+  return appointment.save();
 };
