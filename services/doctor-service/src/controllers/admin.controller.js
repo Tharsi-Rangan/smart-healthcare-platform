@@ -4,6 +4,7 @@ import {
   getAllDoctors,
   approveDoctorById,
   rejectDoctorById,
+  getDoctorById,
 } from "../services/admin.service.js";
 
 export const getPendingDoctorsController = asyncHandler(async (req, res) => {
@@ -14,6 +15,17 @@ export const getPendingDoctorsController = asyncHandler(async (req, res) => {
     message: "Pending doctors fetched successfully",
     data: {
       doctors,
+    },
+  });
+});
+export const getDoctorByIdController = asyncHandler(async (req, res) => {
+  const doctor = await getDoctorById(req.params.id);
+
+  res.status(200).json({
+    success: true,
+    message: "Doctor fetched successfully",
+    data: {
+      doctor,
     },
   });
 });

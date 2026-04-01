@@ -34,3 +34,12 @@ export const rejectDoctorById = async (doctorId) => {
 
   return doctor;
 };
+export const getDoctorById = async (doctorId) => {
+  const doctor = await Doctor.findById(doctorId);
+
+  if (!doctor) {
+    throw new AppError("Doctor not found", 404);
+  }
+
+  return doctor;
+};

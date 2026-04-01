@@ -3,6 +3,7 @@ import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
 import { doctorProfileValidation } from "../validations/doctor.validation.js";
 import { availabilityValidation } from "../validations/availability.validation.js";
+import { getAdminDashboardController } from "../controllers/dashboard.controller.js";
 import {
   getDoctorProfileController,
   createOrUpdateDoctorProfileController,
@@ -16,6 +17,7 @@ import {
   getAllDoctorsController,
   approveDoctorController,
   rejectDoctorController,
+  getDoctorByIdController,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -72,4 +74,17 @@ router.patch(
   rejectDoctorController
 );
 
+router.get(
+  "/admin/dashboard",
+  protect,
+  authorize("admin"),
+  getAdminDashboardController
+);
+
+router.get(
+  "/:id",
+  protect,
+  authorize("admin"),
+  getDoctorByIdController
+);
 export default router;
