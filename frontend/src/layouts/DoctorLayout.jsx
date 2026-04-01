@@ -50,7 +50,7 @@ function DoctorLayout() {
               to="/doctor/reports"
               className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
             >
-              Patient Reports
+              Reports
             </Link>
             <Link
               to="/doctor/prescriptions"
