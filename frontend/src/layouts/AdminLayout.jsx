@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 
 function AdminLayout() {
@@ -9,6 +9,13 @@ function AdminLayout() {
     logout();
     navigate("/login");
   };
+
+  const navItemClass = ({ isActive }) =>
+    `block rounded-xl px-4 py-3 text-sm font-medium transition ${
+      isActive
+        ? "bg-cyan-50 text-cyan-700 font-semibold"
+        : "text-slate-700 hover:bg-cyan-50 hover:text-cyan-700"
+    }`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -21,31 +28,22 @@ function AdminLayout() {
             <p className="mt-1 text-sm text-slate-500">Admin Portal</p>
           </div>
 
-          <nav className="space-y-2 text-sm font-medium">
-            <Link
-              to="/admin/dashboard"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+          <nav className="space-y-2">
+            <NavLink to="/admin/dashboard" className={navItemClass}>
               Dashboard
-            </Link>
-            <Link
-              to="/admin/verify-doctors"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/admin/verify-doctors" className={navItemClass}>
               Verify Doctors
-            </Link>
-            <Link
-              to="/admin/manage-users"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/admin/manage-users" className={navItemClass}>
               Manage Users
-            </Link>
-            <Link
-              to="/admin/manage-doctors"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/admin/manage-doctors" className={navItemClass}>
               Manage Doctors
-            </Link>
+            </NavLink>
           </nav>
         </aside>
 

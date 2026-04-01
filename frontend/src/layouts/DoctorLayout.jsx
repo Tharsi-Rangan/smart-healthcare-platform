@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 
 function DoctorLayout() {
@@ -9,6 +9,13 @@ function DoctorLayout() {
     logout();
     navigate("/login");
   };
+
+  const navItemClass = ({ isActive }) =>
+    `block rounded-xl px-4 py-3 text-sm font-medium transition ${
+      isActive
+        ? "bg-cyan-50 text-cyan-700 font-semibold"
+        : "text-slate-700 hover:bg-cyan-50 hover:text-cyan-700"
+    }`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -21,43 +28,30 @@ function DoctorLayout() {
             <p className="mt-1 text-sm text-slate-500">Doctor Portal</p>
           </div>
 
-          <nav className="space-y-2 text-sm font-medium">
-            <Link
-              to="/doctor/dashboard"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+          <nav className="space-y-2">
+            <NavLink to="/doctor/dashboard" className={navItemClass}>
               Dashboard
-            </Link>
-            <Link
-              to="/doctor/profile"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/doctor/profile" className={navItemClass}>
               Profile
-            </Link>
-            <Link
-              to="/doctor/availability"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/doctor/availability" className={navItemClass}>
               Availability
-            </Link>
-            <Link
-              to="/doctor/appointments"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/doctor/appointments" className={navItemClass}>
               Appointments
-            </Link>
-            <Link
-              to="/doctor/reports"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/doctor/reports" className={navItemClass}>
               Reports
-            </Link>
-            <Link
-              to="/doctor/prescriptions"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
+            </NavLink>
+
+            <NavLink to="/doctor/prescriptions" className={navItemClass}>
               Prescriptions
-            </Link>
+            </NavLink>
           </nav>
         </aside>
 

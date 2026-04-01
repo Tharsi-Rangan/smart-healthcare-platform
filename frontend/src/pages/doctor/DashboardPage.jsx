@@ -1,94 +1,128 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../features/auth/AuthContext";
+import { useEffect, useState } from "react";
+import { getDoctorProfile, getDoctorAvailability } from "../../api/doctorApi";
 
-function DoctorLayout() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
+function DashboardPage() {
+  const [profile, setProfile] = useState(null);
+  const [availability, setAvailability] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profileRes, availabilityRes] = await Promise.all([
+          getDoctorProfile(),
+          getDoctorAvailability(),
+        ]);
+
+        setProfile(profileRes.data?.doctor || null);
+        setAvailability(availabilityRes.data?.availability || []);
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const statusStyles = {
+    pending: "bg-amber-100 text-amber-700",
+    approved: "bg-emerald-100 text-emerald-700",
+    rejected: "bg-red-100 text-red-700",
   };
 
+  if (loading) {
+    return <p className="text-slate-500">Loading dashboard...</p>;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      <div className="flex min-h-screen">
-        <aside className="w-72 border-r border-slate-200 bg-white p-6">
-          <div className="mb-8">
-            <h1 className="text-xl font-bold text-cyan-700">
-              Smart Healthcare
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">Doctor Portal</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Doctor Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          View your approval status, profile summary, and availability.
+        </p>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Approval Status</p>
+          <div className="mt-3">
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                statusStyles[profile?.approvalStatus] || "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {profile?.approvalStatus || "not created"}
+            </span>
           </div>
+        </div>
 
-          <nav className="space-y-2 text-sm font-medium">
-            <Link
-              to="/doctor/dashboard"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/doctor/profile"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Profile
-            </Link>
-            <Link
-              to="/doctor/availability"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Availability
-            </Link>
-            <Link
-              to="/doctor/appointments"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Appointments
-            </Link>
-            <Link
-              to="/doctor/reports"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Reports
-            </Link>
-            <Link
-              to="/doctor/prescriptions"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Prescriptions
-            </Link>
-          </nav>
-        </aside>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Specialization</p>
+          <p className="mt-3 text-lg font-semibold text-slate-800">
+            {profile?.specialization || "Not added"}
+          </p>
+        </div>
 
-        <div className="flex flex-1 flex-col">
-          <header className="border-b border-slate-200 bg-white px-8 py-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">
-                  Doctor Dashboard
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Welcome, {user?.name || "Doctor"}
-                </p>
-              </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Hospital</p>
+          <p className="mt-3 text-lg font-semibold text-slate-800">
+            {profile?.hospital || "Not added"}
+          </p>
+        </div>
 
-              <button
-                onClick={handleLogout}
-                className="rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
-              >
-                Logout
-              </button>
-            </div>
-          </header>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Availability Slots</p>
+          <p className="mt-3 text-lg font-semibold text-slate-800">
+            {availability.length}
+          </p>
+        </div>
+      </div>
 
-          <main className="flex-1 p-8">
-            <Outlet />
-          </main>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Profile Summary</h2>
+          <div className="mt-4 space-y-3 text-sm text-slate-600">
+            <p>
+              <span className="font-medium text-slate-800">License:</span>{" "}
+              {profile?.licenseNumber || "Not added"}
+            </p>
+            <p>
+              <span className="font-medium text-slate-800">Experience:</span>{" "}
+              {profile?.experience ?? 0} years
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-800">Recent Availability</h2>
+          <div className="mt-4 space-y-3">
+            {availability.length > 0 ? (
+              availability.slice(0, 4).map((slot) => (
+                <div
+                  key={slot._id}
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-600"
+                >
+                  {slot.day} • {slot.startTime} - {slot.endTime}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">No availability added yet.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-export default DoctorLayout;
+export default DashboardPage;
