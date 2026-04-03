@@ -5,6 +5,7 @@ const morgan = require("morgan");
 
 const healthRoutes = require("./routes/healthRoutes");
 const patientProfileRoutes = require("./routes/patientProfileRoutes");
+const medicalHistoryRoutes = require("./routes/medicalHistoryRoutes");
 const { errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/uploads", express.static("uploads"));
 
 app.use("/api/health", healthRoutes);
 app.use("/api/patients", patientProfileRoutes);
+app.use("/api/patients/medical-history", medicalHistoryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
