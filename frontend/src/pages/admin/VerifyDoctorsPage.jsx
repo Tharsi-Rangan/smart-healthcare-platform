@@ -11,7 +11,7 @@ function VerifyDoctorsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const loadPendingDoctors = async () => {
+  const loadDoctors = async () => {
     try {
       const response = await getPendingDoctors();
       setDoctors(response.data?.doctors || []);
@@ -23,14 +23,14 @@ function VerifyDoctorsPage() {
   };
 
   useEffect(() => {
-    loadPendingDoctors();
+    loadDoctors();
   }, []);
 
   const handleApprove = async (doctorId) => {
     try {
       const response = await approveDoctor(doctorId);
       setMessage(response.message || "Doctor approved successfully");
-      loadPendingDoctors();
+      loadDoctors();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve doctor");
     }
@@ -40,7 +40,7 @@ function VerifyDoctorsPage() {
     try {
       const response = await rejectDoctor(doctorId);
       setMessage(response.message || "Doctor rejected successfully");
-      loadPendingDoctors();
+      loadDoctors();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject doctor");
     }
@@ -51,67 +51,120 @@ function VerifyDoctorsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Verify Doctors</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Review pending doctor profiles and approve or reject them.
+        <h1 className="text-5xl font-bold text-slate-900">
+          Verify Doctor Registrations
+        </h1>
+        <p className="mt-3 text-2xl text-slate-500">
+          Review and approve new doctor applications
         </p>
       </div>
 
       {message && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-lg text-emerald-700">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-lg text-red-600">
           {error}
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-slate-900">{doctors.length}</h3>
+          <p className="mt-3 text-2xl text-slate-500">Pending Verification</p>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-slate-900">—</h3>
+          <p className="mt-3 text-2xl text-slate-500">Verified Doctors</p>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-red-500">—</h3>
+          <p className="mt-3 text-2xl text-slate-500">Rejected This Month</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
         {doctors.length > 0 ? (
           doctors.map((doctor) => (
             <div
               key={doctor._id}
-              className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center"
+              className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm"
             >
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">
-                  {doctor.specialization}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  License: {doctor.licenseNumber}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Hospital: {doctor.hospital || "Not provided"}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Experience: {doctor.experience || 0} years
-                </p>
-              </div>
+              <div className="grid gap-8 xl:grid-cols-[1fr,280px]">
+                <div>
+                  <h2 className="text-4xl font-semibold text-slate-900">
+                    {doctor.specialization || "Doctor"}
+                  </h2>
+                  <p className="mt-2 text-2xl text-cyan-600">
+                    Pending Verification
+                  </p>
+                  <p className="mt-2 text-xl text-slate-500">
+                    Submitted doctor profile
+                  </p>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleApprove(doctor._id)}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleReject(doctor._id)}
-                  className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
-                >
-                  Reject
-                </button>
+                  <div className="mt-8 grid gap-5 md:grid-cols-2 text-xl">
+                    <div>
+                      <p className="text-slate-500">License Number</p>
+                      <p className="mt-2 font-semibold text-slate-900">
+                        {doctor.licenseNumber}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Experience</p>
+                      <p className="mt-2 font-semibold text-slate-900">
+                        {doctor.experience || 0} years
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Hospital</p>
+                      <p className="mt-2 font-semibold text-slate-900">
+                        {doctor.hospital || "-"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Status</p>
+                      <p className="mt-2 font-semibold text-slate-900">
+                        {doctor.approvalStatus}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <button className="w-full rounded-2xl bg-slate-100 px-6 py-4 text-2xl font-medium text-slate-900">
+                    View Details
+                  </button>
+
+                  <button
+                    onClick={() => handleApprove(doctor._id)}
+                    className="w-full rounded-2xl bg-cyan-600 px-6 py-4 text-2xl font-semibold text-white"
+                  >
+                    Approve
+                  </button>
+
+                  <button
+                    onClick={() => handleReject(doctor._id)}
+                    className="w-full rounded-2xl bg-rose-50 px-6 py-4 text-2xl font-medium text-red-500"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-            No pending doctors found.
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 text-xl text-slate-500 shadow-sm">
+            No pending doctor registrations found.
           </div>
         )}
       </div>

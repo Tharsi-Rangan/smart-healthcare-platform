@@ -1,52 +1,45 @@
-import { useMemo, useState } from "react";
-
-const mockPatients = [
-  "Nimal Perera",
-  "Kasuni Silva",
-  "Ahamed Rizwan",
-  "Shalini Fernando",
-];
-
-const mockPrescriptions = [
-  {
-    id: "PR-3001",
-    patientName: "Nimal Perera",
-    diagnosis: "Mild hypertension",
-    medicines: [
-      { name: "Amlodipine 5mg", dosage: "1 tablet daily after breakfast" },
-      { name: "Aspirin 75mg", dosage: "1 tablet daily at night" },
-    ],
-    notes: "Monitor blood pressure for 2 weeks and continue light exercise.",
-    issuedAt: "2026-03-29 09:40 AM",
-  },
-  {
-    id: "PR-3002",
-    patientName: "Kasuni Silva",
-    diagnosis: "Vitamin deficiency",
-    medicines: [{ name: "Vitamin D3", dosage: "1 capsule weekly" }],
-    notes: "Follow-up blood test after 1 month.",
-    issuedAt: "2026-03-30 11:15 AM",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import {
+  createPrescription,
+  getPrescriptions,
+} from "../../api/doctorApi";
 
 function PrescriptionPage() {
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
   const [formData, setFormData] = useState({
-    patientName: mockPatients[0],
+    patientName: "",
     diagnosis: "",
     medicines: [{ name: "", dosage: "" }],
     notes: "",
   });
 
-  const [prescriptions, setPrescriptions] = useState(mockPrescriptions);
-  const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
+  const loadPrescriptions = async () => {
+    try {
+      setError("");
+      const response = await getPrescriptions();
+      setPrescriptions(response.data?.prescriptions || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load prescriptions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPrescriptions();
+  }, []);
 
   const filteredPrescriptions = useMemo(() => {
     return prescriptions.filter((item) => {
       return (
-        item.patientName.toLowerCase().includes(search.toLowerCase()) ||
-        item.diagnosis.toLowerCase().includes(search.toLowerCase()) ||
-        item.id.toLowerCase().includes(search.toLowerCase())
+        item.patientName?.toLowerCase().includes(search.toLowerCase()) ||
+        item.diagnosis?.toLowerCase().includes(search.toLowerCase())
       );
     });
   }, [prescriptions, search]);
@@ -63,95 +56,108 @@ function PrescriptionPage() {
   const handleMedicineChange = (index, field, value) => {
     setFormData((prev) => ({
       ...prev,
-      medicines: prev.medicines.map((medicine, i) =>
-        i === index ? { ...medicine, [field]: value } : medicine
+      medicines: prev.medicines.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
       ),
     }));
   };
 
-  const addMedicineRow = () => {
+  const addMedicine = () => {
     setFormData((prev) => ({
       ...prev,
       medicines: [...prev.medicines, { name: "", dosage: "" }],
     }));
   };
 
-  const removeMedicineRow = (index) => {
+  const removeMedicine = (index) => {
     setFormData((prev) => ({
       ...prev,
       medicines: prev.medicines.filter((_, i) => i !== index),
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
+    setMessage("");
+    setError("");
 
-    const cleanedMedicines = formData.medicines.filter(
-      (medicine) => medicine.name.trim() && medicine.dosage.trim()
-    );
+    try {
+      const cleanedMedicines = formData.medicines.filter(
+        (item) => item.name.trim() && item.dosage.trim()
+      );
 
-    const newPrescription = {
-      id: `PR-${Date.now()}`,
-      patientName: formData.patientName,
-      diagnosis: formData.diagnosis,
-      medicines: cleanedMedicines,
-      notes: formData.notes,
-      issuedAt: new Date().toLocaleString(),
-    };
+      const payload = {
+        ...formData,
+        medicines: cleanedMedicines,
+      };
 
-    setPrescriptions((prev) => [newPrescription, ...prev]);
-    setMessage("Prescription issued successfully.");
+      const response = await createPrescription(payload);
 
-    setFormData({
-      patientName: mockPatients[0],
-      diagnosis: "",
-      medicines: [{ name: "", dosage: "" }],
-      notes: "",
-    });
+      setMessage(response.message || "Prescription created successfully");
+
+      setFormData({
+        patientName: "",
+        diagnosis: "",
+        medicines: [{ name: "", dosage: "" }],
+        notes: "",
+      });
+
+      await loadPrescriptions();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create prescription");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Prescription Page</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Create and review digital prescriptions for patients.
+        <h1 className="text-5xl font-bold text-slate-900">
+          Digital Prescriptions
+        </h1>
+        <p className="mt-3 text-2xl text-slate-500">
+          Create and manage prescriptions
         </p>
       </div>
 
       {message && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-lg text-emerald-700">
           {message}
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-800">
-            Issue New Prescription
+      {error && (
+        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-lg text-red-600">
+          {error}
+        </div>
+      )}
+
+      <div className="grid gap-8 xl:grid-cols-[1fr,1fr]">
+        {/* LEFT - FORM */}
+        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h2 className="mb-8 text-4xl font-semibold text-slate-900">
+            Issue Prescription
           </h2>
 
-          <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label className="mb-3 block text-xl text-slate-500">
                 Patient Name
               </label>
-              <select
+              <input
+                type="text"
                 name="patientName"
                 value={formData.patientName}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-400"
-              >
-                {mockPatients.map((patient) => (
-                  <option key={patient} value={patient}>
-                    {patient}
-                  </option>
-                ))}
-              </select>
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
+                placeholder="John Doe"
+              />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label className="mb-3 block text-xl text-slate-500">
                 Diagnosis
               </label>
               <input
@@ -159,55 +165,53 @@ function PrescriptionPage() {
                 name="diagnosis"
                 value={formData.diagnosis}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-400"
-                placeholder="Enter diagnosis"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
+                placeholder="Mild hypertension"
               />
             </div>
 
-            <div className="space-y-3">
+            {/* Medicines */}
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-slate-700">
-                  Medicines
-                </label>
-
+                <label className="text-xl text-slate-500">Medicines</label>
                 <button
                   type="button"
-                  onClick={addMedicineRow}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                  onClick={addMedicine}
+                  className="rounded-2xl bg-slate-100 px-5 py-3 text-xl font-medium text-slate-900"
                 >
-                  Add Medicine
+                  Add
                 </button>
               </div>
 
-              {formData.medicines.map((medicine, index) => (
+              {formData.medicines.map((med, index) => (
                 <div
                   key={index}
-                  className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr,1fr,auto]"
+                  className="grid gap-4 rounded-[24px] border border-slate-200 p-5 md:grid-cols-[1fr,1fr,auto]"
                 >
                   <input
                     type="text"
-                    value={medicine.name}
+                    value={med.name}
                     onChange={(e) =>
                       handleMedicineChange(index, "name", e.target.value)
                     }
-                    className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-400"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xl outline-none"
                     placeholder="Medicine name"
                   />
 
                   <input
                     type="text"
-                    value={medicine.dosage}
+                    value={med.dosage}
                     onChange={(e) =>
                       handleMedicineChange(index, "dosage", e.target.value)
                     }
-                    className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-400"
-                    placeholder="Dosage / instructions"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xl outline-none"
+                    placeholder="Dosage"
                   />
 
                   <button
                     type="button"
-                    onClick={() => removeMedicineRow(index)}
-                    className="rounded-xl border border-red-200 px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    onClick={() => removeMedicine(index)}
+                    className="rounded-2xl bg-rose-50 px-4 py-4 text-xl text-red-500"
                   >
                     Remove
                   </button>
@@ -216,103 +220,83 @@ function PrescriptionPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Additional Notes
+              <label className="mb-3 block text-xl text-slate-500">
+                Notes
               </label>
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleChange}
                 rows="4"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-400"
-                placeholder="Follow-up advice, lifestyle guidance, next review..."
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
+                placeholder="Additional instructions..."
               />
             </div>
 
             <button
               type="submit"
-              className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600"
+              disabled={saving}
+              className="rounded-2xl bg-cyan-600 px-8 py-4 text-2xl font-semibold text-white"
             >
-              Issue Prescription
+              {saving ? "Saving..." : "Create Prescription"}
             </button>
           </form>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Issued Prescriptions
+        {/* RIGHT - LIST */}
+        <div className="space-y-6">
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <h2 className="text-4xl font-semibold text-slate-900">
+              Prescriptions
             </h2>
 
-            <div className="mt-4">
-              <input
-                type="text"
-                placeholder="Search by patient, diagnosis, or ID"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-400"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mt-6 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
+            />
           </div>
 
-          <div className="space-y-4">
-            {filteredPrescriptions.length > 0 ? (
-              filteredPrescriptions.map((prescription) => (
-                <div
-                  key={prescription.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-800">
-                        {prescription.patientName}
-                      </h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {prescription.id} • {prescription.issuedAt}
-                      </p>
-                    </div>
+          {loading ? (
+            <div className="text-xl text-slate-500">Loading...</div>
+          ) : filteredPrescriptions.length > 0 ? (
+            filteredPrescriptions.map((item) => (
+              <div
+                key={item._id}
+                className="rounded-[28px] border border-slate-200 bg-white p-7 shadow-sm"
+              >
+                <h3 className="text-3xl font-semibold text-slate-900">
+                  {item.patientName}
+                </h3>
 
-                    <button className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
-                      Download
-                    </button>
+                <p className="mt-2 text-xl text-slate-500">
+                  {item.issuedAt}
+                </p>
+
+                <div className="mt-4 text-xl">
+                  <p>
+                    <b>Diagnosis:</b> {item.diagnosis}
+                  </p>
+
+                  <div className="mt-3 space-y-2">
+                    {item.medicines.map((med, i) => (
+                      <div key={i} className="rounded-xl bg-slate-50 p-3">
+                        {med.name} — {med.dosage}
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="mt-4 space-y-3 text-sm text-slate-600">
-                    <p>
-                      <span className="font-medium text-slate-800">Diagnosis:</span>{" "}
-                      {prescription.diagnosis}
-                    </p>
-
-                    <div>
-                      <p className="font-medium text-slate-800">Medicines:</p>
-                      <ul className="mt-2 space-y-2">
-                        {prescription.medicines.map((medicine, index) => (
-                          <li
-                            key={index}
-                            className="rounded-xl bg-slate-50 px-3 py-2"
-                          >
-                            <span className="font-medium text-slate-800">
-                              {medicine.name}
-                            </span>{" "}
-                            — {medicine.dosage}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <p>
-                      <span className="font-medium text-slate-800">Notes:</span>{" "}
-                      {prescription.notes}
-                    </p>
-                  </div>
+                  <p className="mt-3">
+                    <b>Notes:</b> {item.notes}
+                  </p>
                 </div>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-                No prescriptions found.
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <p className="text-xl text-slate-500">No prescriptions found</p>
+          )}
         </div>
       </div>
     </div>

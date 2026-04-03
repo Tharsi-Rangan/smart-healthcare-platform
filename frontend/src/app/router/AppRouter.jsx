@@ -5,6 +5,7 @@ import PatientLayout from "../../layouts/PatientLayout";
 import DoctorLayout from "../../layouts/DoctorLayout";
 import AdminLayout from "../../layouts/AdminLayout";
 
+
 import HomePage from "../../pages/public/HomePage";
 import AboutPage from "../../pages/public/AboutPage";
 import LoginPage from "../../pages/public/LoginPage";
@@ -32,6 +33,7 @@ import AdminDashboardPage from "../../pages/admin/DashboardPage";
 import VerifyDoctorsPage from "../../pages/admin/VerifyDoctorsPage";
 import ManageUsersPage from "../../pages/admin/ManageUsersPage";
 import ManageDoctorsPage from "../../pages/admin/ManageDoctorsPage";
+import TransactionsPage from "../../pages/admin/TransactionsPage";
 
 import DoctorListPage from "../../pages/shared/DoctorListPage";
 import DoctorDetailsPage from "../../pages/shared/DoctorDetailsPage";
@@ -58,7 +60,7 @@ function AppRouter() {
           <Route path="/doctors/:id" element={<DoctorDetailsPage />} />
           <Route path="/book-appointment" element={<BookAppointmentPage />} />
           <Route path="/payment" element={<PaymentPage />} />
-          <Route path="/consultation" element={<ConsultationPage />} />
+         
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
@@ -81,6 +83,7 @@ function AppRouter() {
             <Route path="appointments" element={<DoctorAppointmentsPage />} />
             <Route path="reports" element={<ReportsReviewPage />} />
             <Route path="prescriptions" element={<PrescriptionPage />} />
+            <Route path="consultation" element={<ConsultationPage />} />
           </Route>
         </Route>
 
@@ -90,6 +93,7 @@ function AppRouter() {
             <Route path="verify-doctors" element={<VerifyDoctorsPage />} />
             <Route path="manage-users" element={<ManageUsersPage />} />
             <Route path="manage-doctors" element={<ManageDoctorsPage />} />
+            <Route path="transactions" element={<TransactionsPage />} />
           </Route>
         </Route>
       </Routes>

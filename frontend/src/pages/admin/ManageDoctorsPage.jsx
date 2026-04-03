@@ -21,73 +21,88 @@ function ManageDoctorsPage() {
     loadDoctors();
   }, []);
 
-  const statusStyles = {
-    pending: "bg-amber-100 text-amber-700",
-    approved: "bg-emerald-100 text-emerald-700",
-    rejected: "bg-red-100 text-red-700",
-  };
-
   if (loading) {
     return <p className="text-slate-500">Loading doctors...</p>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Manage Doctors</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          View all doctors and their approval status.
+        <h1 className="text-5xl font-bold text-slate-900">Manage Doctors</h1>
+        <p className="mt-3 text-2xl text-slate-500">
+          View and manage doctor accounts
         </p>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-lg text-red-600">
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[750px] text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-5 py-4">Specialization</th>
-                <th className="px-5 py-4">License</th>
-                <th className="px-5 py-4">Hospital</th>
-                <th className="px-5 py-4">Experience</th>
-                <th className="px-5 py-4">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {doctors.length > 0 ? (
-                doctors.map((doctor) => (
-                  <tr key={doctor._id} className="border-t border-slate-200">
-                    <td className="px-5 py-4 text-slate-800">{doctor.specialization}</td>
-                    <td className="px-5 py-4 text-slate-600">{doctor.licenseNumber}</td>
-                    <td className="px-5 py-4 text-slate-600">{doctor.hospital || "-"}</td>
-                    <td className="px-5 py-4 text-slate-600">{doctor.experience || 0}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          statusStyles[doctor.approvalStatus] ||
-                          "bg-slate-100 text-slate-700"
-                        }`}
-                      >
-                        {doctor.approvalStatus}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-5 py-6 text-center text-slate-500">
-                    No doctors found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="grid gap-6 lg:grid-cols-4">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-slate-900">{doctors.length}</h3>
+          <p className="mt-3 text-2xl text-slate-500">Total Doctors</p>
         </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-slate-900">
+            {doctors.filter((d) => d.approvalStatus === "approved").length}
+          </h3>
+          <p className="mt-3 text-2xl text-slate-500">Approved</p>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-slate-900">
+            {doctors.filter((d) => d.approvalStatus === "pending").length}
+          </h3>
+          <p className="mt-3 text-2xl text-slate-500">Pending Verification</p>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
+          <h3 className="text-5xl font-bold text-cyan-600">4.8</h3>
+          <p className="mt-3 text-2xl text-slate-500">Avg Rating</p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {doctors.map((doctor) => (
+          <div
+            key={doctor._id}
+            className="rounded-[28px] border border-slate-200 bg-white p-7 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-semibold text-slate-900">
+                  {doctor.specialization || "Doctor"}
+                </h2>
+                <p className="mt-2 text-2xl text-cyan-600">{doctor.hospital || "-"}</p>
+                <p className="mt-3 text-xl text-slate-500">
+                  Status: {doctor.approvalStatus}
+                </p>
+              </div>
+
+              <span className="text-lg text-slate-500">{doctor.approvalStatus}</span>
+            </div>
+
+            <div className="mt-6 space-y-3 text-xl text-slate-600">
+              <p>Email: not available</p>
+              <p>License: {doctor.licenseNumber}</p>
+              <p>Experience: {doctor.experience || 0} years</p>
+            </div>
+
+            <div className="mt-8 flex gap-4">
+              <button className="flex-1 rounded-2xl bg-slate-100 px-5 py-4 text-2xl font-medium text-slate-900">
+                View
+              </button>
+
+              <button className="rounded-2xl bg-rose-50 px-5 py-4 text-2xl text-red-500">
+                ⦸
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
