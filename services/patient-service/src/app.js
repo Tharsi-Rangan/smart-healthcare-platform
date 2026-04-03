@@ -7,6 +7,7 @@ const healthRoutes = require("./routes/healthRoutes");
 const patientProfileRoutes = require("./routes/patientProfileRoutes");
 const medicalHistoryRoutes = require("./routes/medicalHistoryRoutes");
 const patientReportRoutes = require("./routes/patientReportRoutes");
+const patientSummaryRoutes = require("./routes/patientSummaryRoutes");
 const { errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -28,6 +29,8 @@ app.use("/api/health", healthRoutes);
 app.use("/api/patients", patientProfileRoutes);
 app.use("/api/patients/medical-history", medicalHistoryRoutes);
 app.use("/api/patients/reports", patientReportRoutes);
+app.use("/api/patients/summary", patientSummaryRoutes);
+
 
 app.use((req, res) => {
   res.status(404).json({
