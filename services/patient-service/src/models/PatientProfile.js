@@ -51,6 +51,12 @@ const patientProfileSchema = new mongoose.Schema(
       default: "",
       maxlength: 100,
     },
+    emergencyContactRelationship: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: 50,
+    },
     emergencyContactPhone: {
       type: String,
       trim: true,

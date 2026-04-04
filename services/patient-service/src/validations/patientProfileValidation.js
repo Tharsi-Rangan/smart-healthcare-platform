@@ -1,13 +1,29 @@
 const { body, validationResult } = require("express-validator");
 const { sendError } = require("../utils/apiResponse");
 
+const nameRegex = /^[A-Za-z\s.'-]+$/;
+
+const validateDateOfBirth = (value) => {
+  if (!value) return true;
+
+  const selectedDate = new Date(value);
+  const today = new Date();
+
+  selectedDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  return selectedDate <= today;
+};
+
 const createPatientProfileValidation = [
   body("fullName")
     .trim()
     .notEmpty()
     .withMessage("Full name is required.")
     .isLength({ max: 100 })
-    .withMessage("Full name must not exceed 100 characters."),
+    .withMessage("Full name must not exceed 100 characters.")
+    .matches(nameRegex)
+    .withMessage("Full name must contain only valid name characters."),
 
   body("phone")
     .optional({ checkFalsy: true })
@@ -18,7 +34,9 @@ const createPatientProfileValidation = [
   body("dateOfBirth")
     .optional({ checkFalsy: true })
     .isISO8601()
-    .withMessage("Date of birth must be a valid date."),
+    .withMessage("Date of birth must be a valid date.")
+    .custom(validateDateOfBirth)
+    .withMessage("Date of birth cannot be in the future."),
 
   body("gender")
     .optional({ checkFalsy: true })
@@ -40,7 +58,15 @@ const createPatientProfileValidation = [
     .optional({ checkFalsy: true })
     .trim()
     .isLength({ max: 100 })
-    .withMessage("Emergency contact name must not exceed 100 characters."),
+    .withMessage("Emergency contact name must not exceed 100 characters.")
+    .matches(nameRegex)
+    .withMessage("Emergency contact name must contain only valid name characters."),
+
+  body("emergencyContactRelationship")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage("Emergency contact relationship must not exceed 50 characters."),
 
   body("emergencyContactPhone")
     .optional({ checkFalsy: true })
@@ -65,6 +91,29 @@ const createPatientProfileValidation = [
     .trim()
     .isURL()
     .withMessage("Profile image must be a valid URL."),
+
+  body().custom((value) => {
+    const hasAnyEmergencyField =
+      value.emergencyContactName ||
+      value.emergencyContactRelationship ||
+      value.emergencyContactPhone;
+
+    if (hasAnyEmergencyField) {
+      if (!value.emergencyContactName) {
+        throw new Error("Emergency contact name is required when emergency contact details are provided.");
+      }
+
+      if (!value.emergencyContactRelationship) {
+        throw new Error("Emergency contact relationship is required when emergency contact details are provided.");
+      }
+
+      if (!value.emergencyContactPhone) {
+        throw new Error("Emergency contact phone is required when emergency contact details are provided.");
+      }
+    }
+
+    return true;
+  }),
 ];
 
 const updatePatientProfileValidation = [
@@ -74,7 +123,9 @@ const updatePatientProfileValidation = [
     .notEmpty()
     .withMessage("Full name cannot be empty.")
     .isLength({ max: 100 })
-    .withMessage("Full name must not exceed 100 characters."),
+    .withMessage("Full name must not exceed 100 characters.")
+    .matches(nameRegex)
+    .withMessage("Full name must contain only valid name characters."),
 
   body("phone")
     .optional({ checkFalsy: true })
@@ -85,7 +136,9 @@ const updatePatientProfileValidation = [
   body("dateOfBirth")
     .optional({ checkFalsy: true })
     .isISO8601()
-    .withMessage("Date of birth must be a valid date."),
+    .withMessage("Date of birth must be a valid date.")
+    .custom(validateDateOfBirth)
+    .withMessage("Date of birth cannot be in the future."),
 
   body("gender")
     .optional({ checkFalsy: true })
@@ -107,7 +160,15 @@ const updatePatientProfileValidation = [
     .optional({ checkFalsy: true })
     .trim()
     .isLength({ max: 100 })
-    .withMessage("Emergency contact name must not exceed 100 characters."),
+    .withMessage("Emergency contact name must not exceed 100 characters.")
+    .matches(nameRegex)
+    .withMessage("Emergency contact name must contain only valid name characters."),
+
+  body("emergencyContactRelationship")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage("Emergency contact relationship must not exceed 50 characters."),
 
   body("emergencyContactPhone")
     .optional({ checkFalsy: true })
@@ -132,6 +193,29 @@ const updatePatientProfileValidation = [
     .trim()
     .isURL()
     .withMessage("Profile image must be a valid URL."),
+
+  body().custom((value) => {
+    const hasAnyEmergencyField =
+      value.emergencyContactName ||
+      value.emergencyContactRelationship ||
+      value.emergencyContactPhone;
+
+    if (hasAnyEmergencyField) {
+      if (!value.emergencyContactName) {
+        throw new Error("Emergency contact name is required when emergency contact details are provided.");
+      }
+
+      if (!value.emergencyContactRelationship) {
+        throw new Error("Emergency contact relationship is required when emergency contact details are provided.");
+      }
+
+      if (!value.emergencyContactPhone) {
+        throw new Error("Emergency contact phone is required when emergency contact details are provided.");
+      }
+    }
+
+    return true;
+  }),
 ];
 
 const validate = (req, res, next) => {
