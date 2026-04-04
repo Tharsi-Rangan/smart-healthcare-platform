@@ -11,18 +11,28 @@ export const getDoctorProfile = async (authUserId) => {
   return doctor;
 };
 
-export const createOrUpdateDoctorProfile = async (authUserId, payload) => {
-  const { specialization, licenseNumber, hospital, experience } = payload;
+export const createOrUpdateDoctorProfile = async (authUserId, payload, file) => {
+  const {
+    doctorName,
+    specialization,
+    licenseNumber,
+    hospital,
+    experience,
+  } = payload;
 
   let doctor = await Doctor.findOne({ authUserId });
+
+  const profilePhotoUrl = file ? `/uploads/doctors/${file.filename}` : undefined;
 
   if (!doctor) {
     doctor = await Doctor.create({
       authUserId,
+      doctorName,
       specialization,
       licenseNumber,
       hospital,
       experience,
+      profilePhotoUrl: profilePhotoUrl || "",
     });
 
     return {
@@ -31,10 +41,15 @@ export const createOrUpdateDoctorProfile = async (authUserId, payload) => {
     };
   }
 
+  doctor.doctorName = doctorName ?? doctor.doctorName;
   doctor.specialization = specialization ?? doctor.specialization;
   doctor.licenseNumber = licenseNumber ?? doctor.licenseNumber;
   doctor.hospital = hospital ?? doctor.hospital;
   doctor.experience = experience ?? doctor.experience;
+
+  if (profilePhotoUrl) {
+    doctor.profilePhotoUrl = profilePhotoUrl;
+  }
 
   await doctor.save();
 

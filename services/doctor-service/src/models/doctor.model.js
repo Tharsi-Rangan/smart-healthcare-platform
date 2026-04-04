@@ -8,6 +8,11 @@ const doctorSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    doctorName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     specialization: {
       type: String,
       required: true,
@@ -27,6 +32,11 @@ const doctorSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0,
+    },
+    profilePhotoUrl: {
+      type: String,
+      default: "",
+      trim: true,
     },
     approvalStatus: {
       type: String,

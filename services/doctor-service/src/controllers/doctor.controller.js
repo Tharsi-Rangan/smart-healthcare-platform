@@ -31,7 +31,8 @@ export const createOrUpdateDoctorProfileController = asyncHandler(async (req, re
 
   const { doctor, isCreated } = await createOrUpdateDoctorProfile(
     req.user.userId,
-    req.body
+    req.body,
+    req.file
   );
 
   res.status(isCreated ? 201 : 200).json({
