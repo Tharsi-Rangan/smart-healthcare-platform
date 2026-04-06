@@ -3,6 +3,8 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { fetchPatientProfile } from "../services/patientService";
 
+const FILE_BASE_URL = "http://localhost:5002";
+
 function PatientLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -11,6 +13,7 @@ function PatientLayout() {
   const [profileImage, setProfileImage] = useState("");
   const [profileName, setProfileName] = useState(user?.name || "Patient");
   const [profileEmail, setProfileEmail] = useState(user?.email || "");
+  const [imageError, setImageError] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -22,14 +25,26 @@ function PatientLayout() {
         setProfileImage(profile.profileImage || "");
         setProfileName(profile.fullName || user?.name || "Patient");
         setProfileEmail(profile.email || user?.email || "");
+        setImageError(false);
       } catch (error) {
         setProfileImage("");
         setProfileName(user?.name || "Patient");
         setProfileEmail(user?.email || "");
+        setImageError(false);
       }
     };
 
     loadProfile();
+
+    const handleProfileUpdated = () => {
+      loadProfile();
+    };
+
+    window.addEventListener("patient-profile-updated", handleProfileUpdated);
+
+    return () => {
+      window.removeEventListener("patient-profile-updated", handleProfileUpdated);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -61,6 +76,16 @@ function PatientLayout() {
       .map((part) => part[0].toUpperCase())
       .join("");
   };
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+    return `${FILE_BASE_URL}${imagePath}`;
+  };
+
+  const resolvedImage = getImageUrl(profileImage);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -137,11 +162,12 @@ function PatientLayout() {
                   onClick={() => setMenuOpen((prev) => !prev)}
                   className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-sm transition hover:border-cyan-300 hover:ring-2 hover:ring-cyan-100"
                 >
-                  {profileImage ? (
+                  {resolvedImage && !imageError ? (
                     <img
-                      src={profileImage}
+                      src={resolvedImage}
                       alt={profileName}
                       className="h-full w-full object-cover"
+                      onError={() => setImageError(true)}
                     />
                   ) : (
                     <span className="text-sm font-semibold text-cyan-700">
@@ -154,11 +180,12 @@ function PatientLayout() {
                   <div className="absolute right-0 top-14 z-20 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg">
                     <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
                       <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-slate-200">
-                        {profileImage ? (
+                        {resolvedImage && !imageError ? (
                           <img
-                            src={profileImage}
+                            src={resolvedImage}
                             alt={profileName}
                             className="h-full w-full object-cover"
+                            onError={() => setImageError(true)}
                           />
                         ) : (
                           <span className="text-sm font-semibold text-cyan-700">

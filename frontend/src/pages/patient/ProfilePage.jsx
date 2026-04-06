@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   fetchPatientProfile,
   updatePatientProfile,
+  uploadPatientAvatar,
 } from "../../services/patientService";
+
+const FILE_BASE_URL = "http://localhost:5002";
 
 function ProfilePage() {
   const emptyForm = {
@@ -25,8 +28,10 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [imageError, setImageError] = useState(false);
 
   const maxDate = useMemo(() => {
     return new Date().toISOString().split("T")[0];
@@ -48,7 +53,8 @@ function ProfilePage() {
           address: profile.address || "",
           bloodGroup: profile.bloodGroup || "",
           emergencyContactName: profile.emergencyContactName || "",
-          emergencyContactRelationship: profile.emergencyContactRelationship || "",
+          emergencyContactRelationship:
+            profile.emergencyContactRelationship || "",
           emergencyContactPhone: profile.emergencyContactPhone || "",
           allergiesSummary: profile.allergiesSummary || "",
           chronicConditionsSummary: profile.chronicConditionsSummary || "",
@@ -57,6 +63,7 @@ function ProfilePage() {
 
         setFormData(mappedData);
         setOriginalData(mappedData);
+        setImageError(false);
       } catch (error) {
         setErrorMessage(error.message || "Failed to load profile");
       } finally {
@@ -87,6 +94,7 @@ function ProfilePage() {
     setSuccessMessage("");
     setErrorMessage("");
     setIsEditing(false);
+    setImageError(false);
   };
 
   const handleSubmit = async (event) => {
@@ -112,7 +120,6 @@ function ProfilePage() {
       };
 
       const response = await updatePatientProfile(payload);
-
       const updatedProfile = response.data.profile;
 
       const mappedData = {
@@ -137,10 +144,48 @@ function ProfilePage() {
       setOriginalData(mappedData);
       setSuccessMessage(response.message || "Profile updated successfully");
       setIsEditing(false);
+      setImageError(false);
+      window.dispatchEvent(new Event("patient-profile-updated"));
     } catch (error) {
       setErrorMessage(error.message || "Failed to update profile");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const avatarFormData = new FormData();
+      avatarFormData.append("avatar", file);
+
+      const response = await uploadPatientAvatar(avatarFormData);
+      const updatedProfile = response.data.profile;
+
+      setFormData((prev) => ({
+        ...prev,
+        profileImage: updatedProfile.profileImage || "",
+      }));
+
+      setOriginalData((prev) => ({
+        ...prev,
+        profileImage: updatedProfile.profileImage || "",
+      }));
+
+      setImageError(false);
+      window.dispatchEvent(new Event("patient-profile-updated"));
+      setSuccessMessage(response.message || "Profile photo uploaded successfully");
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to upload profile photo");
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = "";
     }
   };
 
@@ -154,6 +199,16 @@ function ProfilePage() {
       .map((part) => part[0].toUpperCase())
       .join("");
   };
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+    return `${FILE_BASE_URL}${imagePath}`;
+  };
+
+  const resolvedImage = getImageUrl(formData.profileImage);
 
   if (loading) {
     return (
@@ -201,11 +256,12 @@ function ProfilePage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col items-center text-center">
               <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                {formData.profileImage ? (
+                {resolvedImage && !imageError ? (
                   <img
-                    src={formData.profileImage}
+                    src={resolvedImage}
                     alt={formData.fullName}
                     className="h-full w-full object-cover"
+                    onError={() => setImageError(true)}
                   />
                 ) : (
                   <span className="text-2xl font-bold text-cyan-700">
@@ -220,6 +276,19 @@ function ProfilePage() {
               <p className="mt-1 text-sm text-slate-500">
                 {formData.phone || "No phone number added"}
               </p>
+
+              <div className="mt-4 w-full">
+                <label className="inline-flex cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                  {uploadingAvatar ? "Uploading..." : "Change Photo"}
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              </div>
             </div>
           </div>
 

@@ -53,6 +53,16 @@ export const updatePatientProfile = async (profileData) => {
   return handleResponse(response);
 };
 
+export const uploadPatientAvatar = async (formData) => {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/profile/avatar`, {
+    method: "PUT",
+    headers: buildHeaders(),
+    body: formData,
+  });
+
+  return handleResponse(response);
+};
+
 // Medical History
 export const fetchMedicalHistory = async () => {
   const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/medical-history`, {
@@ -76,22 +86,28 @@ export const createMedicalHistory = async (historyData) => {
 };
 
 export const updateMedicalHistory = async (id, historyData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/medical-history/${id}`, {
-    method: "PUT",
-    headers: buildHeaders({
-      "Content-Type": "application/json",
-    }),
-    body: JSON.stringify(historyData),
-  });
+  const response = await fetch(
+    `${PATIENT_SERVICE_BASE_URL}/medical-history/${id}`,
+    {
+      method: "PUT",
+      headers: buildHeaders({
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify(historyData),
+    }
+  );
 
   return handleResponse(response);
 };
 
 export const deleteMedicalHistory = async (id) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/medical-history/${id}`, {
-    method: "DELETE",
-    headers: buildHeaders(),
-  });
+  const response = await fetch(
+    `${PATIENT_SERVICE_BASE_URL}/medical-history/${id}`,
+    {
+      method: "DELETE",
+      headers: buildHeaders(),
+    }
+  );
 
   return handleResponse(response);
 };
@@ -129,11 +145,14 @@ export const updatePatientReport = async (id, reportData) => {
 };
 
 export const replacePatientReportFile = async (id, formData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/reports/${id}/file`, {
-    method: "PUT",
-    headers: buildHeaders(),
-    body: formData,
-  });
+  const response = await fetch(
+    `${PATIENT_SERVICE_BASE_URL}/reports/${id}/file`,
+    {
+      method: "PUT",
+      headers: buildHeaders(),
+      body: formData,
+    }
+  );
 
   return handleResponse(response);
 };

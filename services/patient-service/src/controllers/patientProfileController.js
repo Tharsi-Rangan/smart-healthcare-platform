@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const PatientProfile = require("../models/PatientProfile");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
@@ -84,8 +86,44 @@ const updateCurrentPatientProfile = asyncHandler(async (req, res) => {
   });
 });
 
+const uploadPatientProfileAvatar = asyncHandler(async (req, res) => {
+  const profile = await PatientProfile.findOne({
+    authUserId: req.user.userId,
+  });
+
+  if (!profile) {
+    return sendError(res, 404, "Patient profile not found.");
+  }
+
+  if (!req.file) {
+    return sendError(res, 400, "Profile image file is required.");
+  }
+
+  if (
+    profile.profileImage &&
+    profile.profileImage.startsWith("/uploads/avatars/")
+  ) {
+    const oldAvatarPath = path.join(
+      process.cwd(),
+      profile.profileImage.replace(/^\//, "")
+    );
+
+    if (fs.existsSync(oldAvatarPath)) {
+      fs.unlinkSync(oldAvatarPath);
+    }
+  }
+
+  profile.profileImage = `/uploads/avatars/${req.file.filename}`;
+  await profile.save();
+
+  return sendSuccess(res, 200, "Profile photo uploaded successfully.", {
+    profile,
+  });
+});
+
 module.exports = {
   createPatientProfile,
   getCurrentPatientProfile,
   updateCurrentPatientProfile,
+  uploadPatientProfileAvatar,
 };
