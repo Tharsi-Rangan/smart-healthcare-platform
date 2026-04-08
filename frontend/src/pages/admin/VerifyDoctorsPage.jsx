@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   approveDoctor,
   getPendingDoctors,
@@ -8,6 +8,8 @@ import {
 function VerifyDoctorsPage() {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState("");
+  const [reviewMessages, setReviewMessages] = useState({});
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -26,148 +28,233 @@ function VerifyDoctorsPage() {
     loadDoctors();
   }, []);
 
+  const stats = useMemo(() => {
+    return {
+      pending: doctors.length,
+      withHospital: doctors.filter((d) => d.hospital).length,
+      withExperience: doctors.filter((d) => Number(d.experience) > 0).length,
+    };
+  }, [doctors]);
+
+  const handleMessageChange = (doctorId, value) => {
+    setReviewMessages((prev) => ({
+      ...prev,
+      [doctorId]: value,
+    }));
+  };
+
   const handleApprove = async (doctorId) => {
     try {
-      const response = await approveDoctor(doctorId);
+      setActionLoadingId(doctorId);
+      setMessage("");
+      setError("");
+
+      const response = await approveDoctor(doctorId, {
+        adminReviewMessage: reviewMessages[doctorId] || "Approved by admin",
+      });
+
       setMessage(response.message || "Doctor approved successfully");
-      loadDoctors();
+      await loadDoctors();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve doctor");
+    } finally {
+      setActionLoadingId("");
     }
   };
 
   const handleReject = async (doctorId) => {
+    const reviewMessage = reviewMessages[doctorId]?.trim();
+
+    if (!reviewMessage) {
+      setError("Please enter a rejection reason before rejecting a doctor.");
+      return;
+    }
+
     try {
-      const response = await rejectDoctor(doctorId);
+      setActionLoadingId(doctorId);
+      setMessage("");
+      setError("");
+
+      const response = await rejectDoctor(doctorId, {
+        adminReviewMessage: reviewMessage,
+      });
+
       setMessage(response.message || "Doctor rejected successfully");
-      loadDoctors();
+      await loadDoctors();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject doctor");
+    } finally {
+      setActionLoadingId("");
     }
   };
 
   if (loading) {
-    return <p className="text-slate-500">Loading pending doctors...</p>;
+    return (
+      <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <p className="text-base text-slate-500">Loading pending doctors...</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl font-bold text-slate-900">
-          Verify Doctor Registrations
-        </h1>
-        <p className="mt-3 text-2xl text-slate-500">
-          Review and approve new doctor applications
-        </p>
-      </div>
+      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-slate-900 to-cyan-700 p-8 text-white shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
+              Doctor Verification
+            </p>
+            <h1 className="mt-3 text-4xl font-bold md:text-5xl">
+              Verify Doctor Registrations
+            </h1>
+            <p className="mt-3 max-w-2xl text-base text-cyan-50 md:text-lg">
+              Review doctor applications and provide approval or rejection notes.
+            </p>
+          </div>
+
+          <div className="rounded-3xl bg-white/10 px-5 py-4 backdrop-blur-sm">
+            <p className="text-sm text-cyan-100">Pending Requests</p>
+            <p className="mt-2 text-3xl font-bold">{stats.pending}</p>
+          </div>
+        </div>
+      </section>
 
       {message && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-lg text-emerald-700">
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-base text-emerald-700">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-lg text-red-600">
+        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-base text-red-600">
           {error}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
-          <h3 className="text-5xl font-bold text-slate-900">{doctors.length}</h3>
-          <p className="mt-3 text-2xl text-slate-500">Pending Verification</p>
+      <section className="grid gap-6 md:grid-cols-3">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Pending
+          </p>
+          <h3 className="mt-4 text-3xl font-bold text-slate-900">{stats.pending}</h3>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
-          <h3 className="text-5xl font-bold text-slate-900">—</h3>
-          <p className="mt-3 text-2xl text-slate-500">Verified Doctors</p>
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            With Hospital Info
+          </p>
+          <h3 className="mt-4 text-3xl font-bold text-cyan-600">{stats.withHospital}</h3>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-sm">
-          <h3 className="text-5xl font-bold text-red-500">—</h3>
-          <p className="mt-3 text-2xl text-slate-500">Rejected This Month</p>
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            With Experience Info
+          </p>
+          <h3 className="mt-4 text-3xl font-bold text-slate-900">{stats.withExperience}</h3>
         </div>
-      </div>
+      </section>
 
-      <div className="space-y-6">
+      <section className="space-y-6">
         {doctors.length > 0 ? (
           doctors.map((doctor) => (
             <div
               key={doctor._id}
-              className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm"
+              className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm"
             >
-              <div className="grid gap-8 xl:grid-cols-[1fr,280px]">
+              <div className="grid gap-6 xl:grid-cols-[1fr,300px]">
                 <div>
-                  <h2 className="text-4xl font-semibold text-slate-900">
-                    {doctor.specialization || "Doctor"}
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    {doctor.doctorName || "Doctor"}
                   </h2>
-                  <p className="mt-2 text-2xl text-cyan-600">
-                    Pending Verification
-                  </p>
-                  <p className="mt-2 text-xl text-slate-500">
-                    Submitted doctor profile
+                  <p className="mt-2 text-sm text-cyan-700">
+                    {doctor.specialization || "Specialization not added"}
                   </p>
 
-                  <div className="mt-8 grid gap-5 md:grid-cols-2 text-xl">
-                    <div>
-                      <p className="text-slate-500">License Number</p>
-                      <p className="mt-2 font-semibold text-slate-900">
-                        {doctor.licenseNumber}
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        License Number
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {doctor.licenseNumber || "-"}
                       </p>
                     </div>
 
-                    <div>
-                      <p className="text-slate-500">Experience</p>
-                      <p className="mt-2 font-semibold text-slate-900">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Experience
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
                         {doctor.experience || 0} years
                       </p>
                     </div>
 
-                    <div>
-                      <p className="text-slate-500">Hospital</p>
-                      <p className="mt-2 font-semibold text-slate-900">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Hospital / Clinic
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
                         {doctor.hospital || "-"}
                       </p>
                     </div>
 
-                    <div>
-                      <p className="text-slate-500">Status</p>
-                      <p className="mt-2 font-semibold text-slate-900">
-                        {doctor.approvalStatus}
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Status
+                      </p>
+                      <p className="mt-1 font-medium capitalize text-slate-900">
+                        {doctor.approvalStatus || "pending"}
                       </p>
                     </div>
                   </div>
+
+                  <div className="mt-5">
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      Admin Review Message
+                    </label>
+                    <textarea
+                      rows="4"
+                      value={reviewMessages[doctor._id] || ""}
+                      onChange={(e) => handleMessageChange(doctor._id, e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+                      placeholder="Example: License number format is incorrect, please update and resubmit."
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <button className="w-full rounded-2xl bg-slate-100 px-6 py-4 text-2xl font-medium text-slate-900">
-                    View Details
-                  </button>
+                <div className="flex items-start xl:justify-end">
+                  <div className="grid w-full gap-3 xl:w-[240px]">
+                    <button
+                      onClick={() => handleApprove(doctor._id)}
+                      disabled={actionLoadingId === doctor._id}
+                      className="rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:opacity-70"
+                    >
+                      {actionLoadingId === doctor._id ? "Processing..." : "Approve"}
+                    </button>
 
-                  <button
-                    onClick={() => handleApprove(doctor._id)}
-                    className="w-full rounded-2xl bg-cyan-600 px-6 py-4 text-2xl font-semibold text-white"
-                  >
-                    Approve
-                  </button>
-
-                  <button
-                    onClick={() => handleReject(doctor._id)}
-                    className="w-full rounded-2xl bg-rose-50 px-6 py-4 text-2xl font-medium text-red-500"
-                  >
-                    Reject
-                  </button>
+                    <button
+                      onClick={() => handleReject(doctor._id)}
+                      disabled={actionLoadingId === doctor._id}
+                      className="rounded-2xl bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-70"
+                    >
+                      Reject with Message
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ))
         ) : (
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 text-xl text-slate-500 shadow-sm">
-            No pending doctor registrations found.
+          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+            <p className="text-lg font-semibold text-slate-800">
+              No pending doctor registrations
+            </p>
+            <p className="mt-2 text-slate-500">
+              All doctor requests have been reviewed.
+            </p>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

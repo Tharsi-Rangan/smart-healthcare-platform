@@ -17,7 +17,7 @@ function DashboardPage() {
         ]);
 
         setProfile(profileRes.data?.doctor || null);
-        setAvailability(availabilityRes.data?.availability || []);
+setAvailability(availabilityRes.data?.availability || []);
       } catch (err) {
         setError(
           err.response?.data?.message || "Failed to load doctor dashboard"

@@ -49,6 +49,15 @@ export const getDoctorAppointments = async () => {
   return response.data;
 };
 
+export const createDoctorAppointment = async (payload) => {
+  const response = await doctorApi.post("/api/doctors/appointments", payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  return response.data;
+};
+
 export const updateDoctorAppointmentStatus = async (appointmentId, status) => {
   const response = await doctorApi.patch(
     `/api/doctors/appointments/${appointmentId}/status`,
@@ -116,13 +125,34 @@ export const getDoctorById = async (doctorId) => {
   return response.data;
 };
 
-export const approveDoctor = async (doctorId) => {
-  const response = await doctorApi.patch(`/api/doctors/${doctorId}/approve`);
+export const approveDoctor = async (doctorId, payload = {}) => {
+  const response = await doctorApi.patch(`/api/doctors/${doctorId}/approve`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
   return response.data;
 };
 
-export const rejectDoctor = async (doctorId) => {
-  const response = await doctorApi.patch(`/api/doctors/${doctorId}/reject`);
+export const rejectDoctor = async (doctorId, payload) => {
+  const response = await doctorApi.patch(`/api/doctors/${doctorId}/reject`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  return response.data;
+};
+
+export const toggleDoctorActiveStatus = async (doctorId, payload = {}) => {
+  const response = await doctorApi.patch(
+    `/api/doctors/${doctorId}/toggle-active`,
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
   return response.data;
 };
 

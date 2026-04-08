@@ -5,7 +5,6 @@ import PatientLayout from "../../layouts/PatientLayout";
 import DoctorLayout from "../../layouts/DoctorLayout";
 import AdminLayout from "../../layouts/AdminLayout";
 
-
 import HomePage from "../../pages/public/HomePage";
 import AboutPage from "../../pages/public/AboutPage";
 import LoginPage from "../../pages/public/LoginPage";
@@ -60,7 +59,6 @@ function AppRouter() {
           <Route path="/doctors/:id" element={<DoctorDetailsPage />} />
           <Route path="/book-appointment" element={<BookAppointmentPage />} />
           <Route path="/payment" element={<PaymentPage />} />
-         
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
@@ -89,10 +87,11 @@ function AppRouter() {
 
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
           <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboardPage />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="verify-doctors" element={<VerifyDoctorsPage />} />
-            <Route path="manage-users" element={<ManageUsersPage />} />
             <Route path="manage-doctors" element={<ManageDoctorsPage />} />
+            <Route path="manage-users" element={<ManageUsersPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
           </Route>
         </Route>
