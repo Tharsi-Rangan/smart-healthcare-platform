@@ -25,6 +25,7 @@ import {
   approveDoctorController,
   rejectDoctorController,
   getDoctorByIdController,
+  toggleDoctorActiveStatusController,
 } from "../controllers/admin.controller.js";
 
 import { getAdminDashboardController } from "../controllers/dashboard.controller.js";
@@ -100,12 +101,7 @@ router.patch(
 );
 
 /* Doctor reports */
-router.get(
-  "/reports",
-  protect,
-  authorize("doctor"),
-  getPatientReportsController
-);
+router.get("/reports", protect, authorize("doctor"), getPatientReportsController);
 
 router.get(
   "/reports/:id",
@@ -147,39 +143,21 @@ router.get(
 );
 
 /* Admin doctor management */
-router.get(
-  "/pending",
-  protect,
-  authorize("admin"),
-  getPendingDoctorsController
-);
+router.get("/pending", protect, authorize("admin"), getPendingDoctorsController);
 
-router.get(
-  "/",
-  protect,
-  authorize("admin"),
-  getAllDoctorsController
-);
+router.get("/", protect, authorize("admin"), getAllDoctorsController);
+
+router.get("/:id", protect, authorize("admin"), getDoctorByIdController);
+
+router.patch("/:id/approve", protect, authorize("admin"), approveDoctorController);
+
+router.patch("/:id/reject", protect, authorize("admin"), rejectDoctorController);
 
 router.patch(
-  "/:id/approve",
+  "/:id/toggle-active",
   protect,
   authorize("admin"),
-  approveDoctorController
-);
-
-router.patch(
-  "/:id/reject",
-  protect,
-  authorize("admin"),
-  rejectDoctorController
-);
-
-router.get(
-  "/:id",
-  protect,
-  authorize("admin"),
-  getDoctorByIdController
+  toggleDoctorActiveStatusController
 );
 
 export default router;

@@ -3,14 +3,23 @@ import { Availability } from "../models/availability.model.js";
 
 export const getAdminDashboardSummary = async () => {
   const totalDoctors = await Doctor.countDocuments();
-  const pendingDoctors = await Doctor.countDocuments({ approvalStatus: "pending" });
-  const approvedDoctors = await Doctor.countDocuments({ approvalStatus: "approved" });
-  const totalAvailabilitySlots = await Availability.countDocuments();
+
+  const approvedDoctors = await Doctor.countDocuments({
+    approvalStatus: "approved",
+  });
+
+  const pendingDoctors = await Doctor.countDocuments({
+    approvalStatus: "pending",
+  });
+
+  const totalAvailabilitySlots = await Availability.countDocuments({
+    isActive: true,
+  });
 
   return {
     totalDoctors,
-    pendingDoctors,
     approvedDoctors,
+    pendingDoctors,
     totalAvailabilitySlots,
   };
 };
