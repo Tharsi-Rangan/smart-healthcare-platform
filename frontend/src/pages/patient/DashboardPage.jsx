@@ -10,9 +10,66 @@ import {
 } from "lucide-react";
 import { getMyAppointments } from "../../services/appointmentApi";
 
+const formatDateForUi = (dateValue) => {
+  if (!dateValue) {
+    return "";
+  }
+
+  const parsedDate = new Date(dateValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return String(dateValue).slice(0, 10);
+  }
+
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getAppointmentDateTime = (appointment) => {
+  const datePart = formatDateForUi(appointment.appointmentDate);
+  const timePart = appointment.appointmentTime || "00:00";
+  const dateTime = new Date(`${datePart}T${timePart}:00`);
+
+  return Number.isNaN(dateTime.getTime()) ? null : dateTime;
+};
+
+const isInNextThreeDays = (appointment) => {
+  if (appointment.status === "cancelled") {
+    return false;
+  }
+
+  const dateTime = getAppointmentDateTime(appointment);
+
+  if (!dateTime) {
+    return false;
+  }
+
+  const now = new Date();
+  const nextThreeDays = new Date(now);
+  nextThreeDays.setDate(now.getDate() + 3);
+
+  return dateTime >= now && dateTime <= nextThreeDays;
+};
+
+const normalizeAppointment = (appointment) => ({
+  id: appointment._id || appointment.id,
+  doctorName:
+    appointment.doctorName ||
+    appointment.doctor?.name ||
+    `Doctor ${appointment.doctorId || ""}`.trim(),
+  appointmentDate: formatDateForUi(appointment.appointmentDate),
+  appointmentTime: appointment.appointmentTime || "",
+  consultationType: appointment.consultationType || "online",
+  status: appointment.status || "pending",
+});
+
 function DashboardPage() {
   const [appointmentCount, setAppointmentCount] = useState(0);
   const [appointmentLoadError, setAppointmentLoadError] = useState(false);
+  const [nextThreeDaysAppointments, setNextThreeDaysAppointments] = useState([]);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -20,11 +77,27 @@ function DashboardPage() {
         setAppointmentLoadError(false);
         const response = await getMyAppointments();
         const appointments = Array.isArray(response?.data) ? response.data : [];
+        const normalizedAppointments = appointments.map(normalizeAppointment);
+
+        const filteredAppointments = normalizedAppointments
+          .filter(isInNextThreeDays)
+          .sort((first, second) => {
+            const firstDateTime = getAppointmentDateTime(first);
+            const secondDateTime = getAppointmentDateTime(second);
+
+            if (!firstDateTime || !secondDateTime) {
+              return 0;
+            }
+
+            return firstDateTime.getTime() - secondDateTime.getTime();
+          });
 
         setAppointmentCount(appointments.length);
+        setNextThreeDaysAppointments(filteredAppointments);
       } catch {
         setAppointmentLoadError(true);
         setAppointmentCount(0);
+        setNextThreeDaysAppointments([]);
       }
     };
 
@@ -93,6 +166,39 @@ function DashboardPage() {
             Open My Appointments
           </Link>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-800">
+            <CalendarDays size={18} className="text-cyan-700" />
+            Upcoming Appointments
+          </h2>
+          <Link
+            to="/patient/appointments"
+            className="text-sm font-semibold text-cyan-700 transition hover:text-cyan-600"
+          >
+            View All
+          </Link>
+        </div>
+
+        {nextThreeDaysAppointments.length === 0 ? (
+          <p className="text-sm text-slate-500">No upcoming appointments for the next 3 days.</p>
+        ) : (
+          <div className="space-y-3">
+            {nextThreeDaysAppointments.slice(0, 4).map((appointment) => (
+              <div
+                key={appointment.id}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                <p className="font-semibold text-slate-800">{appointment.doctorName}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {appointment.appointmentDate} at {appointment.appointmentTime} ({appointment.consultationType})
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
