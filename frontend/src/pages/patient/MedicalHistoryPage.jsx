@@ -2,6 +2,7 @@ import { CheckCircle, AlertCircle, ClipboardList } from "lucide-react";
 import useMedicalHistory from "../../hooks/useMedicalHistory";
 import MedicalHistoryForm from "../../components/patient/MedicalHistoryForm";
 import MedicalHistoryCard from "../../components/patient/MedicalHistoryCard";
+import EmptyState from "../../components/common/EmptyState";
 
 function MedicalHistoryPage() {
   const {
@@ -69,15 +70,11 @@ function MedicalHistoryPage() {
         {loading ? (
           <p className="text-sm text-slate-500">Loading medical history...</p>
         ) : records.length === 0 ? (
-          <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-            <ClipboardList className="mb-3 h-10 w-10 text-slate-300" />
-            <p className="text-sm font-medium text-slate-500">
-              No medical history records added yet.
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Use the form above to add your first record.
-            </p>
-          </div>
+          <EmptyState 
+            icon={ClipboardList}
+            title="No medical records found"
+            description="You haven't added any medical history entries yet. Use the form above to record your first condition."
+          />
         ) : (
           <div className="space-y-4">
             {records.map((record) => (

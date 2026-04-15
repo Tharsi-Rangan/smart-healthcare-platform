@@ -2,6 +2,7 @@ import { CheckCircle, AlertCircle, FileText, Save, X } from "lucide-react";
 import usePatientReports from "../../hooks/usePatientReports";
 import ReportUploadForm from "../../components/patient/ReportUploadForm";
 import ReportCard from "../../components/patient/ReportCard";
+import EmptyState from "../../components/common/EmptyState";
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600";
@@ -134,13 +135,11 @@ function ReportsPage() {
         {loading ? (
           <p className="text-sm text-slate-500">Loading reports...</p>
         ) : reports.length === 0 ? (
-          <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center">
-            <FileText className="mb-3 h-10 w-10 text-slate-300" />
-            <p className="text-sm font-medium text-slate-500">No reports uploaded yet.</p>
-            <p className="mt-1 text-xs text-slate-400">
-              Use the form above to upload your first report.
-            </p>
-          </div>
+          <EmptyState 
+            icon={FileText}
+            title="No reports uploaded"
+            description="You haven't uploaded any medical reports yet. Keep all your lab results and scans in one place by uploading them here."
+          />
         ) : (
           <div className="space-y-4">
             {reports.map((report) => (
