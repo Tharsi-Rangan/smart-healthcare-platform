@@ -191,8 +191,8 @@ const updatePatientProfileValidation = [
   body("profileImage")
     .optional({ checkFalsy: true })
     .trim()
-    .isURL()
-    .withMessage("Profile image must be a valid URL."),
+    .isLength({ max: 500 })
+    .withMessage("Profile image path must not exceed 500 characters."),
 
   body().custom((value) => {
     const hasAnyEmergencyField =

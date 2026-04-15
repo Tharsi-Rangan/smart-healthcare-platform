@@ -116,7 +116,6 @@ function ProfilePage() {
         emergencyContactPhone: formData.emergencyContactPhone,
         allergiesSummary: formData.allergiesSummary,
         chronicConditionsSummary: formData.chronicConditionsSummary,
-        profileImage: formData.profileImage,
       };
 
       const response = await updatePatientProfile(payload);
