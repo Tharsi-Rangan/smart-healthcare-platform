@@ -6,6 +6,7 @@ import {
   replacePatientReportFile,
   deletePatientReport,
 } from "../services/patientService";
+import confetti from "canvas-confetti";
 
 const emptyUploadForm = {
   title: "",
@@ -84,6 +85,12 @@ function usePatientReports() {
 
       const response = await uploadPatientReport(formData);
       setSuccessMessage(response.message || "Report uploaded successfully");
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ["#6366f1", "#0ea5e9", "#10b981"]
+      });
       resetUploadForm();
       await loadReports();
     } catch (error) {
@@ -125,6 +132,11 @@ function usePatientReports() {
     try {
       const response = await updatePatientReport(editingId, editForm);
       setSuccessMessage(response.message || "Report details updated successfully");
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
       handleCancelEdit();
       await loadReports();
     } catch (error) {
@@ -165,6 +177,12 @@ function usePatientReports() {
       formData.append("reportFile", replacementFile);
       const response = await replacePatientReportFile(id, formData);
       setSuccessMessage(response.message || "Report file replaced successfully");
+      confetti({
+        particleCount: 120,
+        velocity: 30,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
       handleCancelReplace();
       await loadReports();
     } catch (error) {

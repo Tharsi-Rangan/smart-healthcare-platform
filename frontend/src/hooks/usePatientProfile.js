@@ -4,6 +4,7 @@ import {
   updatePatientProfile,
   uploadPatientAvatar,
 } from "../services/patientService";
+import confetti from "canvas-confetti";
 import { toDateInputValue } from "../features/patient/patientUtils";
 
 const emptyForm = {
@@ -109,6 +110,12 @@ function usePatientProfile() {
       setOriginalData(mapped);
       setSuccessMessage(response.message || "Profile updated successfully");
       setIsEditing(false);
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#0ea5e9", "#10b981", "#6366f1"]
+      });
       window.dispatchEvent(new Event("patient-profile-updated"));
     } catch (error) {
       setErrorMessage(error.message || "Failed to update profile");
@@ -134,6 +141,12 @@ function usePatientProfile() {
       setFormData((prev) => ({ ...prev, profileImage: newImage }));
       setOriginalData((prev) => ({ ...prev, profileImage: newImage }));
       setSuccessMessage(response.message || "Profile photo uploaded successfully");
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#0ea5e9", "#10b981"]
+      });
       window.dispatchEvent(new Event("patient-profile-updated"));
     } catch (error) {
       setErrorMessage(error.message || "Failed to upload profile photo");

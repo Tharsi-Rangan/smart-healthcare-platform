@@ -1,4 +1,4 @@
-import { CheckCircle, AlertCircle, Pencil, Save, X } from "lucide-react";
+import { CheckCircle, AlertCircle, Pencil, Save, X, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import usePatientProfile from "../../hooks/usePatientProfile";
 import {
@@ -24,6 +24,8 @@ function FormField({ label, children }) {
   );
 }
 
+import { ProfilePreviewSkeleton, CardSectionSkeleton } from "../../components/common/Skeleton";
+
 function ProfilePage() {
   const {
     formData,
@@ -41,12 +43,27 @@ function ProfilePage() {
     handleAvatarUpload,
   } = usePatientProfile();
 
+  const handleDownloadPassport = () => {
+    window.print();
+  };
+
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center p-12">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-100 border-t-sky-500"></div>
-          <div className="text-base font-medium text-slate-500">Retrieving your profile...</div>
+      <div className="space-y-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-3">
+             <div className="h-10 w-64 animate-pulse rounded-xl bg-slate-200" />
+             <div className="h-6 w-96 animate-pulse rounded-xl bg-slate-100" />
+          </div>
+        </div>
+
+        <div className="grid gap-8 xl:grid-cols-[320px_1fr]">
+          <ProfilePreviewSkeleton />
+          <div className="space-y-8">
+            <CardSectionSkeleton />
+            <CardSectionSkeleton />
+            <CardSectionSkeleton />
+          </div>
         </div>
       </div>
     );
@@ -62,16 +79,26 @@ function ProfilePage() {
             Manage your personal identity, contact info, and medical basics.
           </p>
         </div>
-        {!isEditing && (
-          <button
+        <div className="flex gap-3 print:hidden">
+          <button 
             type="button"
-            onClick={handleEditClick}
-            className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl active:scale-95"
+            onClick={handleDownloadPassport}
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-slate-800 active:scale-95"
           >
-            <Pencil className="h-5 w-5" />
-            Edit Profile
+            <FileText className="h-5 w-5" />
+            Medical Passport
           </button>
-        )}
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={handleEditClick}
+              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl active:scale-95"
+            >
+              <Pencil className="h-5 w-5" />
+              Edit Profile
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Alerts with AnimatePresence */}
