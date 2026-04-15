@@ -1,114 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  BadgeCheck,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  Hourglass,
-  ListChecks,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   getDoctorAppointments,
-  updateAppointmentStatus,
-} from "../../services/appointmentApi";
-
-const statusBadgeClassMap = {
-  pending: "bg-amber-100 text-amber-700",
-  confirmed: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
-const formatDateForUi = (dateValue) => {
-  if (!dateValue) {
-    return "";
-  }
-
-  const parsedDate = new Date(dateValue);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return String(dateValue).slice(0, 10);
-  }
-
-  const year = parsedDate.getFullYear();
-  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
-  const day = String(parsedDate.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const normalizeAppointment = (appointment) => {
-  return {
-    id: appointment._id || appointment.id,
-    patientName:
-      appointment.patientName ||
-      appointment.patient?.name ||
-      `Patient ${appointment.patientId || ""}`.trim(),
-    specialty: appointment.specialty || "N/A",
-    appointmentDate: formatDateForUi(appointment.appointmentDate),
-    appointmentTime: appointment.appointmentTime || "",
-    consultationType: appointment.consultationType || "online",
-    status: appointment.status || "pending",
-  };
-};
+  updateDoctorAppointmentStatus,
+} from "../../api/doctorApi";
 
 function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
+  const [activeTab, setActiveTab] = useState("All");
   const [loading, setLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const sortedAppointments = useMemo(() => {
-    return [...appointments].sort((first, second) => {
-      const firstDateTime = `${first.appointmentDate} ${first.appointmentTime}`;
-      const secondDateTime = `${second.appointmentDate} ${second.appointmentTime}`;
-      return secondDateTime.localeCompare(firstDateTime);
-    });
-  }, [appointments]);
-
-  const appointmentStats = useMemo(() => {
-    return sortedAppointments.reduce(
-      (stats, appointment) => {
-        stats.total += 1;
-
-        if (appointment.status === "pending") {
-          stats.pending += 1;
-        }
-
-        if (appointment.status === "confirmed") {
-          stats.confirmed += 1;
-        }
-
-        if (appointment.status === "completed") {
-          stats.completed += 1;
-        }
-
-        return stats;
-      },
-      {
-        total: 0,
-        pending: 0,
-        confirmed: 0,
-        completed: 0,
-      }
-    );
-  }, [sortedAppointments]);
+  const tabs = ["All", "Pending", "Confirmed", "Completed", "Cancelled"];
 
   const loadAppointments = async () => {
-    setLoading(true);
-    setErrorMessage("");
-
     try {
+      setError("");
       const response = await getDoctorAppointments();
-      const apiAppointments = Array.isArray(response?.data) ? response.data : [];
-      setAppointments(apiAppointments.map(normalizeAppointment));
-    } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message || "Unable to load doctor appointments."
-      );
-      setAppointments([]);
+      setAppointments(response.data?.appointments || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load appointments");
     } finally {
       setLoading(false);
     }
@@ -118,192 +29,347 @@ function AppointmentsPage() {
     loadAppointments();
   }, []);
 
+  const appointmentStats = useMemo(() => {
+    const stats = {
+      total: appointments.length,
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    appointments.forEach((item) => {
+      const status = item.status?.toLowerCase();
+
+      if (status === "pending") stats.pending += 1;
+      if (status === "confirmed") stats.confirmed += 1;
+      if (status === "completed") stats.completed += 1;
+      if (status === "cancelled") stats.cancelled += 1;
+    });
+
+    return stats;
+  }, [appointments]);
+
+  const filteredAppointments = useMemo(() => {
+    if (activeTab === "All") return appointments;
+
+    return appointments.filter(
+      (item) => item.status?.toLowerCase() === activeTab.toLowerCase()
+    );
+  }, [appointments, activeTab]);
+
   const handleStatusUpdate = async (appointmentId, status) => {
-    setActionLoadingId(appointmentId);
-    setErrorMessage("");
-
     try {
-      const response = await updateAppointmentStatus(appointmentId, { status });
-      const updated = normalizeAppointment(response.data);
+      setMessage("");
+      setError("");
 
-      setAppointments((prev) =>
-        prev.map((appointment) =>
-          appointment.id === appointmentId ? updated : appointment
-        )
-      );
-    } catch (error) {
-      setErrorMessage(
-        error?.response?.data?.message || "Unable to update appointment status."
-      );
-    } finally {
-      setActionLoadingId("");
+      const response = await updateDoctorAppointmentStatus(appointmentId, status);
+      setMessage(response.message || "Appointment status updated");
+
+      await loadAppointments();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update appointment");
     }
   };
 
-  if (loading) {
-    return <p className="text-sm text-slate-500">Loading doctor appointments...</p>;
-  }
+  const getStatusBadgeClasses = (status) => {
+    switch ((status || "").toLowerCase()) {
+      case "pending":
+        return "bg-amber-50 text-amber-700 border border-amber-200";
+      case "confirmed":
+        return "bg-cyan-50 text-cyan-700 border border-cyan-200";
+      case "completed":
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      case "cancelled":
+        return "bg-rose-50 text-rose-700 border border-rose-200";
+      default:
+        return "bg-slate-100 text-slate-700 border border-slate-200";
+    }
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString();
+  };
+
+  const renderActions = (appointment) => {
+    const status = appointment.status?.toLowerCase();
+
+    if (status === "pending") {
+      return (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "confirmed")}
+            className="rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+          >
+            Accept Request
+          </button>
+
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "cancelled")}
+            className="rounded-2xl bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+          >
+            Reject Request
+          </button>
+        </div>
+      );
+    }
+
+    if (status === "confirmed") {
+      return (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "completed")}
+            className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Mark Completed
+          </button>
+
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "cancelled")}
+            className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
+          >
+            Cancel Appointment
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`inline-flex rounded-full px-4 py-2 text-sm font-semibold capitalize ${getStatusBadgeClasses(
+          appointment.status
+        )}`}
+      >
+        {appointment.status || "unknown"}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Doctor Appointments</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Review your assigned patients and update consultation progress.
+    <div className="space-y-8">
+      {/* Header */}
+      <section className="rounded-4xl border border-slate-200 bg-linear-to-r from-cyan-600 to-sky-700 p-8 text-white shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
+              Doctor Appointment Workflow
+            </p>
+            <h1 className="mt-3 text-4xl font-bold md:text-5xl">
+              Manage Appointments
+            </h1>
+            <p className="mt-3 max-w-2xl text-lg text-cyan-50">
+              Review appointment requests, accept or reject bookings, and update
+              consultation progress.
+            </p>
+          </div>
+
+          <div className="rounded-3xl bg-white/10 px-5 py-4 backdrop-blur-sm">
+            <p className="text-sm text-cyan-100">Total Requests</p>
+            <p className="mt-2 text-3xl font-bold">{appointmentStats.total}</p>
+          </div>
+        </div>
+      </section>
+
+      {message && (
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-base text-emerald-700">
+          {message}
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-base text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* Stats */}
+      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            All
+          </p>
+          <h3 className="mt-3 text-3xl font-bold text-slate-900">
+            {appointmentStats.total}
+          </h3>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Pending
+          </p>
+          <h3 className="mt-3 text-3xl font-bold text-amber-600">
+            {appointmentStats.pending}
+          </h3>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Confirmed
+          </p>
+          <h3 className="mt-3 text-3xl font-bold text-cyan-600">
+            {appointmentStats.confirmed}
+          </h3>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Completed
+          </p>
+          <h3 className="mt-3 text-3xl font-bold text-emerald-600">
+            {appointmentStats.completed}
+          </h3>
+        </div>
+
+        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Cancelled
+          </p>
+          <h3 className="mt-3 text-3xl font-bold text-rose-600">
+            {appointmentStats.cancelled}
+          </h3>
+        </div>
+      </section>
+
+      {/* Filter Tabs */}
+      <section className="rounded-4xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold text-slate-900">
+            Appointment Requests
+          </h2>
+          <p className="text-slate-500">
+            Filter patient bookings by their current status.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={loadAppointments}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          <span className="inline-flex items-center gap-2">
-            <RefreshCw size={16} />
-            Refresh
-          </span>
-        </button>
-      </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                activeTab === tab
+                  ? "bg-cyan-600 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-cyan-100 bg-linear-to-br from-cyan-50 via-white to-cyan-100/30 p-5 shadow-sm">
-          <div className="mb-2 inline-flex rounded-lg bg-cyan-100 p-2 text-cyan-700">
-            <ListChecks size={16} />
+      {/* Appointment List */}
+      <section className="space-y-6">
+        {loading ? (
+          <div className="rounded-[28px] border border-slate-200 bg-white p-7 text-base text-slate-500 shadow-sm">
+            Loading appointments...
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total</p>
-          <p className="mt-2 text-3xl font-bold text-slate-800">{appointmentStats.total}</p>
-        </div>
+        ) : filteredAppointments.length > 0 ? (
+          filteredAppointments.map((item) => (
+            <div
+              key={item._id}
+              className="rounded-4xl border border-slate-200 bg-white p-7 shadow-sm"
+            >
+              <div className="grid gap-6 xl:grid-cols-[1fr,240px]">
+                <div>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-900">
+                        {item.patientName || "Unknown Patient"}
+                      </h3>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {item.patientEmail || "No email provided"}
+                      </p>
+                    </div>
 
-        <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">
-          <div className="mb-2 inline-flex rounded-lg bg-amber-100 p-2 text-amber-700">
-            <Hourglass size={16} />
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Pending</p>
-          <p className="mt-2 text-3xl font-bold text-amber-700">{appointmentStats.pending}</p>
-        </div>
-
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm">
-          <div className="mb-2 inline-flex rounded-lg bg-blue-100 p-2 text-blue-700">
-            <BadgeCheck size={16} />
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Confirmed</p>
-          <p className="mt-2 text-3xl font-bold text-blue-700">{appointmentStats.confirmed}</p>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 shadow-sm">
-          <div className="mb-2 inline-flex rounded-lg bg-emerald-100 p-2 text-emerald-700">
-            <CheckCircle2 size={16} />
-          </div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Completed</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-700">{appointmentStats.completed}</p>
-        </div>
-      </div>
-
-      <div className="rounded-2xl bg-linear-to-r from-sky-700 to-cyan-600 p-5 text-white shadow-md">
-        <h2 className="inline-flex items-center gap-2 text-xl font-semibold">
-          <Sparkles size={18} />
-          Today Focus
-        </h2>
-        <p className="mt-1 text-sm text-cyan-100">
-          Confirm pending appointments early and mark completed consultations right after sessions.
-        </p>
-      </div>
-
-      {errorMessage && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          {errorMessage}
-        </div>
-      )}
-
-      {sortedAppointments.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-          No appointments found for this doctor.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {sortedAppointments.map((appointment) => {
-            const badgeClass =
-              statusBadgeClassMap[appointment.status] ||
-              "bg-slate-100 text-slate-700";
-
-            const isActionLoading = actionLoadingId === appointment.id;
-            const isCancelled = appointment.status === "cancelled";
-            const isCompleted = appointment.status === "completed";
-
-            return (
-              <div
-                key={appointment.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-1 text-sm text-slate-600">
-                    <p className="text-lg font-semibold text-slate-800">
-                      {appointment.patientName}
-                    </p>
-                    <p>
-                      <span className="font-medium text-slate-700">Specialty:</span>{" "}
-                      {appointment.specialty}
-                    </p>
-                    <p>
-                      <span className="inline-flex items-center gap-2 font-medium text-slate-700">
-                        <CalendarDays size={14} />
-                        Date:
-                      </span>{" "}
-                      {appointment.appointmentDate}
-                    </p>
-                    <p>
-                      <span className="inline-flex items-center gap-2 font-medium text-slate-700">
-                        <Clock3 size={14} />
-                        Time:
-                      </span>{" "}
-                      {appointment.appointmentTime}
-                    </p>
-                    <p>
-                      <span className="font-medium text-slate-700">Type:</span>{" "}
-                      <span className="capitalize">{appointment.consultationType}</span>
-                    </p>
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusBadgeClasses(
+                        item.status
+                      )}`}
+                    >
+                      {item.status || "unknown"}
+                    </span>
                   </div>
 
-                  <div className="flex flex-col items-start gap-3 md:items-end">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${badgeClass}`}
-                    >
-                      {appointment.status}
-                    </span>
+                  <div className="mt-5 grid gap-3 text-sm text-slate-600 md:grid-cols-3">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Date
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {formatDate(item.appointmentDate)}
+                      </p>
+                    </div>
 
-                    {!isCancelled && !isCompleted && (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={isActionLoading}
-                          onClick={() =>
-                            handleStatusUpdate(appointment.id, "confirmed")
-                          }
-                          className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {isActionLoading ? "Please wait..." : "Confirm"}
-                        </button>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Time
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {item.appointmentTime || "-"}
+                      </p>
+                    </div>
 
-                        <button
-                          type="button"
-                          disabled={isActionLoading}
-                          onClick={() =>
-                            handleStatusUpdate(appointment.id, "completed")
-                          }
-                          className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {isActionLoading ? "Please wait..." : "Complete"}
-                        </button>
-                      </div>
-                    )}
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Type
+                      </p>
+                      <p className="mt-1 font-medium capitalize text-slate-900">
+                        {item.consultationType || "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Patient Age
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">
+                        {item.patientAge || 0} years
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Current Status
+                      </p>
+                      <p className="mt-1 font-medium capitalize text-slate-900">
+                        {item.status || "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl bg-slate-50 px-5 py-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">
+                      Reason
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">
+                      {item.reason || "No reason provided"}
+                    </p>
                   </div>
                 </div>
+
+                <div className="flex items-start xl:justify-end">
+                  <div className="w-full xl:w-55">{renderActions(item)}</div>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          ))
+        ) : (
+          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+            <p className="text-lg font-semibold text-slate-800">
+              No appointments found
+            </p>
+            <p className="mt-2 text-slate-500">
+              There are no appointment requests in the selected filter.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
