@@ -2,7 +2,7 @@ import axios from "axios";
 import { getToken } from "../features/auth/authStorage";
 
 const doctorApi = axios.create({
-  baseURL: "http://localhost:5002",
+  baseURL: "http://localhost:5006",
 });
 
 doctorApi.interceptors.request.use((config) => {
