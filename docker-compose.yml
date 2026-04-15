@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: smart-healthcare-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: healthcare_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - smart-healthcare-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Consultation Service
+  consultation-service:
+    build:
+      context: ./services/consultation-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-consultation
+    ports:
+      - "3003:3003"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/consultation_db
+      JWT_SECRET: your_consultation_service_secret
+      PORT: 3003
+      APPOINTMENT_SERVICE_URL: http://appointment-service:3002
+      PATIENT_SERVICE_URL: http://patient-service:3004
+      DOCTOR_SERVICE_URL: http://doctor-service:3005
+      JITSI_DOMAIN: meet.jit.si
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/consultation-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Payment & Notification Service
+  payment-notification-service:
+    build:
+      context: ./services/payment-notification-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-payment
+    ports:
+      - "3004:3004"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/payment_notification_db
+      JWT_SECRET: your_payment_service_secret
+      PORT: 3004
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: your-email@gmail.com
+      SMTP_PASS: your-app-password
+      CONSULTATION_SERVICE_URL: http://consultation-service:3003
+      APPOINTMENT_SERVICE_URL: http://appointment-service:3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/payment-notification-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:3000
+    depends_on:
+      - consultation-service
+      - payment-notification-service
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  mongodb_data:
+
+networks:
+  smart-healthcare-network:
+    driver: bridge
