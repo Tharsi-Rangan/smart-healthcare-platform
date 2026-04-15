@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consultation-service
+  labels:
+    app: consultation-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: consultation-service
+  template:
+    metadata:
+      labels:
+        app: consultation-service
+    spec:
+      containers:
+      - name: consultation-service
+        image: smart-healthcare/consultation-service:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3003
+          name: http
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: consultation-config
+              key: mongodb_uri
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: consultation-secret
+              key: jwt_secret
+        - name: PORT
+          value: "3003"
+        - name: APPOINTMENT_SERVICE_URL
+          value: "http://appointment-service:3002"
+        - name: PATIENT_SERVICE_URL
+          value: "http://patient-service:3004"
+        - name: DOCTOR_SERVICE_URL
+          value: "http://doctor-service:3005"
+        - name: JITSI_DOMAIN
+          value: "meet.jit.si"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3003
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3003
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consultation-service
+  labels:
+    app: consultation-service
+spec:
+  type: ClusterIP
+  selector:
+    app: consultation-service
+  ports:
+  - port: 3003
+    targetPort: 3003
+    protocol: TCP
+    name: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consultation-config
+data:
+  mongodb_uri: "mongodb://mongodb:27017/consultation_db"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: consultation-secret
+type: Opaque
+stringData:
+  jwt_secret: "your_consultation_service_secret_change_this_in_production"
