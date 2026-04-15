@@ -1,11 +1,14 @@
 import { CheckCircle, AlertCircle, FileText, Save, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import usePatientReports from "../../hooks/usePatientReports";
 import ReportUploadForm from "../../components/patient/ReportUploadForm";
 import ReportCard from "../../components/patient/ReportCard";
 import EmptyState from "../../components/common/EmptyState";
+import AnimatedContainer from "../../components/common/AnimatedContainer";
+import { staggerContainer, itemVariants, alertVariants } from "../../features/patient/patientAnimations";
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600";
+  "w-full rounded-2xl border border-slate-200 px-5 py-4 text-base outline-none focus:border-sky-500 transition-colors";
 
 function ReportsPage() {
   const {
@@ -35,132 +38,166 @@ function ReportsPage() {
   } = usePatientReports();
 
   return (
-    <div className="space-y-6">
+    <AnimatedContainer className="space-y-8 pb-10">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">Reports</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Upload, update, replace, and manage your medical reports.
+      <div className="space-y-1">
+        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Medical Reports</h1>
+        <p className="text-lg font-medium text-slate-500">
+          Securely store and manage your lab results, scans, and prescriptions.
         </p>
       </div>
 
-      {/* Alerts */}
-      {successMessage && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          {successMessage}
-        </div>
-      )}
-      {errorMessage && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {errorMessage}
-        </div>
-      )}
+      {/* Alerts with AnimatePresence */}
+      <AnimatePresence mode="wait">
+        {successMessage && (
+          <motion.div 
+            variants={alertVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm"
+          >
+            <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
+            <span className="font-semibold">{successMessage}</span>
+          </motion.div>
+        )}
+        {errorMessage && (
+          <motion.div 
+            variants={alertVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm"
+          >
+            <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+            <span className="font-semibold">{errorMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Upload form */}
-      <ReportUploadForm
-        form={uploadForm}
-        uploading={uploading}
-        onChange={handleUploadChange}
-        onSubmit={handleUploadSubmit}
-      />
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <ReportUploadForm
+          form={uploadForm}
+          uploading={uploading}
+          onChange={handleUploadChange}
+          onSubmit={handleUploadSubmit}
+        />
+      </motion.div>
 
       {/* Edit form — shown at top when editing a report */}
-      {editingId && (
-        <form
-          onSubmit={handleEditSubmit}
-          className="rounded-2xl border border-cyan-200 bg-white p-6 shadow-sm"
-        >
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">Edit Report Details</h2>
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="text-slate-400 hover:text-slate-600"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Report Title <span className="text-red-400">*</span>
-              </label>
-              <input type="text" name="title" value={editForm.title} onChange={handleEditChange} className={inputClass} required />
+      <AnimatePresence>
+        {editingId && (
+          <motion.form
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onSubmit={handleEditSubmit}
+            className="rounded-3xl border border-sky-200 bg-white p-8 shadow-md"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-800">Edit Report Details</h2>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Report Type</label>
-              <input type="text" name="reportType" value={editForm.reportType} onChange={handleEditChange} className={inputClass} />
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-bold uppercase tracking-wider text-slate-500 ml-1">
+                  Report Title <span className="text-red-400">*</span>
+                </label>
+                <input type="text" name="title" value={editForm.title} onChange={handleEditChange} className={inputClass} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold uppercase tracking-wider text-slate-500 ml-1">Report Type</label>
+                <input type="text" name="reportType" value={editForm.reportType} onChange={handleEditChange} className={inputClass} />
+              </div>
             </div>
-          </div>
 
-          <div className="mt-4">
-            <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
-            <textarea name="description" value={editForm.description} onChange={handleEditChange} rows="3" className={inputClass} />
-          </div>
+            <div className="mt-6 space-y-2">
+              <label className="text-sm font-bold uppercase tracking-wider text-slate-500 ml-1">Description</label>
+              <textarea name="description" value={editForm.description} onChange={handleEditChange} rows="3" className={inputClass} />
+            </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="submit"
-              disabled={editing}
-              className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <Save className="h-4 w-4" />
-              {editing ? "Saving..." : "Save Changes"}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              disabled={editing}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
+            <div className="mt-8 flex flex-wrap gap-4">
+              <button
+                type="submit"
+                disabled={editing}
+                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70 active:scale-95"
+              >
+                <Save className="h-5 w-5" />
+                {editing ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={editing}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-base font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-95"
+              >
+                <X className="h-5 w-5" />
+                Cancel
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
 
       {/* Reports list */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">My Reports</h2>
-          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
-            {reports.length} report{reports.length !== 1 ? "s" : ""}
+      <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
+        <div className="mb-8 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">My Document Vault</h2>
+          <span className="rounded-xl bg-sky-50 px-4 py-1.5 text-sm font-bold text-sky-700">
+            {reports.length} {reports.length === 1 ? "File" : "Files"}
           </span>
         </div>
 
         {loading ? (
-          <p className="text-sm text-slate-500">Loading reports...</p>
+          <div className="py-10 text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-100 border-t-sky-500"></div>
+            <p className="mt-4 text-sm font-medium text-slate-500">Opening vault...</p>
+          </div>
         ) : reports.length === 0 ? (
           <EmptyState 
             icon={FileText}
-            title="No reports uploaded"
-            description="You haven't uploaded any medical reports yet. Keep all your lab results and scans in one place by uploading them here."
+            title="Your vault is currently empty"
+            description="Start uploading your diagnostic reports, scan results, and prescriptions for easy access anytime."
           />
         ) : (
-          <div className="space-y-4">
+          <motion.div 
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="space-y-6"
+          >
             {reports.map((report) => (
-              <ReportCard
-                key={report._id}
-                report={report}
-                replacingId={replacingId}
-                replacing={replacing}
-                replacementFile={replacementFile}
-                onStartEdit={handleStartEdit}
-                onStartReplace={handleStartReplace}
-                onCancelReplace={handleCancelReplace}
-                onReplacementFileChange={handleReplacementFileChange}
-                onConfirmReplace={handleConfirmReplace}
-                onDelete={handleDelete}
-              />
+              <motion.div key={report._id} variants={itemVariants}>
+                <ReportCard
+                  report={report}
+                  replacingId={replacingId}
+                  replacing={replacing}
+                  replacementFile={replacementFile}
+                  onStartEdit={handleStartEdit}
+                  onStartReplace={handleStartReplace}
+                  onCancelReplace={handleCancelReplace}
+                  onReplacementFileChange={handleReplacementFileChange}
+                  onConfirmReplace={handleConfirmReplace}
+                  onDelete={handleDelete}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </AnimatedContainer>
   );
 }
 

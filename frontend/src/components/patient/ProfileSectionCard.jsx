@@ -1,17 +1,25 @@
+import { motion } from "framer-motion";
+
 /**
  * A reusable card wrapper for profile sections.
- * Renders a white rounded card with a title and children content.
+ * Optimized for readability and premium feel.
  */
-function ProfileSectionCard({ title, children }) {
+function ProfileSectionCard({ title, children, className = "" }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md ${className}`}
+    >
       {title && (
-        <div className="mb-5">
-          <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
+        <div className="mb-8 border-b border-slate-50 pb-4">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
         </div>
       )}
-      {children}
-    </div>
+      <div className="space-y-6">
+        {children}
+      </div>
+    </motion.div>
   );
 }
 

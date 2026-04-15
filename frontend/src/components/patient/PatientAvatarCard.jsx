@@ -5,10 +5,10 @@ function PatientAvatarCard({ name, phone, profileImage, uploadingAvatar, onAvata
   const resolvedImage = getImageUrl(profileImage);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
       <div className="flex flex-col items-center text-center">
         {/* Avatar circle */}
-        <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-2 border-cyan-100 bg-slate-100">
+        <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-sky-50 bg-slate-50 shadow-inner">
           {resolvedImage ? (
             <img
               src={resolvedImage}
@@ -25,31 +25,31 @@ function PatientAvatarCard({ name, phone, profileImage, uploadingAvatar, onAvata
             style={{ display: resolvedImage ? "none" : "flex" }}
           >
             {name ? (
-              <span className="text-2xl font-bold text-cyan-700">
+              <span className="text-3xl font-extrabold text-sky-600">
                 {getInitials(name)}
               </span>
             ) : (
-              <User className="h-10 w-10 text-slate-400" />
+              <User className="h-12 w-12 text-slate-300" />
             )}
           </div>
         </div>
 
         {/* Name and phone */}
-        <h2 className="mt-4 text-xl font-semibold text-slate-800">
-          {name || "Patient"}
+        <h2 className="mt-6 text-2xl font-bold tracking-tight text-slate-900">
+          {name || "Patient Profile"}
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          {phone || "No phone number added"}
+        <p className="mt-2 text-base font-medium text-slate-500">
+          {phone || "Add phone for easy contact"}
         </p>
 
         {/* Avatar upload */}
-        <div className="mt-5 w-full">
+        <div className="mt-8 w-full">
           <label
-            className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 ${
+            className={`inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-base font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 ${
               uploadingAvatar ? "cursor-not-allowed opacity-60" : ""
             }`}
           >
-            <Camera className="h-4 w-4 text-slate-500" />
+            <Camera className="h-5 w-5 text-sky-600" />
             {uploadingAvatar ? "Uploading..." : "Change Photo"}
             <input
               type="file"
