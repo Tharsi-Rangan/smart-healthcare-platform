@@ -1,9 +1,37 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  Bell,
+  CalendarDays,
+  FileText,
+  HeartPulse,
+  LayoutDashboard,
+  LogOut,
+  Pill,
+  UserRound,
+} from "lucide-react";
 import { useAuth } from "../features/auth/AuthContext";
 import { fetchPatientProfile } from "../services/patientService";
 
 const FILE_BASE_URL = "http://localhost:5002";
+
+const patientNavItems = [
+  { to: "/patient/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/patient/profile", label: "Profile", icon: UserRound },
+  { to: "/patient/medical-history", label: "Medical History", icon: HeartPulse },
+  { to: "/patient/reports", label: "Reports", icon: FileText },
+  { to: "/patient/prescriptions", label: "Prescriptions", icon: Pill },
+  { to: "/patient/appointments", label: "Appointments", icon: CalendarDays },
+  { to: "/patient/notifications", label: "Notifications", icon: Bell },
+];
+
+const getNavItemClassName = ({ isActive }) => {
+  if (isActive) {
+    return "group flex items-center gap-3 rounded-xl bg-cyan-700 px-4 py-3 text-sm font-semibold text-white shadow-sm";
+  }
+
+  return "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-cyan-50 hover:text-cyan-700";
+};
 
 function PatientLayout() {
   const navigate = useNavigate();
@@ -90,58 +118,37 @@ function PatientLayout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       <div className="flex min-h-screen">
-        <aside className="w-72 border-r border-slate-200 bg-white p-6">
-          <div className="mb-8">
-            <h1 className="text-xl font-bold text-cyan-700">
-              Smart Healthcare
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">Patient Portal</p>
+        <aside className="w-72 border-r border-slate-200 bg-white px-4 py-5">
+          <div className="mb-6 rounded-2xl border border-cyan-100 bg-cyan-50 p-4 shadow-sm">
+            <p className="text-lg font-bold text-cyan-900">Smart Healthcare</p>
+            <p className="mt-1 text-sm text-cyan-700">Patient Portal</p>
           </div>
 
-          <nav className="space-y-2 text-sm font-medium">
-            <Link
-              to="/patient/dashboard"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/patient/profile"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Profile
-            </Link>
-            <Link
-              to="/patient/medical-history"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Medical History
-            </Link>
-            <Link
-              to="/patient/reports"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Reports
-            </Link>
-            <Link
-              to="/patient/prescriptions"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Prescriptions
-            </Link>
-            <Link
-              to="/patient/appointments"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Appointments
-            </Link>
-            <Link
-              to="/patient/notifications"
-              className="block rounded-xl px-4 py-3 text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              Notifications
-            </Link>
+          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Main Menu
+          </p>
+
+          <nav className="space-y-1.5">
+            {patientNavItems.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <NavLink key={item.to} to={item.to} className={getNavItemClassName}>
+                  <Icon size={17} />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
           </nav>
+
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
+              Quick Tip
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Use Appointments to manage upcoming visits and reschedules quickly.
+            </p>
+          </div>
         </aside>
 
         <div className="flex flex-1 flex-col">
