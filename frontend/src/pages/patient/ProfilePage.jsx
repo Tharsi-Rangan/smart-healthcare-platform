@@ -1,28 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
+import { CheckCircle, AlertCircle, Pencil, Save, X } from "lucide-react";
 import {
   fetchPatientProfile,
   updatePatientProfile,
   uploadPatientAvatar,
 } from "../../services/patientService";
+import {
+  GENDER_OPTIONS,
+  BLOOD_GROUP_OPTIONS,
+} from "../../features/patient/patientConstants";
+import { toDateInputValue } from "../../features/patient/patientUtils";
+import PatientAvatarCard from "../../components/patient/PatientAvatarCard";
+import ProfileSectionCard from "../../components/patient/ProfileSectionCard";
 
-const FILE_BASE_URL = "http://localhost:5002";
+const emptyForm = {
+  fullName: "",
+  phone: "",
+  dateOfBirth: "",
+  gender: "",
+  address: "",
+  bloodGroup: "",
+  emergencyContactName: "",
+  emergencyContactRelationship: "",
+  emergencyContactPhone: "",
+  allergiesSummary: "",
+  chronicConditionsSummary: "",
+  profileImage: "",
+};
+
+const inputClass =
+  "w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600";
+
+function FormField({ label, children }) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 function ProfilePage() {
-  const emptyForm = {
-    fullName: "",
-    phone: "",
-    dateOfBirth: "",
-    gender: "",
-    address: "",
-    bloodGroup: "",
-    emergencyContactName: "",
-    emergencyContactRelationship: "",
-    emergencyContactPhone: "",
-    allergiesSummary: "",
-    chronicConditionsSummary: "",
-    profileImage: "",
-  };
-
   const [formData, setFormData] = useState(emptyForm);
   const [originalData, setOriginalData] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -31,56 +51,43 @@ function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [imageError, setImageError] = useState(false);
 
-  const maxDate = useMemo(() => {
-    return new Date().toISOString().split("T")[0];
-  }, []);
+  const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  const mapProfileToForm = (profile) => ({
+    fullName: profile.fullName || "",
+    phone: profile.phone || "",
+    dateOfBirth: toDateInputValue(profile.dateOfBirth),
+    gender: profile.gender || "",
+    address: profile.address || "",
+    bloodGroup: profile.bloodGroup || "",
+    emergencyContactName: profile.emergencyContactName || "",
+    emergencyContactRelationship: profile.emergencyContactRelationship || "",
+    emergencyContactPhone: profile.emergencyContactPhone || "",
+    allergiesSummary: profile.allergiesSummary || "",
+    chronicConditionsSummary: profile.chronicConditionsSummary || "",
+    profileImage: profile.profileImage || "",
+  });
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const response = await fetchPatientProfile();
-        const profile = response.data.profile;
-
-        const mappedData = {
-          fullName: profile.fullName || "",
-          phone: profile.phone || "",
-          dateOfBirth: profile.dateOfBirth
-            ? new Date(profile.dateOfBirth).toISOString().split("T")[0]
-            : "",
-          gender: profile.gender || "",
-          address: profile.address || "",
-          bloodGroup: profile.bloodGroup || "",
-          emergencyContactName: profile.emergencyContactName || "",
-          emergencyContactRelationship:
-            profile.emergencyContactRelationship || "",
-          emergencyContactPhone: profile.emergencyContactPhone || "",
-          allergiesSummary: profile.allergiesSummary || "",
-          chronicConditionsSummary: profile.chronicConditionsSummary || "",
-          profileImage: profile.profileImage || "",
-        };
-
-        setFormData(mappedData);
-        setOriginalData(mappedData);
-        setImageError(false);
+        const mapped = mapProfileToForm(response.data.profile);
+        setFormData(mapped);
+        setOriginalData(mapped);
       } catch (error) {
         setErrorMessage(error.message || "Failed to load profile");
       } finally {
         setLoading(false);
       }
     };
-
     loadProfile();
   }, []);
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleEditClick = () => {
@@ -94,11 +101,10 @@ function ProfilePage() {
     setSuccessMessage("");
     setErrorMessage("");
     setIsEditing(false);
-    setImageError(false);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setSubmitting(true);
     setSuccessMessage("");
     setErrorMessage("");
@@ -119,31 +125,11 @@ function ProfilePage() {
       };
 
       const response = await updatePatientProfile(payload);
-      const updatedProfile = response.data.profile;
-
-      const mappedData = {
-        fullName: updatedProfile.fullName || "",
-        phone: updatedProfile.phone || "",
-        dateOfBirth: updatedProfile.dateOfBirth
-          ? new Date(updatedProfile.dateOfBirth).toISOString().split("T")[0]
-          : "",
-        gender: updatedProfile.gender || "",
-        address: updatedProfile.address || "",
-        bloodGroup: updatedProfile.bloodGroup || "",
-        emergencyContactName: updatedProfile.emergencyContactName || "",
-        emergencyContactRelationship:
-          updatedProfile.emergencyContactRelationship || "",
-        emergencyContactPhone: updatedProfile.emergencyContactPhone || "",
-        allergiesSummary: updatedProfile.allergiesSummary || "",
-        chronicConditionsSummary: updatedProfile.chronicConditionsSummary || "",
-        profileImage: updatedProfile.profileImage || "",
-      };
-
-      setFormData(mappedData);
-      setOriginalData(mappedData);
+      const mapped = mapProfileToForm(response.data.profile);
+      setFormData(mapped);
+      setOriginalData(mapped);
       setSuccessMessage(response.message || "Profile updated successfully");
       setIsEditing(false);
-      setImageError(false);
       window.dispatchEvent(new Event("patient-profile-updated"));
     } catch (error) {
       setErrorMessage(error.message || "Failed to update profile");
@@ -152,8 +138,8 @@ function ProfilePage() {
     }
   };
 
-  const handleAvatarUpload = async (event) => {
-    const file = event.target.files?.[0];
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingAvatar(true);
@@ -165,49 +151,19 @@ function ProfilePage() {
       avatarFormData.append("avatar", file);
 
       const response = await uploadPatientAvatar(avatarFormData);
-      const updatedProfile = response.data.profile;
+      const newImage = response.data.profile.profileImage || "";
 
-      setFormData((prev) => ({
-        ...prev,
-        profileImage: updatedProfile.profileImage || "",
-      }));
-
-      setOriginalData((prev) => ({
-        ...prev,
-        profileImage: updatedProfile.profileImage || "",
-      }));
-
-      setImageError(false);
-      window.dispatchEvent(new Event("patient-profile-updated"));
+      setFormData((prev) => ({ ...prev, profileImage: newImage }));
+      setOriginalData((prev) => ({ ...prev, profileImage: newImage }));
       setSuccessMessage(response.message || "Profile photo uploaded successfully");
+      window.dispatchEvent(new Event("patient-profile-updated"));
     } catch (error) {
       setErrorMessage(error.message || "Failed to upload profile photo");
     } finally {
       setUploadingAvatar(false);
-      event.target.value = "";
+      e.target.value = "";
     }
   };
-
-  const getInitials = (name) => {
-    if (!name) return "P";
-
-    return name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0].toUpperCase())
-      .join("");
-  };
-
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return "";
-    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-      return imagePath;
-    }
-    return `${FILE_BASE_URL}${imagePath}`;
-  };
-
-  const resolvedImage = getImageUrl(formData.profileImage);
 
   if (loading) {
     return (
@@ -219,6 +175,7 @@ function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">My Profile</h1>
@@ -231,106 +188,64 @@ function ProfilePage() {
           <button
             type="button"
             onClick={handleEditClick}
-            className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600"
+            className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600"
           >
+            <Pencil className="h-4 w-4" />
             Edit Profile
           </button>
         )}
       </div>
 
+      {/* Alerts */}
       {successMessage && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <CheckCircle className="h-4 w-4 shrink-0" />
           {successMessage}
         </div>
       )}
-
       {errorMessage && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           {errorMessage}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Avatar + Personal Info */}
         <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col items-center text-center">
-              <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                {resolvedImage && !imageError ? (
-                  <img
-                    src={resolvedImage}
-                    alt={formData.fullName}
-                    className="h-full w-full object-cover"
-                    onError={() => setImageError(true)}
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-cyan-700">
-                    {getInitials(formData.fullName)}
-                  </span>
-                )}
-              </div>
+          <PatientAvatarCard
+            name={formData.fullName}
+            phone={formData.phone}
+            profileImage={formData.profileImage}
+            uploadingAvatar={uploadingAvatar}
+            onAvatarUpload={handleAvatarUpload}
+          />
 
-              <h2 className="mt-4 text-xl font-semibold text-slate-800">
-                {formData.fullName || "Patient"}
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {formData.phone || "No phone number added"}
-              </p>
-
-              <div className="mt-4 w-full">
-                <label className="inline-flex cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                  {uploadingAvatar ? "Uploading..." : "Change Photo"}
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={uploadingAvatar}
-                  />
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-5">
-              <h2 className="text-lg font-semibold text-slate-800">
-                Personal Information
-              </h2>
-            </div>
-
+          <ProfileSectionCard title="Personal Information">
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Full Name
-                </label>
+              <FormField label="Full Name">
                 <input
                   type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                  className={inputClass}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Phone
-                </label>
+              <FormField label="Phone">
                 <input
                   type="text"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                  className={inputClass}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Date of Birth
-                </label>
+              <FormField label="Date of Birth">
                 <input
                   type="date"
                   name="dateOfBirth"
@@ -338,95 +253,73 @@ function ProfilePage() {
                   onChange={handleChange}
                   max={maxDate}
                   disabled={!isEditing}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                  className={inputClass}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Gender
-                </label>
+              <FormField label="Gender">
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                  className={inputClass}
                 >
-                  <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Blood Group
-                </label>
+              <FormField label="Blood Group">
                 <select
                   name="bloodGroup"
                   value={formData.bloodGroup}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                  className={inputClass}
                 >
-                  <option value="">Select Blood Group</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
+                  {BLOOD_GROUP_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
-              </div>
+              </FormField>
             </div>
 
             <div className="mt-4">
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Address
-              </label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                rows="3"
-                disabled={!isEditing}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
-              />
+              <FormField label="Address">
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  rows="3"
+                  disabled={!isEditing}
+                  className={inputClass}
+                />
+              </FormField>
             </div>
-          </div>
+          </ProfileSectionCard>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Emergency Contact
-            </h2>
-          </div>
-
+        {/* Emergency Contact */}
+        <ProfileSectionCard title="Emergency Contact">
           <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Contact Name
-              </label>
+            <FormField label="Contact Name">
               <input
                 type="text"
                 name="emergencyContactName"
                 value={formData.emergencyContactName}
                 onChange={handleChange}
                 disabled={!isEditing}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                className={inputClass}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Relationship
-              </label>
+            <FormField label="Relationship">
               <input
                 type="text"
                 name="emergencyContactRelationship"
@@ -434,71 +327,59 @@ function ProfilePage() {
                 onChange={handleChange}
                 disabled={!isEditing}
                 placeholder="Mother / Father / Brother"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                className={inputClass}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Contact Phone
-              </label>
+            <FormField label="Contact Phone">
               <input
                 type="text"
                 name="emergencyContactPhone"
                 value={formData.emergencyContactPhone}
                 onChange={handleChange}
                 disabled={!isEditing}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                className={inputClass}
               />
-            </div>
+            </FormField>
           </div>
-        </div>
+        </ProfileSectionCard>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Medical Information
-            </h2>
-          </div>
-
+        {/* Medical Information */}
+        <ProfileSectionCard title="Medical Information">
           <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Allergies Summary
-              </label>
+            <FormField label="Allergies Summary">
               <textarea
                 name="allergiesSummary"
                 value={formData.allergiesSummary}
                 onChange={handleChange}
                 rows="3"
                 disabled={!isEditing}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                className={inputClass}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Chronic Conditions Summary
-              </label>
+            <FormField label="Chronic Conditions Summary">
               <textarea
                 name="chronicConditionsSummary"
                 value={formData.chronicConditionsSummary}
                 onChange={handleChange}
                 rows="3"
                 disabled={!isEditing}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-cyan-600 disabled:bg-slate-50 disabled:text-slate-600"
+                className={inputClass}
               />
-            </div>
+            </FormField>
           </div>
-        </div>
+        </ProfileSectionCard>
 
+        {/* Action Buttons */}
         {isEditing && (
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center gap-2 rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
             >
+              <Save className="h-4 w-4" />
               {submitting ? "Saving..." : "Save Changes"}
             </button>
 
@@ -506,8 +387,9 @@ function ProfilePage() {
               type="button"
               onClick={handleCancel}
               disabled={submitting}
-              className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
             >
+              <X className="h-4 w-4" />
               Cancel
             </button>
           </div>
