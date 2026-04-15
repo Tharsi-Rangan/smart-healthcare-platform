@@ -2,7 +2,7 @@ import axios from "axios";
 import { getToken } from "../features/auth/authStorage";
 
 const doctorApi = axios.create({
-  baseURL: "http://localhost:5006",
+  baseURL: "http://localhost:5000/api/doctors",
 });
 
 doctorApi.interceptors.request.use((config) => {
@@ -16,14 +16,14 @@ doctorApi.interceptors.request.use((config) => {
 });
 
 export const getDoctorProfile = async () => {
-  const response = await doctorApi.get("/api/doctors/profile");
+  const response = await doctorApi.get("/profile");
   return response.data;
 };
 
 export const updateDoctorProfile = async (payload) => {
   const isFormData = payload instanceof FormData;
 
-  const response = await doctorApi.put("/api/doctors/profile", payload, {
+  const response = await doctorApi.put("/profile", payload, {
     headers: isFormData ? {} : { "Content-Type": "application/json" },
   });
 
@@ -31,12 +31,12 @@ export const updateDoctorProfile = async (payload) => {
 };
 
 export const getDoctorAvailability = async () => {
-  const response = await doctorApi.get("/api/doctors/availability");
+  const response = await doctorApi.get("/availability");
   return response.data;
 };
 
 export const updateDoctorAvailability = async (payload) => {
-  const response = await doctorApi.put("/api/doctors/availability", payload, {
+  const response = await doctorApi.put("/availability", payload, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -45,12 +45,12 @@ export const updateDoctorAvailability = async (payload) => {
 };
 
 export const getDoctorAppointments = async () => {
-  const response = await doctorApi.get("/api/doctors/appointments");
+  const response = await doctorApi.get("/appointments");
   return response.data;
 };
 
 export const createDoctorAppointment = async (payload) => {
-  const response = await doctorApi.post("/api/doctors/appointments", payload, {
+  const response = await doctorApi.post("/appointments", payload, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -60,7 +60,7 @@ export const createDoctorAppointment = async (payload) => {
 
 export const updateDoctorAppointmentStatus = async (appointmentId, status) => {
   const response = await doctorApi.patch(
-    `/api/doctors/appointments/${appointmentId}/status`,
+    `/${appointmentId}/status`,
     { status },
     {
       headers: {
@@ -72,17 +72,17 @@ export const updateDoctorAppointmentStatus = async (appointmentId, status) => {
 };
 
 export const getPatientReports = async () => {
-  const response = await doctorApi.get("/api/doctors/reports");
+  const response = await doctorApi.get("/reports");
   return response.data;
 };
 
 export const getPatientReportById = async (reportId) => {
-  const response = await doctorApi.get(`/api/doctors/reports/${reportId}`);
+  const response = await doctorApi.get(`/reports/${reportId}`);
   return response.data;
 };
 
 export const createPatientReport = async (payload) => {
-  const response = await doctorApi.post("/api/doctors/reports", payload, {
+  const response = await doctorApi.post("/reports", payload, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -91,12 +91,12 @@ export const createPatientReport = async (payload) => {
 };
 
 export const getPrescriptions = async () => {
-  const response = await doctorApi.get("/api/doctors/prescriptions");
+  const response = await doctorApi.get("/prescriptions");
   return response.data;
 };
 
 export const createPrescription = async (payload) => {
-  const response = await doctorApi.post("/api/doctors/prescriptions", payload, {
+  const response = await doctorApi.post("/prescriptions", payload, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -106,27 +106,27 @@ export const createPrescription = async (payload) => {
 
 /* Admin routes */
 export const getAdminDashboardSummary = async () => {
-  const response = await doctorApi.get("/api/doctors/admin/dashboard");
+  const response = await doctorApi.get("/admin/dashboard");
   return response.data;
 };
 
 export const getPendingDoctors = async () => {
-  const response = await doctorApi.get("/api/doctors/pending");
+  const response = await doctorApi.get("/pending");
   return response.data;
 };
 
 export const getAllDoctors = async () => {
-  const response = await doctorApi.get("/api/doctors");
+  const response = await doctorApi.get("");
   return response.data;
 };
 
 export const getDoctorById = async (doctorId) => {
-  const response = await doctorApi.get(`/api/doctors/${doctorId}`);
+  const response = await doctorApi.get(`/${doctorId}`);
   return response.data;
 };
 
 export const approveDoctor = async (doctorId, payload = {}) => {
-  const response = await doctorApi.patch(`/api/doctors/${doctorId}/approve`, payload, {
+  const response = await doctorApi.patch(`/${doctorId}/approve`, payload, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -135,7 +135,7 @@ export const approveDoctor = async (doctorId, payload = {}) => {
 };
 
 export const rejectDoctor = async (doctorId, payload) => {
-  const response = await doctorApi.patch(`/api/doctors/${doctorId}/reject`, payload, {
+  const response = await doctorApi.patch(`/${doctorId}/reject`, payload, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -145,7 +145,7 @@ export const rejectDoctor = async (doctorId, payload) => {
 
 export const toggleDoctorActiveStatus = async (doctorId, payload = {}) => {
   const response = await doctorApi.patch(
-    `/api/doctors/${doctorId}/toggle-active`,
+    `/${doctorId}/toggle-active`,
     payload,
     {
       headers: {

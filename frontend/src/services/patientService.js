@@ -1,6 +1,6 @@
 import { getToken } from "../features/auth/authStorage";
 
-const PATIENT_SERVICE_BASE_URL = "http://localhost:5002/api/patients";
+const PATIENT_SERVICE_BASE_URL = "http://localhost:5000";
 
 const buildHeaders = (extraHeaders = {}) => {
   const token = getToken();
@@ -23,7 +23,7 @@ const handleResponse = async (response) => {
 
 // Summary
 export const fetchPatientSummary = async () => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/summary`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/summary`, {
     method: "GET",
     headers: buildHeaders(),
   });
@@ -33,7 +33,7 @@ export const fetchPatientSummary = async () => {
 
 // Profile
 export const fetchPatientProfile = async () => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/profile`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/profile`, {
     method: "GET",
     headers: buildHeaders(),
   });
@@ -42,7 +42,7 @@ export const fetchPatientProfile = async () => {
 };
 
 export const updatePatientProfile = async (profileData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/profile`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/profile`, {
     method: "PUT",
     headers: buildHeaders({
       "Content-Type": "application/json",
@@ -54,7 +54,7 @@ export const updatePatientProfile = async (profileData) => {
 };
 
 export const uploadPatientAvatar = async (formData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/profile/avatar`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/profile/avatar`, {
     method: "PUT",
     headers: buildHeaders(),
     body: formData,
@@ -65,7 +65,7 @@ export const uploadPatientAvatar = async (formData) => {
 
 // Medical History
 export const fetchMedicalHistory = async () => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/medical-history`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/medical-history`, {
     method: "GET",
     headers: buildHeaders(),
   });
@@ -74,7 +74,7 @@ export const fetchMedicalHistory = async () => {
 };
 
 export const createMedicalHistory = async (historyData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/medical-history`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/medical-history`, {
     method: "POST",
     headers: buildHeaders({
       "Content-Type": "application/json",
@@ -87,7 +87,7 @@ export const createMedicalHistory = async (historyData) => {
 
 export const updateMedicalHistory = async (id, historyData) => {
   const response = await fetch(
-    `${PATIENT_SERVICE_BASE_URL}/medical-history/${id}`,
+    `${PATIENT_SERVICE_BASE_URL}/api/patients/medical-history/${id}`,
     {
       method: "PUT",
       headers: buildHeaders({
@@ -102,7 +102,7 @@ export const updateMedicalHistory = async (id, historyData) => {
 
 export const deleteMedicalHistory = async (id) => {
   const response = await fetch(
-    `${PATIENT_SERVICE_BASE_URL}/medical-history/${id}`,
+    `${PATIENT_SERVICE_BASE_URL}/api/patients/medical-history/${id}`,
     {
       method: "DELETE",
       headers: buildHeaders(),
@@ -114,7 +114,7 @@ export const deleteMedicalHistory = async (id) => {
 
 // Reports
 export const fetchPatientReports = async () => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/reports`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/reports`, {
     method: "GET",
     headers: buildHeaders(),
   });
@@ -123,7 +123,7 @@ export const fetchPatientReports = async () => {
 };
 
 export const uploadPatientReport = async (formData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/reports`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/reports`, {
     method: "POST",
     headers: buildHeaders(),
     body: formData,
@@ -133,7 +133,7 @@ export const uploadPatientReport = async (formData) => {
 };
 
 export const updatePatientReport = async (id, reportData) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/reports/${id}`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/reports/${id}`, {
     method: "PUT",
     headers: buildHeaders({
       "Content-Type": "application/json",
@@ -146,7 +146,7 @@ export const updatePatientReport = async (id, reportData) => {
 
 export const replacePatientReportFile = async (id, formData) => {
   const response = await fetch(
-    `${PATIENT_SERVICE_BASE_URL}/reports/${id}/file`,
+    `${PATIENT_SERVICE_BASE_URL}/api/patients/reports/${id}/file`,
     {
       method: "PUT",
       headers: buildHeaders(),
@@ -158,10 +158,10 @@ export const replacePatientReportFile = async (id, formData) => {
 };
 
 export const deletePatientReport = async (id) => {
-  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/reports/${id}`, {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/reports/${id}`, {
     method: "DELETE",
     headers: buildHeaders(),
   });
 
   return handleResponse(response);
-};
+};
