@@ -19,7 +19,7 @@ function TransactionsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-slate-900 to-cyan-700 p-8 text-white shadow-sm">
+      <section className="rounded-4xl border border-slate-200 bg-linear-to-r from-slate-900 to-cyan-700 p-8 text-white shadow-sm">
         <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
           Transactions
         </p>
@@ -42,7 +42,7 @@ function TransactionsPage() {
         ))}
       </section>
 
-      <section className="rounded-[32px] border border-dashed border-slate-300 bg-white p-8 shadow-sm">
+      <section className="rounded-4xl border border-dashed border-slate-300 bg-white p-8 shadow-sm">
         <h2 className="text-2xl font-bold text-slate-900">Integration Note</h2>
         <p className="mt-3 text-slate-500">
           Connect this page once your payment or transaction microservice exposes

@@ -90,7 +90,7 @@ function VerifyDoctorsPage() {
 
   if (loading) {
     return (
-      <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
         <p className="text-base text-slate-500">Loading pending doctors...</p>
       </div>
     );
@@ -98,7 +98,7 @@ function VerifyDoctorsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-slate-900 to-cyan-700 p-8 text-white shadow-sm">
+      <section className="rounded-4xl border border-slate-200 bg-linear-to-r from-slate-900 to-cyan-700 p-8 text-white shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
@@ -159,7 +159,7 @@ function VerifyDoctorsPage() {
           doctors.map((doctor) => (
             <div
               key={doctor._id}
-              className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm"
+              className="rounded-4xl border border-slate-200 bg-white p-7 shadow-sm"
             >
               <div className="grid gap-6 xl:grid-cols-[1fr,300px]">
                 <div>
@@ -223,7 +223,7 @@ function VerifyDoctorsPage() {
                 </div>
 
                 <div className="flex items-start xl:justify-end">
-                  <div className="grid w-full gap-3 xl:w-[240px]">
+                  <div className="grid w-full gap-3 xl:w-60">
                     <button
                       onClick={() => handleApprove(doctor._id)}
                       disabled={actionLoadingId === doctor._id}

@@ -110,7 +110,7 @@ function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[34px] border border-slate-200 bg-gradient-to-r from-slate-950 via-sky-950 to-cyan-700 text-white shadow-sm">
+      <section className="overflow-hidden rounded-[34px] border border-slate-200 bg-linear-to-r from-slate-950 via-sky-950 to-cyan-700 text-white shadow-sm">
         <div className="flex flex-col gap-8 px-8 py-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-sm uppercase tracking-[0.28em] text-cyan-100">
@@ -206,7 +206,7 @@ function DashboardPage() {
             <Link
               key={item.title}
               to={item.to}
-              className="group rounded-[24px] border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-cyan-200 hover:bg-white hover:shadow-md"
+              className="group rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:border-cyan-200 hover:bg-white hover:shadow-md"
             >
               <p className="text-lg font-semibold text-slate-900">
                 {item.title}

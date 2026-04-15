@@ -91,7 +91,7 @@ function DoctorLayout() {
         <aside className="flex w-[320px] flex-col border-r border-[#e2e8f0] bg-white">
           <div className="border-b border-[#e2e8f0] px-6 py-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0891b2] to-[#06b6d4] text-2xl text-white shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-[#0891b2] to-[#06b6d4] text-2xl text-white shadow-sm">
                 ⛑
               </div>
 
@@ -105,7 +105,7 @@ function DoctorLayout() {
           </div>
 
           <div className="border-b border-[#e2e8f0] px-6 py-6">
-            <div className="rounded-[24px] bg-[#f8fafb] p-4">
+            <div className="rounded-3xl bg-[#f8fafb] p-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0891b2] text-lg font-semibold text-white shadow-sm">
                   {user?.name?.[0]?.toUpperCase() || "D"}
@@ -217,7 +217,7 @@ function DoctorLayout() {
                 </button>
 
                 {openProfileMenu && (
-                  <div className="absolute right-0 top-[72px] z-50 w-[290px] rounded-[24px] border border-[#e2e8f0] bg-white p-4 shadow-2xl">
+                  <div className="absolute right-0 top-18 z-50 w-72.5 rounded-3xl border border-[#e2e8f0] bg-white p-4 shadow-2xl">
                     <div className="rounded-[20px] bg-[#f8fafb] p-4">
                       <div className="flex items-center gap-4">
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0891b2] text-lg font-semibold text-white">
