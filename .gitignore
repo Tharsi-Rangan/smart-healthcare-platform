@@ -34,6 +34,7 @@ temp/
 # frontend
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 
 # services
 services/**/node_modules/
