@@ -44,5 +44,5 @@ export default {
   consultationServiceUrl:
     process.env.CONSULTATION_SERVICE_URL || "http://localhost:5004",
   appointmentServiceUrl:
-    process.env.APPOINTMENT_SERVICE_URL || "http://localhost:3002",
+    process.env.APPOINTMENT_SERVICE_URL || "http://localhost:5003",
 };

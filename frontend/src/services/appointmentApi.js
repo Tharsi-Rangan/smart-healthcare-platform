@@ -2,7 +2,7 @@ import axios from "axios";
 import { getToken } from "../features/auth/authStorage";
 
 const appointmentClient = axios.create({
-  baseURL: import.meta.env.VITE_APPOINTMENT_API_URL || "http://localhost:5002",
+  baseURL: import.meta.env.VITE_APPOINTMENT_API_URL || "http://localhost:5000",
   headers: {
     "Content-Type": "application/json",
   },

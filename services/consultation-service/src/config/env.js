@@ -23,8 +23,8 @@ export default {
   },
   port: process.env.PORT || 5004,
   appointmentServiceUrl:
-    process.env.APPOINTMENT_SERVICE_URL || "http://localhost:3002",
-  patientServiceUrl: process.env.PATIENT_SERVICE_URL || "http://localhost:5005",
-  doctorServiceUrl: process.env.DOCTOR_SERVICE_URL || "http://localhost:3005",
+    process.env.APPOINTMENT_SERVICE_URL || "http://localhost:5003",
+  patientServiceUrl: process.env.PATIENT_SERVICE_URL || "http://localhost:5002",
+  doctorServiceUrl: process.env.DOCTOR_SERVICE_URL || "http://localhost:5006",
   jitsiDomain: process.env.JITSI_DOMAIN || "meet.jit.si",
 };

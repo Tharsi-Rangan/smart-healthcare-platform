@@ -1,6 +1,6 @@
 # Architecture Documentation - Smart Healthcare Platform
 
-## System Overview
+## System Overview (Microservices with API Gateway)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -28,158 +28,70 @@
                    │   MongoDB 6.0    │
                    │   (Port 27017)   │
                    └──────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                     Frontend (React + Vite)                                  │
+│          Patient Portal | Doctor Portal | Admin Dashboard | Consultation | Payment           │
+└───────────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                                │
+                                            HTTP/REST
+                                       (Target Port 5000)
+                                                │
+                                    ┌───────────▼───────────┐
+                                    │      API GATEWAY      │
+                                    │      (Port 5000)      │
+                                    └───────────┬───────────┘
+                                                │
+        ┌──────────────┬──────────────┬─────────┴────┬──────────────┬──────────────┐
+        │              │              │              │              │              │
+┌───────▼───────┐┌─────▼──────┐┌──────▼──────┐┌──────▼──────┐┌──────▼──────┐┌──────▼──────┐
+│ Auth Service  ││ Patient Svc ││ Appt Service ││ Consult Svc ││ Payment Svc ││ Doctor Svc  │
+│ (Port 5001)   ││ (Port 5002) ││ (Port 5003)  ││ (Port 5004)  ││ (Port 5005)  ││ (Port 5006)  │
+└───────────────┘└──────────────┘└──────────────┘└──────────────┘└──────────────┘└──────────────┘
+                                       │
+                             ┌─────────▼────────┐      ┌──────────────────────────┐
+                             │   MongoDB 6.0    │      │  Symptom-Checker Service │
+                             │   (Port 27017)   │      │        (Port 5007)       │
+                             └──────────────────┘      └──────────────────────────┘
 ```
 
 ## Service Architecture
 
-### 1. Consultation Service
+### 1. API Gateway (Port 5000)
+- **Role**: The single entry point for all frontend traffic.
+- **Responsibilities**: 
+    - Reverse proxying requests based on URL paths.
+    - Global CORS handling for the React frontend.
+    - Unified request logging (Observability).
+    - Simplified frontend environment configuration.
 
-**Responsibilities:**
-- Manage consultation lifecycle (pending → active → completed)
-- Generate video session links using Jitsi
-- Store consultation notes and prescriptions
-- Track consultation history per patient/doctor
+### 2. Auth Service (Port 5001)
+- **Responsibilities**: JWT issuance, user login/registration, OTP verification, and role-based access control (RBAC).
 
-**Key Endpoints:**
-```
-POST   /api/consultations              - Create consultation
-POST   /api/consultations/:id/start   - Start consultation (generate video link)
-POST   /api/consultations/:id/end     - End consultation
-PUT    /api/consultations/:id/notes   - Add/update notes and prescription
-GET    /api/consultations/:id         - Get consultation details
-GET    /api/consultations/patient/:id - Get patient history
-GET    /api/consultations/doctor/:id  - Get doctor history
-```
+### 3. Patient Service (Port 5002)
+- **Responsibilities**: Patient profile management, medical history tracking, medical report uploads (Multer), and dashboard summaries.
 
-**Database Model:**
-```
-Consultation {
-  appointmentId (unique)
-  patientId
-  doctorId
-  status: "pending" | "active" | "completed"
-  videoSessionId (UUID)
-  videoLink
-  notes
-  prescription
-  startedAt
-  completedAt
-  createdAt
-  updatedAt
-}
-```
+### 4. Appointment Service (Port 5003)
+- **Responsibilities**: Appointment booking, scheduling, status management, and integration with doctor availability.
 
-**Video Integration:**
-- Uses Jitsi Meet (no backend complexity)
-- Generates meeting link: `https://meet.jit.si/{videoSessionId}`
-- Frontend opens link in new window/tab
+### 5. Consultation Service (Port 5004)
+- **Responsibilities**: 
+  - Manage consultation lifecycle (pending → active → completed)
+  - Generate video session links using Jitsi (meet.jit.si)
+  - Store consultation notes and prescriptions
+  - Generate medical passports for patients.
 
-### 2. Payment-Notification Service
+### 6. Payment-Notification Service (Port 5005)
+- **Responsibilities**:
+  - Handle payment initiation and status tracking (PayHere sandbox)
+  - Process payment success/failure callbacks
+  - Send email notifications (Nodemailer)
+  - Manage real-time notification records for the dashboard.
 
-**Responsibilities:**
-- Handle payment initiation and status tracking
-- Process payment success/failure callbacks
-- Send email notifications
-- Manage notification records
+### 7. Doctor Service (Port 5006)
+- **Responsibilities**: Doctor profile management, availability scheduling, patient report reviews, and diagnosis history.
 
-**Key Endpoints:**
-```
-POST   /api/payments/initiate                    - Initiate payment
-POST   /api/payments/success                     - Payment success callback
-POST   /api/payments/failure                     - Payment failure callback
-GET    /api/payments/status/:appointmentId      - Get payment status
-POST   /api/payments/notifications/send         - Send notification
-GET    /api/payments/notifications/user/:userId - Get user notifications
-PUT    /api/payments/notifications/:id/read     - Mark as read
-```
-
-**Database Models:**
-```
-Payment {
-  appointmentId (unique)
-  patientId
-  doctorId
-  amount
-  currency: "LKR"
-  status: "pending" | "paid" | "failed" | "cancelled"
-  paymentGateway: "payhere" | "stripe"
-  transactionId
-  paymentLink
-  failureReason
-  createdAt
-  updatedAt
-}
-
-Notification {
-  userId
-  type: "email" | "sms"
-  title
-  message
-  eventType: "appointment_booked" | "payment_success" | "consultation_reminder" | "consultation_completed"
-  relatedId
-  status: "pending" | "sent" | "failed"
-  readAt
-  createdAt
-  updatedAt
-}
-```
-
-**Email Notifications:**
-- Appointment Booked: Patient + Doctor
-- Payment Success: Patient
-- Consultation Reminder: Patient + Doctor
-- Consultation Completed: Patient
-
-## End-to-End Data Flow
-
-### Scenario: Patient Books & Pays for Appointment
-
-```
-1. APPOINTMENT BOOKING
-   ├─ Patient selects doctor & time slot
-   ├─ Appointment created in Appointment Service
-   └─ Notification sent (email/SMS)
-
-2. PAYMENT INITIATION
-   ├─ POST /api/payments/initiate
-   │  ├─ Create Payment record (status: pending)
-   │  ├─ Generate payment link
-   │  └─ Return payment link to frontend
-   └─ Frontend redirects to payment gateway
-
-3. PAYMENT PROCESSING
-   ├─ User completes payment on gateway
-   ├─ Payment gateway calls: POST /api/payments/success
-   │  ├─ Update Payment status to "paid"
-   │  ├─ Send success email
-   │  └─ Create notification record
-   └─ Frontend receives status → shows success message
-
-4. CONSULTATION CREATION
-   ├─ Frontend or backend creates consultation
-   ├─ POST /api/consultations
-   │  ├─ Create Consultation record (status: pending)
-   │  └─ Return consultation ID
-   └─ Frontend navigates to ConsultationPage
-
-5. CONSULTATION PREPARATION
-   ├─ Doctor & Patient receive reminder emails
-   └─ System ready for video consultation
-
-6. CONSULTATION EXECUTION
-   ├─ Patient initiates: POST /api/consultations/:id/start
-   │  ├─ Generate Jitsi video link
-   │  └─ Update status to "active"
-   ├─ Jitsi link opens in browser
-   ├─ Both participants join video
-   ├─ Doctor adds notes: PUT /api/consultations/:id/notes
-   └─ Either party ends: POST /api/consultations/:id/end
-      └─ Status changes to "completed"
-
-7. POST-CONSULTATION
-   ├─ Patient receives email with prescription
-   └─ Consultation marked complete
-```
+### 8. Symptom-Checker Service (Port 5007)
+- **Responsibilities**: AI-driven symptom analysis using Google Gemini API.
 
 ## Integration Points
 
@@ -205,31 +117,19 @@ Frontend (Browser)
 3. **Token sent** with every API request in Authorization header
 4. **Each service** verifies token using JWT_SECRET
 5. **User info** (id, role, email) extracted from token claims
+### Request Flow
+1. **Frontend** makes a call to `http://localhost:5000/api/patients/profile`.
+2. **API Gateway** receives the request, logs it, and identifies the `/api/patients` prefix.
+3. **API Gateway** proxies the request to `http://localhost:5002/api/patients/profile`.
+4. **Patient Service** processes the request and returns data to the Gateway.
+5. **API Gateway** sends the response back to the Frontend.
 
 ## Technology Stack
 
-```
-Frontend:
-├─ React 18+
-├─ Vite
-├─ Axios
-└─ React Router
-
-Backend:
-├─ Node.js 18+
-├─ Express.js
-├─ MongoDB 6.0
-├─ Mongoose ODM
-├─ JWT Authentication
-├─ Nodemailer
-├─ UUID
-
-DevOps:
-├─ Docker
-├─ Kubernetes
-├─ Docker Compose
-└─ Git
-```
+- **API Gateway**: Node.js, Express, `http-proxy-middleware`, `morgan`.
+- **Frontend**: React 18, Vite, Framer Motion, Axios.
+- **Backend**: Node.js, Express.js.
+- **Database**: MongoDB (Mongoose ODM).
 
 ## Deployment Architecture
 
@@ -330,8 +230,11 @@ E2E Tests:
 ├─ Payment flow
 └─ Consultation flow
 ```
+### Kubernetes Production
+- **Ingress Controller**: Acts as the production API Gateway.
+- **Internal Services**: Mapped via K8s Service names (e.g., `http://auth-service:5001`).
 
 ---
 
-**Last Updated**: January 15, 2024
-**Version**: 1.0.0
+**Last Updated**: April 15, 2026
+**Version**: 3.0.0 (API Gateway Integrated)
