@@ -202,3 +202,15 @@ export const markNotificationAsRead = async (notificationId) => {
     throw new AppError(error.message || "Failed to update notification", 400);
   }
 };
+
+/**
+ * Get all payments (Admin specific)
+ */
+export const getAllPayments = async () => {
+  try {
+    const payments = await Payment.find().sort({ createdAt: -1 });
+    return payments;
+  } catch (error) {
+    throw new AppError(error.message || "Failed to fetch all payments", 500);
+  }
+};

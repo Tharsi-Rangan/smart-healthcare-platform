@@ -4,7 +4,7 @@ import { Appointment } from "../models/appointment.model.js";
 import { Doctor } from "../models/doctor.model.js";
 
 export const getDoctorAppointmentsController = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findOne({ authUserId: req.user.id });
+  const doctor = await Doctor.findOne({ authUserId: req.user.userId });
 
   if (!doctor) {
     throw new AppError("Doctor profile not found", 404);
@@ -25,7 +25,7 @@ export const getDoctorAppointmentsController = asyncHandler(async (req, res) => 
 });
 
 export const createAppointmentController = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findOne({ authUserId: req.user.id });
+  const doctor = await Doctor.findOne({ authUserId: req.user.userId });
 
   if (!doctor) {
     throw new AppError("Doctor profile not found", 404);
@@ -72,7 +72,7 @@ export const createAppointmentController = asyncHandler(async (req, res) => {
 });
 
 export const updateAppointmentStatusController = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findOne({ authUserId: req.user.id });
+  const doctor = await Doctor.findOne({ authUserId: req.user.userId });
 
   if (!doctor) {
     throw new AppError("Doctor profile not found", 404);

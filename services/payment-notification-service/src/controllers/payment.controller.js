@@ -6,6 +6,7 @@ import {
   sendNotification,
   getUserNotifications,
   markNotificationAsRead,
+  getAllPayments,
 } from "../services/payment.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/appError.js";
@@ -138,5 +139,17 @@ export const markNotificationAsReadHandler = asyncHandler(async (req, res) => {
     success: true,
     message: "Notification marked as read",
     data: notification,
+  });
+});
+
+/**
+ * Get all payments (Admin specific)
+ */
+export const getAllPaymentsHandler = asyncHandler(async (req, res) => {
+  const payments = await getAllPayments();
+
+  res.status(200).json({
+    success: true,
+    data: payments,
   });
 });

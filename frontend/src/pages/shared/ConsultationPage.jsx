@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import apiClient from "../../services/apiClient";
 import "./ConsultationPage.css";
 
 const ConsultationPage = () => {
@@ -12,7 +12,7 @@ const ConsultationPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 const [videoStarted, setVideoStarted] = useState(false);
-const token = localStorage.getItem("token");
+
 
 useEffect(() => {
     fetchConsultation();
@@ -20,11 +20,8 @@ useEffect(() => {
 
   const fetchConsultation = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:3003/api/consultations/${consultationId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await apiClient.get(
+        `/api/consultations/${consultationId}`
       );
       setConsultation(response.data.data);
       setLoading(false);
@@ -36,12 +33,9 @@ useEffect(() => {
 
   const startConsultation = async () => {
     try {
-      const response = await axios.post(
-        `http://localhost:3003/api/consultations/${consultationId}/start`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await apiClient.post(
+        `/api/consultations/${consultationId}/start`,
+        {}
       );
       setConsultation(response.data.data.consultation);
       setVideoStarted(true);
@@ -52,12 +46,9 @@ useEffect(() => {
 
   const endConsultation = async () => {
     try {
-      await axios.post(
-        `http://localhost:3003/api/consultations/${consultationId}/end`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      await apiClient.post(
+        `/api/consultations/${consultationId}/end`,
+        {}
       );
       alert("Consultation ended");
       navigate("/appointments");
@@ -68,12 +59,9 @@ useEffect(() => {
 
   const saveNotes = async () => {
     try {
-      const response = await axios.put(
-        `http://localhost:3003/api/consultations/${consultationId}/notes`,
-        { notes, prescription },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await apiClient.put(
+        `/api/consultations/${consultationId}/notes`,
+        { notes, prescription }
       );
       setConsultation(response.data.data);
       alert("Notes and prescription saved successfully");
