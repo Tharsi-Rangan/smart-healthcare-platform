@@ -6,6 +6,8 @@ import {
   Clock3,
   FileText,
   ListChecks,
+  MapPin,
+  Phone,
   Stethoscope,
   UserRound,
 } from "lucide-react";
@@ -19,6 +21,9 @@ function BookAppointmentPage() {
   const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState({
+    fullName: "",
+    phone: "",
+    address: "",
     appointmentDate: "",
     appointmentTime: "",
     consultationType: "online",
@@ -116,6 +121,18 @@ function BookAppointmentPage() {
       errors.appointmentDate = "Appointment date cannot be in the past.";
     }
 
+    if (!formData.fullName.trim()) {
+      errors.fullName = "Patient name is required.";
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = "Phone number is required.";
+    }
+
+    if (!formData.address.trim()) {
+      errors.address = "Address is required.";
+    }
+
     if (!formData.appointmentTime) {
       errors.appointmentTime = "Appointment time is required.";
     }
@@ -171,6 +188,11 @@ function BookAppointmentPage() {
       appointmentTime: formData.appointmentTime,
       consultationType: formData.consultationType,
       reason: formData.reason.trim(),
+      patientDetails: {
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
+      },
     };
 
     setLoading(true);
@@ -269,6 +291,68 @@ function BookAppointmentPage() {
             onSubmit={handleSubmit}
             className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
           >
+            <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
+                Patient Details (Mandatory)
+              </p>
+
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <UserRound size={15} className="text-cyan-700" />
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="Enter patient full name"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                  />
+                  {fieldErrors.fullName && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.fullName}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <Phone size={15} className="text-cyan-700" />
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Enter contact number"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                  />
+                  {fieldErrors.phone && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.phone}</p>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <MapPin size={15} className="text-cyan-700" />
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Enter current address"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                  />
+                  {fieldErrors.address && (
+                    <p className="mt-1 text-sm text-red-500">{fieldErrors.address}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-700">

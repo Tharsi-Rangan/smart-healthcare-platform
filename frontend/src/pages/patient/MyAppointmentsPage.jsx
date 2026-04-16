@@ -15,6 +15,7 @@ import {
   getMyAppointments,
   rescheduleAppointment,
 } from "../../services/appointmentApi";
+import { getPublicDoctorById } from "../../services/publicDoctorApi";
 
 const statusBadgeClassMap = {
   pending: "bg-amber-100 text-amber-700",
@@ -43,25 +44,57 @@ const formatDateForUi = (dateValue) => {
 
 const normalizeAppointment = (appointment) => {
   const appointmentId = appointment.id || appointment._id;
+  const doctorId = appointment.doctorId || appointment.doctor?._id || "";
 
   return {
     id: appointmentId,
+    doctorId,
     doctorName:
       appointment.doctorName ||
       appointment.doctor?.name ||
-      `Doctor ${appointment.doctorId || ""}`.trim(),
+      `Doctor ${doctorId || "N/A"}`.trim(),
     specialty: appointment.specialty || appointment.doctor?.specialization || "N/A",
     appointmentDate: formatDateForUi(appointment.appointmentDate),
     appointmentTime: appointment.appointmentTime || "",
     consultationType: appointment.consultationType || "online",
+    reason: appointment.reason || "Not provided",
+    paymentStatus: appointment.paymentStatus || "pending",
     status: appointment.status || "pending",
+    createdAt: appointment.createdAt || null,
   };
+};
+
+const enrichAppointmentsWithDoctorNames = async (appointments) => {
+  const uniqueDoctorIds = [...new Set(appointments.map((item) => item.doctorId).filter(Boolean))];
+
+  if (uniqueDoctorIds.length === 0) {
+    return appointments;
+  }
+
+  const doctorNameMap = new Map();
+
+  await Promise.all(
+    uniqueDoctorIds.map(async (doctorId) => {
+      try {
+        const doctor = await getPublicDoctorById(doctorId);
+        doctorNameMap.set(doctorId, doctor?.name || `Doctor ${doctorId}`);
+      } catch {
+        doctorNameMap.set(doctorId, `Doctor ${doctorId}`);
+      }
+    })
+  );
+
+  return appointments.map((appointment) => ({
+    ...appointment,
+    doctorName: doctorNameMap.get(appointment.doctorId) || appointment.doctorName,
+  }));
 };
 
 function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState("");
   const [rescheduleForm, setRescheduleForm] = useState({
     appointmentId: "",
@@ -105,26 +138,46 @@ function MyAppointmentsPage() {
     );
   }, [sortedAppointments]);
 
-  const loadAppointments = async () => {
-    setLoading(true);
+  const loadAppointments = async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+    }
+
     setErrorMessage("");
 
     try {
       const response = await getMyAppointments();
       const apiAppointments = Array.isArray(response?.data) ? response.data : [];
-      setAppointments(apiAppointments.map(normalizeAppointment));
+      const normalizedAppointments = apiAppointments.map(normalizeAppointment);
+      const enrichedAppointments = await enrichAppointmentsWithDoctorNames(
+        normalizedAppointments
+      );
+      setAppointments(enrichedAppointments);
+      setLastUpdatedAt(new Date());
     } catch (error) {
       setErrorMessage(
         error?.response?.data?.message || "Unable to load appointments right now."
       );
-      setAppointments([]);
+      if (!silent) {
+        setAppointments([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadAppointments();
+    loadAppointments({ silent: false });
+
+    const intervalId = setInterval(() => {
+      loadAppointments({ silent: true });
+    }, 12000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   const handleCancelAppointment = async (appointmentId) => {
@@ -211,6 +264,9 @@ function MyAppointmentsPage() {
           <h1 className="text-3xl font-bold text-slate-800">My Appointments</h1>
           <p className="mt-1 text-sm text-slate-500">
             Track, cancel, and reschedule your consultations with live status updates.
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Last updated {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : "just now"}
           </p>
         </div>
 
@@ -311,6 +367,10 @@ function MyAppointmentsPage() {
                       {appointment.doctorName}
                     </p>
                     <p>
+                      <span className="font-medium text-slate-700">Appointment ID:</span>{" "}
+                      {appointment.id}
+                    </p>
+                    <p>
                       <span className="font-medium text-slate-700">Specialty:</span>{" "}
                       {appointment.specialty}
                     </p>
@@ -332,6 +392,14 @@ function MyAppointmentsPage() {
                       <span className="font-medium text-slate-700">Type:</span>{" "}
                       <span className="capitalize">{appointment.consultationType}</span>
                     </p>
+                    <p>
+                      <span className="font-medium text-slate-700">Reason:</span>{" "}
+                      {appointment.reason}
+                    </p>
+                    <p>
+                      <span className="font-medium text-slate-700">Payment:</span>{" "}
+                      <span className="capitalize">{appointment.paymentStatus}</span>
+                    </p>
                   </div>
 
                   <div className="flex flex-col items-start gap-3 md:items-end">
@@ -346,7 +414,7 @@ function MyAppointmentsPage() {
                         type="button"
                         onClick={() => handleCancelAppointment(appointment.id)}
                         disabled={isActionDisabled || isActionLoading}
-                        className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isActionLoading ? "Please wait..." : "Cancel"}
                       </button>
@@ -355,7 +423,7 @@ function MyAppointmentsPage() {
                         type="button"
                         onClick={() => openRescheduleForm(appointment)}
                         disabled={isActionDisabled || isActionLoading}
-                        className="rounded-lg border border-cyan-200 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl border border-cyan-200 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Reschedule
                       </button>
@@ -377,7 +445,7 @@ function MyAppointmentsPage() {
                           appointmentDate: event.target.value,
                         }))
                       }
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                      className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
                     />
 
                     <input
@@ -389,13 +457,13 @@ function MyAppointmentsPage() {
                           appointmentTime: event.target.value,
                         }))
                       }
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                      className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
                     />
 
                     <button
                       type="submit"
                       disabled={isActionLoading}
-                      className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       Save
                     </button>
@@ -403,7 +471,7 @@ function MyAppointmentsPage() {
                     <button
                       type="button"
                       onClick={closeRescheduleForm}
-                      className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
                     >
                       Close
                     </button>

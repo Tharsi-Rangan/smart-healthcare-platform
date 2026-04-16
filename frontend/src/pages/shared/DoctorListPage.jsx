@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { getPublicDoctors } from "../../services/publicDoctorApi";
 
 function DoctorListPage() {
+  const [searchParams] = useSearchParams();
+  const specializationFromQuery = searchParams.get("specialization")?.trim() || "";
+
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [specializationFilter, setSpecializationFilter] = useState("all");
+  const [specializationFilter, setSpecializationFilter] = useState(
+    specializationFromQuery || "all"
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -48,6 +53,25 @@ function DoctorListPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!specializationFromQuery) {
+      return;
+    }
+
+    const matchedSpecialization = doctors.find(
+      (doctor) =>
+        String(doctor.specialization || "").toLowerCase() ===
+        specializationFromQuery.toLowerCase()
+    )?.specialization;
+
+    if (matchedSpecialization) {
+      setSpecializationFilter(matchedSpecialization);
+      return;
+    }
+
+    setSpecializationFilter(specializationFromQuery);
+  }, [doctors, specializationFromQuery]);
+
   const specializations = useMemo(() => {
     return ["all", ...new Set(doctors.map((doctor) => doctor.specialization))];
   }, [doctors]);
@@ -58,7 +82,8 @@ function DoctorListPage() {
     return doctors.filter((doctor) => {
       const matchesSpecialization =
         specializationFilter === "all" ||
-        doctor.specialization === specializationFilter;
+        String(doctor.specialization || "").toLowerCase() ===
+          String(specializationFilter || "").toLowerCase();
 
       const searchableText =
         `${doctor.name} ${doctor.specialization} ${doctor.hospital}`.toLowerCase();
