@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   CalendarDays,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { createAppointment } from "../../services/appointmentApi";
 import { getToken } from "../../features/auth/authStorage";
-import { mockDoctors } from "./doctorMockData";
+import { getPublicDoctorById } from "../../services/publicDoctorApi";
 
 function BookAppointmentPage() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ function BookAppointmentPage() {
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [doctorLoading, setDoctorLoading] = useState(false);
 
   const doctorId = searchParams.get("doctorId");
 
@@ -39,8 +40,55 @@ function BookAppointmentPage() {
       return doctorFromState;
     }
 
-    return mockDoctors.find((doctor) => doctor.id === doctorId);
+    return null;
   }, [location.state, doctorId]);
+
+  const [resolvedDoctor, setResolvedDoctor] = useState(selectedDoctor);
+
+  useEffect(() => {
+    setResolvedDoctor(selectedDoctor);
+  }, [selectedDoctor]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDoctor = async () => {
+      if (!doctorId || resolvedDoctor) {
+        return;
+      }
+
+      setDoctorLoading(true);
+
+      try {
+        const doctor = await getPublicDoctorById(doctorId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setResolvedDoctor(doctor);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setSubmitError(
+          error?.response?.data?.message ||
+            "Selected doctor could not be loaded. Please choose a doctor again."
+        );
+      } finally {
+        if (isMounted) {
+          setDoctorLoading(false);
+        }
+      }
+    };
+
+    loadDoctor();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [doctorId, resolvedDoctor]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -80,7 +128,7 @@ function BookAppointmentPage() {
       errors.reason = "Please provide a brief reason.";
     }
 
-    if (!selectedDoctor) {
+    if (!resolvedDoctor) {
       errors.doctor = "Please select a doctor first.";
     }
 
@@ -107,8 +155,8 @@ function BookAppointmentPage() {
       setTimeout(() => {
         navigate("/login", {
           state: {
-            from: `/book-appointment?doctorId=${selectedDoctor.id}`,
-            doctor: selectedDoctor,
+            from: `/book-appointment?doctorId=${resolvedDoctor.id}`,
+            doctor: resolvedDoctor,
           },
         });
       }, 1200);
@@ -117,8 +165,8 @@ function BookAppointmentPage() {
     }
 
     const payload = {
-      doctorId: selectedDoctor.id,
-      specialty: selectedDoctor.specialization,
+      doctorId: resolvedDoctor.id,
+      specialty: resolvedDoctor.specialization,
       appointmentDate: formData.appointmentDate,
       appointmentTime: formData.appointmentTime,
       consultationType: formData.consultationType,
@@ -153,7 +201,11 @@ function BookAppointmentPage() {
         </p>
       </div>
 
-      {!selectedDoctor ? (
+      {doctorLoading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm text-slate-600">Loading selected doctor...</p>
+        </div>
+      ) : !resolvedDoctor ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm text-slate-600">
             No doctor is selected. Start from the doctor list and choose a doctor profile.
@@ -179,22 +231,22 @@ function BookAppointmentPage() {
                     <UserRound size={14} />
                     Name:
                   </span>{" "}
-                  {selectedDoctor.name}
+                  {resolvedDoctor.name}
                 </p>
                 <p>
                   <span className="inline-flex items-center gap-2 font-medium text-slate-700">
                     <Stethoscope size={14} />
                     Specialization:
                   </span>{" "}
-                  {selectedDoctor.specialization}
+                  {resolvedDoctor.specialization}
                 </p>
                 <p>
                   <span className="font-medium text-slate-700">Fee:</span> BDT{" "}
-                  {selectedDoctor.consultationFee}
+                  {resolvedDoctor.consultationFee}
                 </p>
                 <p>
                   <span className="font-medium text-slate-700">Availability:</span>{" "}
-                  {selectedDoctor.availabilityText}
+                  {resolvedDoctor.availabilityText}
                 </p>
               </div>
             </div>

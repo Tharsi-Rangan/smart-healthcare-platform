@@ -1,20 +1,61 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, SlidersHorizontal } from "lucide-react";
-import { mockDoctors } from "./doctorMockData";
+import { getPublicDoctors } from "../../services/publicDoctorApi";
 
 function DoctorListPage() {
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [searchText, setSearchText] = useState("");
   const [specializationFilter, setSpecializationFilter] = useState("all");
 
-  const specializations = useMemo(() => {
-    return ["all", ...new Set(mockDoctors.map((doctor) => doctor.specialization))];
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDoctors = async () => {
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const result = await getPublicDoctors();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDoctors(result);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setLoadError(
+          error?.response?.data?.message ||
+            "Unable to fetch doctors right now. Please try again shortly."
+        );
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDoctors();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const specializations = useMemo(() => {
+    return ["all", ...new Set(doctors.map((doctor) => doctor.specialization))];
+  }, [doctors]);
 
   const filteredDoctors = useMemo(() => {
     const normalizedSearch = searchText.toLowerCase().trim();
 
-    return mockDoctors.filter((doctor) => {
+    return doctors.filter((doctor) => {
       const matchesSpecialization =
         specializationFilter === "all" ||
         doctor.specialization === specializationFilter;
@@ -26,7 +67,7 @@ function DoctorListPage() {
 
       return matchesSpecialization && matchesSearch;
     });
-  }, [searchText, specializationFilter]);
+  }, [doctors, searchText, specializationFilter]);
 
   const hasActiveFilters = searchText.trim() || specializationFilter !== "all";
 
@@ -105,7 +146,15 @@ function DoctorListPage() {
         </div>
       </div>
 
-      {filteredDoctors.length === 0 ? (
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+          Loading doctors...
+        </div>
+      ) : loadError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600 shadow-sm">
+          {loadError}
+        </div>
+      ) : filteredDoctors.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
           No doctors matched your search. Try another keyword or specialization.
         </div>

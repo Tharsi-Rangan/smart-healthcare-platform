@@ -1,17 +1,68 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { mockDoctors } from "./doctorMockData";
+import { getPublicDoctorById } from "../../services/publicDoctorApi";
 
 function DoctorDetailsPage() {
   const { id } = useParams();
   const location = useLocation();
+  const [doctor, setDoctor] = useState(location.state?.doctor || null);
+  const [loading, setLoading] = useState(!location.state?.doctor);
+  const [loadError, setLoadError] = useState("");
 
-  const doctor =
-    location.state?.doctor || mockDoctors.find((item) => item.id === id);
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDoctor = async () => {
+      if (location.state?.doctor && location.state?.doctor.id === id) {
+        return;
+      }
+
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const fetchedDoctor = await getPublicDoctorById(id);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDoctor(fetchedDoctor);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setLoadError(
+          error?.response?.data?.message ||
+            "Unable to load doctor details right now."
+        );
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadDoctor();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, location.state]);
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm text-slate-600">Loading doctor details...</p>
+      </div>
+    );
+  }
 
   if (!doctor) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm text-slate-600">Doctor not found.</p>
+        <p className="text-sm text-slate-600">{loadError || "Doctor not found."}</p>
         <Link
           to="/doctors"
           className="mt-4 inline-flex rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
