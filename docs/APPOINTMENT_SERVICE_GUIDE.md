@@ -20,11 +20,11 @@ The Appointment Service is responsible for:
 
 ### Local Development
 
-http://localhost:5002
+http://localhost:5003
 
 ### Appointment Route Base
 
-http://localhost:5002/api/appointments
+http://localhost:5003/api/appointments
 
 ---
 
@@ -52,9 +52,10 @@ It only:
 
 {
   "userId": "USER_ID",
-  "email": "user@example.com",
   "role": "patient | doctor"
 }
+
+Note: `email` may exist in the token, but appointment-service currently requires only `userId` and `role`.
 
 ---
 
@@ -93,9 +94,12 @@ It only:
 
 ### Status Rules
 
-- valid status transitions:
-  - pending → confirmed
-  - confirmed → completed
+- allowed update payload values for doctor status updates:
+  - confirmed
+  - completed
+
+- current implementation rule:
+  - status updates are blocked only when appointment is already `cancelled`
 
 - cannot:
   - reschedule cancelled appointment
@@ -136,6 +140,18 @@ It only:
   "success": false,
   "message": "Error message",
   "data": null
+}
+
+Validation errors can also include:
+
+{
+  "errors": [
+    {
+      "type": "field",
+      "path": "appointmentDate",
+      "msg": "appointmentDate must be in YYYY-MM-DD format"
+    }
+  ]
 }
 
 ---
