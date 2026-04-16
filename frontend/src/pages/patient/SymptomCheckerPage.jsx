@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   CalendarDays,
+  CheckCircle2,
+  Heart,
   HeartPulse,
+  Info,
   Mic,
   MicOff,
+  ShieldCheck,
   RefreshCw,
   Sparkles,
   Stethoscope,
@@ -28,25 +33,37 @@ const urgencyClassMap = {
   Low: "bg-emerald-100 text-emerald-700",
 };
 
+const urgencyAccentMap = {
+  High: "border-t-red-500",
+  Medium: "border-t-amber-500",
+  Low: "border-t-emerald-500",
+};
+
+const urgencyPanelMap = {
+  High: "bg-red-50 text-red-800 border-red-200",
+  Medium: "bg-amber-50 text-amber-800 border-amber-200",
+  Low: "bg-emerald-50 text-emerald-800 border-emerald-200",
+};
+
 const urgencyLabelMap = {
-  High: "High 🚨",
-  Medium: "Medium ⚠️",
-  Low: "Low 😊",
+  High: "High",
+  Medium: "Medium",
+  Low: "Low",
 };
 
 const urgencyMessageMap = {
   High:
-    "This may need urgent medical attention. Please contact emergency care if symptoms worsen.",
+    "Based on what you shared, this may need a closer check soon. Please seek medical help quickly.",
   Medium:
-    "This is not an emergency, but it is a good idea to consult a doctor soon.",
+    "This may not be an emergency right now, but it is important to speak with a doctor soon.",
   Low:
-    "This appears lower urgency, but consult a doctor if symptoms continue or worsen.",
+    "This appears lower urgency at the moment. Keep monitoring and get support if symptoms continue.",
 };
 
 const analyzingMessages = [
-  "Checking possible conditions...",
-  "Finding the best care for you...",
-  "Preparing helpful advice...",
+  "Analyzing your symptoms...",
+  "Preparing a helpful recommendation...",
+  "Finding the right care path for you...",
 ];
 
 const formatHistoryDateTime = (value) => {
@@ -357,6 +374,7 @@ function SymptomCheckerPage() {
 
   const handleViewDoctors = () => {
     if (!latestResult?.recommendedSpecialty) {
+      navigate("/doctors");
       return;
     }
 
@@ -423,12 +441,12 @@ function SymptomCheckerPage() {
       <div className="overflow-hidden rounded-2xl border border-cyan-100 bg-linear-to-r from-cyan-50 via-sky-50 to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">Symptom Checker</h1>
-            <p className="mt-2 text-base font-medium text-slate-700">
+            <h1 className="text-3xl font-bold text-slate-900">Symptom Checker</h1>
+            <p className="mt-2 text-base font-medium text-slate-800">
               Tell us how you feel and get quick, safe guidance.
             </p>
-            <p className="mt-1 text-sm text-slate-600">
-              Simple insights first, doctor support whenever you need it.
+            <p className="mt-1 text-sm text-slate-700">
+              Caring support for children, youth, and elders with easy-to-read guidance.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -450,7 +468,7 @@ function SymptomCheckerPage() {
         className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="inline-flex items-center gap-2 text-lg font-bold text-slate-800">
+          <h2 className="inline-flex items-center gap-2 text-lg font-bold text-slate-900">
             <HeartPulse size={18} className="text-cyan-700" />
             Describe Your Symptoms
           </h2>
@@ -472,6 +490,9 @@ function SymptomCheckerPage() {
               placeholder={`Example:\n• I have a headache and fever for 2 days\n• Chest pain when breathing\n• Stomach pain after eating`}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
             />
+            <p className="mt-2 text-sm font-medium text-slate-700">
+              You can type or use your voice to describe how you feel.
+            </p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <label className="text-xs font-medium text-slate-600">
                 Voice language
@@ -501,7 +522,7 @@ function SymptomCheckerPage() {
                   : "Voice input is not supported in this browser."}
               </p>
             </div>
-            <p className="mt-2 text-xs text-slate-600">
+            <p className="mt-2 text-xs text-slate-700">
               You can type your symptoms in English, Tamil, or Sinhala. Voice input currently works best in English.
             </p>
           </div>
@@ -579,22 +600,22 @@ function SymptomCheckerPage() {
       </form>
 
       {isAnalyzing && (
-        <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 flex h-14 w-24 items-center justify-center">
+        <div className="rounded-2xl border border-cyan-100 bg-white p-6 text-center shadow-sm ring-1 ring-cyan-100/70">
+          <div className="mx-auto mb-3 flex h-20 w-28 items-center justify-center">
             <div
               ref={lottieContainerRef}
-              className={isLottieReady ? "h-14 w-24" : "hidden"}
+              className={isLottieReady ? "h-20 w-28" : "hidden"}
               aria-label="Analyzing symptoms animation"
             />
             {!isLottieReady && (
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 shadow-sm">
                 <HeartPulse size={28} className="animate-pulse text-cyan-700" aria-hidden="true" />
               </div>
             )}
-            </div>
+          </div>
           <p className="text-base font-semibold text-cyan-900">Analyzing your symptoms...</p>
-          <p className="mt-1 text-sm text-cyan-700">Please wait a moment.</p>
-          <p className="mt-3 text-sm font-medium text-cyan-800">
+          <p className="mt-1 text-sm text-slate-700">Preparing a helpful recommendation for you.</p>
+          <p className="mt-3 text-sm font-medium text-cyan-800" aria-live="polite">
             {analyzingMessages[analyzingMessageIndex]}
           </p>
         </div>
@@ -605,10 +626,17 @@ function SymptomCheckerPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className={`rounded-2xl border border-slate-200 border-t-4 bg-white p-6 shadow-sm ${
+            urgencyAccentMap[latestResult.urgency] || "border-t-cyan-500"
+          }`}
         >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-bold text-slate-800">Latest Analysis</h2>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Your Health Guidance</h2>
+              <p className="mt-1 text-sm text-slate-700">
+                Based on what you shared, here is a simple and safe recommendation.
+              </p>
+            </div>
             <span
               className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
                 urgencyClassMap[latestResult.urgency] || "bg-slate-100 text-slate-700"
@@ -618,47 +646,58 @@ function SymptomCheckerPage() {
             </span>
           </div>
 
+          <div className="mb-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-cyan-800">Recommended Specialty</p>
+              <p className="mt-1 inline-flex items-center gap-2 text-lg font-bold text-slate-900">
+                <Stethoscope size={18} className="text-cyan-700" />
+                {latestResult.recommendedSpecialty || "General Physician"}
+              </p>
+            </div>
+
+            <div className={`rounded-xl border p-4 ${urgencyPanelMap[latestResult.urgency] || "bg-slate-50 border-slate-200 text-slate-800"}`}>
+              <p className="text-xs font-semibold uppercase tracking-wide">Urgency Level</p>
+              <p className="mt-1 text-lg font-bold">
+                {urgencyLabelMap[latestResult.urgency] || "Unknown"}
+              </p>
+              <p className="mt-2 text-sm font-medium">{urgencyMessageMap[latestResult.urgency]}</p>
+            </div>
+          </div>
+
+          <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Preliminary Suggestion</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-800">
+              {latestResult.preliminarySuggestion || "We could not generate a suggestion right now. Please consult a doctor."}
+            </p>
+          </div>
+
           {latestResult.isEmergency && (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" />
               <p>
-                This may require urgent attention. If symptoms are severe, seek emergency care immediately.
+                This may be serious. Please seek medical help immediately, especially if symptoms are getting worse.
               </p>
             </div>
           )}
 
-          <p className="mb-4 rounded-xl bg-cyan-50 px-3 py-2 text-sm text-cyan-800">
-            {urgencyMessageMap[latestResult.urgency] ||
-              "Please consult a doctor if your symptoms continue or worsen."}
-          </p>
-
-          <p className="mb-4 text-sm text-slate-700">
-            Based on what you shared, this may be a manageable condition with proper care. Here are simple and safe steps you can follow.
-          </p>
-
-          <div className="grid gap-3 text-sm text-slate-700">
-            <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 p-3">
-              <p>
-                <span className="font-semibold text-slate-800">Recommended Specialty:</span>{" "}
-                {latestResult.recommendedSpecialty || "N/A"}
+          <div className="grid gap-4 text-sm text-slate-700">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+              <p className="inline-flex items-center gap-2 font-semibold text-emerald-900">
+                <Heart size={16} className="text-emerald-700" />
+                Home Care Tips
               </p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p>
-                <span className="font-semibold text-slate-800">Preliminary Suggestion:</span>{" "}
-                {latestResult.preliminarySuggestion || "N/A"}
+              <p className="mt-1 text-sm text-emerald-800">
+                Here are a few simple steps that may help for now.
               </p>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800">Home Care Tips:</p>
               {Array.isArray(latestResult.homeCareTips) && latestResult.homeCareTips.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
                   {latestResult.homeCareTips.map((tip, index) => (
                     <li
                       key={`${latestResult._id}-tip-${index}`}
-                      className="rounded-lg border border-slate-100 bg-white px-3 py-2"
+                      className="inline-flex w-full items-start gap-2 rounded-lg border border-emerald-100 bg-white px-3 py-2"
                     >
-                      {tip}
+                      <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600" />
+                      <span>{tip}</span>
                     </li>
                   ))}
                 </ul>
@@ -666,11 +705,19 @@ function SymptomCheckerPage() {
                 <p className="mt-1 text-slate-500">No tips available.</p>
               )}
             </div>
-            <p>
-              <span className="font-semibold text-slate-800">When to Seek Help:</span>{" "}
-              {latestResult.whenToSeekHelp || "N/A"}
-            </p>
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+
+            <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-4">
+              <p className="inline-flex items-center gap-2 font-semibold text-amber-900">
+                <ShieldCheck size={16} className="text-amber-700" />
+                When to Seek Help
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-amber-900">
+                {latestResult.whenToSeekHelp || "If symptoms get worse, please seek medical help quickly."}
+              </p>
+            </div>
+
+            <p className="inline-flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <Info size={14} className="mt-0.5 shrink-0 text-slate-500" />
               {latestResult.disclaimer ||
                 "This is a preliminary AI-assisted suggestion and not a medical diagnosis."}
             </p>
@@ -680,16 +727,17 @@ function SymptomCheckerPage() {
             <button
               type="button"
               onClick={handleViewDoctors}
-              className="min-h-11 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-600"
             >
-              Find a Doctor Near You
+              View Recommended Doctors
+              <ArrowRight size={14} />
             </button>
             <button
               type="button"
               onClick={handleBookAppointment}
               className="min-h-11 rounded-xl border border-cyan-200 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50"
             >
-              Book an Appointment
+              Book Appointment
             </button>
             <button
               type="button"
@@ -723,7 +771,7 @@ function SymptomCheckerPage() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-slate-800">Symptom History</h2>
+          <h2 className="text-xl font-bold text-slate-900">Symptom History</h2>
           <button
             type="button"
             onClick={() => loadHistory()}
@@ -736,15 +784,15 @@ function SymptomCheckerPage() {
         </div>
 
         {history.length === 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm font-medium text-slate-700">
             No history yet. Try analyzing your symptoms above.
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {history.map((item) => (
               <div
                 key={item._id}
-                className="rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:border-cyan-100 hover:bg-cyan-50/30"
+                className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-cyan-100 hover:bg-cyan-50/30"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="inline-flex items-center gap-2 font-semibold text-slate-800">
@@ -753,7 +801,7 @@ function SymptomCheckerPage() {
                   </p>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-bold uppercase ${
+                      className={`rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide ${
                         urgencyClassMap[item.urgency] || "bg-slate-100 text-slate-700"
                       }`}
                     >
@@ -774,10 +822,19 @@ function SymptomCheckerPage() {
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 text-sm text-slate-600">{item.symptoms}</p>
+                <p className="mt-2 text-sm text-slate-700">{item.symptoms}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  <p className="inline-flex items-center gap-1.5">
+                    <CalendarDays size={13} />
+                    {formatHistoryDateTime(item.createdAt)}
+                  </p>
+                  <p className="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+                    Source: {item.source || "rule-based"}
+                  </p>
+                </div>
                 <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
                   <CalendarDays size={13} />
-                  {formatHistoryDateTime(item.createdAt)}
+                  Record ID: {item._id}
                 </p>
               </div>
             ))}

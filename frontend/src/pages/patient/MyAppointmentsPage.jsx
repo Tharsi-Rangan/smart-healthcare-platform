@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  PartyPopper,
   BadgeCheck,
   CalendarDays,
   CheckCircle2,
@@ -101,6 +102,8 @@ function MyAppointmentsPage() {
     appointmentDate: "",
     appointmentTime: "",
   });
+  const [confirmToast, setConfirmToast] = useState(null);
+  const previousStatusMapRef = useRef(new Map());
 
   const sortedAppointments = useMemo(() => {
     return [...appointments].sort((first, second) => {
@@ -152,6 +155,27 @@ function MyAppointmentsPage() {
       const enrichedAppointments = await enrichAppointmentsWithDoctorNames(
         normalizedAppointments
       );
+
+      if (silent) {
+        const previousById = previousStatusMapRef.current;
+        const newlyConfirmed = enrichedAppointments.find((item) => {
+          const oldStatus = previousById.get(item.id);
+          return oldStatus && oldStatus !== "confirmed" && item.status === "confirmed";
+        });
+
+        if (newlyConfirmed) {
+          setConfirmToast({
+            doctorName: newlyConfirmed.doctorName,
+            appointmentDate: newlyConfirmed.appointmentDate,
+            appointmentTime: newlyConfirmed.appointmentTime,
+          });
+        }
+      }
+
+      previousStatusMapRef.current = new Map(
+        enrichedAppointments.map((item) => [item.id, item.status])
+      );
+
       setAppointments(enrichedAppointments);
       setLastUpdatedAt(new Date());
     } catch (error) {
@@ -179,6 +203,18 @@ function MyAppointmentsPage() {
       clearInterval(intervalId);
     };
   }, []);
+
+  useEffect(() => {
+    if (!confirmToast) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setConfirmToast(null);
+    }, 5200);
+
+    return () => clearTimeout(timeout);
+  }, [confirmToast]);
 
   const handleCancelAppointment = async (appointmentId) => {
     setActionLoadingId(appointmentId);
@@ -259,6 +295,25 @@ function MyAppointmentsPage() {
 
   return (
     <div className="space-y-6">
+      {confirmToast && (
+        <div className="fixed right-6 top-6 z-50 max-w-sm rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl ring-1 ring-emerald-100">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700">
+              <PartyPopper size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-emerald-800">Appointment Confirmed</p>
+              <p className="mt-1 text-sm text-slate-700">
+                Great news. Your appointment with {confirmToast.doctorName} is confirmed.
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-600">
+                {confirmToast.appointmentDate} at {confirmToast.appointmentTime}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">My Appointments</h1>
