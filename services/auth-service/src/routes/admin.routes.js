@@ -1,16 +1,16 @@
 import express from "express";
+import { 
+  getAllUsersController,
+  updateUserStatusController,
+  deleteUserController
+} from "../controllers/admin.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
-import {
-  getAllUsersController,
-  getUserByIdController,
-  updateUserStatusController,
-} from "../controllers/admin.controller.js";
 
 const router = express.Router();
 
 router.get("/users", protect, authorize("admin"), getAllUsersController);
-router.get("/users/:id", protect, authorize("admin"), getUserByIdController);
-router.patch("/users/:id/status", protect, authorize("admin"), updateUserStatusController);
+router.patch("/users/:userId/status", protect, authorize("admin"), updateUserStatusController);
+router.delete("/users/:userId", protect, authorize("admin"), deleteUserController);
 
 export default router;

@@ -33,10 +33,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.use("/api/health", healthRoutes);
-app.use("/api/patients", patientProfileRoutes);
 app.use("/api/patients/medical-history", medicalHistoryRoutes);
 app.use("/api/patients/reports", patientReportRoutes);
 app.use("/api/patients/summary", patientSummaryRoutes);
+app.use("/api/patients", patientProfileRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

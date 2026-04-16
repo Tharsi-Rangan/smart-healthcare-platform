@@ -15,6 +15,12 @@ export const registerPatientValidation = [
   body("password")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters long"),
+    
+  body("phone")
+    .optional()
+    .trim()
+    .isString()
+    .withMessage("Phone must be a string"),
 ];
 
 export const registerDoctorValidation = [
@@ -32,6 +38,12 @@ export const registerDoctorValidation = [
   body("password")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters long"),
+    
+  body("phone")
+    .optional()
+    .trim()
+    .isString()
+    .withMessage("Phone must be a string"),
 ];
 
 export const loginValidation = [
@@ -45,6 +57,7 @@ export const loginValidation = [
     .notEmpty()
     .withMessage("Password is required"),
 ];
+
 export const verifyEmailOtpValidation = [
   body("email")
     .trim()

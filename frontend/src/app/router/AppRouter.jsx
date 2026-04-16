@@ -19,6 +19,7 @@ import MedicalHistoryPage from "../../pages/patient/MedicalHistoryPage";
 import ReportsPage from "../../pages/patient/ReportsPage";
 import PrescriptionsPage from "../../pages/patient/PrescriptionsPage";
 import MyAppointmentsPage from "../../pages/patient/MyAppointmentsPage";
+import AppointmentHistoryPage from "../../pages/patient/AppointmentHistoryPage";
 import NotificationsPage from "../../pages/patient/NotificationsPage";
 
 import DoctorDashboardPage from "../../pages/doctor/DashboardPage";
@@ -39,6 +40,7 @@ import DoctorDetailsPage from "../../pages/shared/DoctorDetailsPage";
 import BookAppointmentPage from "../../pages/shared/BookAppointmentPage";
 import PaymentPage from "../../pages/shared/PaymentPage";
 import ConsultationPage from "../../pages/shared/ConsultationPage";
+import SymptomCheckerPage from "../../pages/shared/SymptomCheckerPage";
 
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 
@@ -57,6 +59,7 @@ function AppRouter() {
 
           <Route path="/doctors" element={<DoctorListPage />} />
           <Route path="/doctors/:id" element={<DoctorDetailsPage />} />
+          <Route path="/symptoms" element={<SymptomCheckerPage />} />
           <Route path="/book-appointment" element={<BookAppointmentPage />} />
           <Route path="/payment" element={<PaymentPage />} />
         </Route>
@@ -69,6 +72,7 @@ function AppRouter() {
             <Route path="reports" element={<ReportsPage />} />
             <Route path="prescriptions" element={<PrescriptionsPage />} />
             <Route path="appointments" element={<MyAppointmentsPage />} />
+            <Route path="appointment-history" element={<AppointmentHistoryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
           </Route>
         </Route>

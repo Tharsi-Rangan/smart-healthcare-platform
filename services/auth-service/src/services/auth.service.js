@@ -4,16 +4,21 @@ import { EmailVerificationOtp } from "../models/emailVerificationOtp.model.js";
 import { PasswordResetToken } from "../models/passwordResetToken.model.js";
 import { AppError } from "../utils/appError.js";
 import { hashToken } from "../utils/hashToken.js";
-import {generateAccessToken,generateRandomToken,generateOtp,} from "./token.service.js";
 import {
- sendPasswordResetEmail,
- sendVerificationOtpEmail,
+  generateAccessToken,
+  generateRandomToken,
+  generateOtp,
+} from "./token.service.js";
+import {
+  sendPasswordResetEmail,
+  sendVerificationOtpEmail,
 } from "./email.service.js";
+import { sendSMS, sendWhatsApp } from "./sms.service.js";
 
 const VERIFICATION_OTP_EXPIRY_MS = 1000 * 60 * 10;
 const RESET_TOKEN_EXPIRY_MS = 1000 * 60 * 30; // 30 minutes
 
-const createUserAccount = async ({ name, email, password, role }) => {
+const createUserAccount = async ({ name, email, password, role, phone }) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
@@ -27,6 +32,7 @@ const createUserAccount = async ({ name, email, password, role }) => {
     email,
     passwordHash,
     role,
+    phone: phone || '',
     isEmailVerified: false,
     accountStatus: "pending_verification",
   });
@@ -45,24 +51,32 @@ await EmailVerificationOtp.create({
 
 await sendVerificationOtpEmail(user.email, otp);
 
+if (user.phone) {
+  const smsBody = `Welcome to MediConnect, ${name}! Your OTP for email verification is ${otp}.`;
+  sendSMS(user.phone, smsBody).catch(err => console.error(err));
+  sendWhatsApp(user.phone, smsBody).catch(err => console.error(err));
+}
+
   return user;
 };
 
-export const registerPatient = async ({ name, email, password }) => {
+export const registerPatient = async ({ name, email, password, phone }) => {
   return createUserAccount({
     name,
     email,
     password,
     role: "patient",
+    phone,
   });
 };
 
-export const registerDoctor = async ({ name, email, password }) => {
+export const registerDoctor = async ({ name, email, password, phone }) => {
   return createUserAccount({
     name,
     email,
     password,
     role: "doctor",
+    phone,
   });
 };
 
@@ -164,6 +178,12 @@ export const resendEmailOtp = async ({ email }) => {
 
   await sendVerificationOtpEmail(user.email, otp);
 
+  if (user.phone) {
+    const smsBody = `MediConnect: Your new OTP for email verification is ${otp}.`;
+    sendSMS(user.phone, smsBody).catch(err => console.error(err));
+    sendWhatsApp(user.phone, smsBody).catch(err => console.error(err));
+  }
+
   return true;
 };
 
@@ -186,6 +206,12 @@ export const forgotPassword = async ({ email }) => {
   });
 
   await sendPasswordResetEmail(user.email, rawToken);
+
+  if (user.phone) {
+    const smsBody = `MediConnect: Your password reset token is ${rawToken}.`;
+    sendSMS(user.phone, smsBody).catch(err => console.error(err));
+    sendWhatsApp(user.phone, smsBody).catch(err => console.error(err));
+  }
 
   return true;
 };

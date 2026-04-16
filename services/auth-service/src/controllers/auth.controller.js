@@ -1,4 +1,5 @@
 import { validationResult } from "express-validator";
+import axios from "axios";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AppError } from "../utils/appError.js";
 import {
@@ -11,6 +12,7 @@ import {
   resetPassword,
   getCurrentUser,
 } from "../services/auth.service.js";
+import { buildDoctorRegistrationNotification, sendNotificationViaService } from "../../../../shared/utils/notificationHelper.js";
 
 const handleValidationErrors = (req) => {
   const errors = validationResult(req);
@@ -45,6 +47,12 @@ export const registerDoctorController = asyncHandler(async (req, res) => {
   handleValidationErrors(req);
 
   const user = await registerDoctor(req.body);
+
+  // Send notification to admin about new doctor registration (async, non-blocking)
+  const notificationData = buildDoctorRegistrationNotification(user);
+  // Generate a temporary token for notification service call
+  const tempToken = Math.random().toString(36).substr(2, 9);
+  sendNotificationViaService(axios, '/notifications/send', notificationData, tempToken);
 
   res.status(201).json({
     success: true,

@@ -1,0 +1,220 @@
+.symptom-checker-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 20px;
+}
+
+.symptom-checker-page .container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.symptom-checker-page .header {
+  text-align: center;
+  color: white;
+  margin-bottom: 40px;
+}
+
+.symptom-checker-page .header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.symptom-checker-page .header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.symptom-checker-page .content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.symptom-checker-page .form-section {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.symptom-checker-page .symptom-form .form-group {
+  margin-bottom: 20px;
+}
+
+.symptom-checker-page .form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.symptom-checker-page textarea,
+.symptom-checker-page select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.symptom-checker-page textarea:focus,
+.symptom-checker-page select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.symptom-checker-page .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.symptom-checker-page .error-message {
+  background: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #c33;
+}
+
+.symptom-checker-page .btn-submit,
+.symptom-checker-page .btn-book-appointment {
+  width: 100%;
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.symptom-checker-page .btn-submit:hover:not(:disabled),
+.symptom-checker-page .btn-book-appointment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+.symptom-checker-page .btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.symptom-checker-page .results-section {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.symptom-checker-page .results-card h2 {
+  color: #333;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+}
+
+.symptom-checker-page .result-item {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.symptom-checker-page .result-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.symptom-checker-page .result-item h3 {
+  color: #667eea;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.symptom-checker-page .conditions-list {
+  list-style: none;
+  padding: 0;
+}
+
+.symptom-checker-page .conditions-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.symptom-checker-page .condition-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.symptom-checker-page .condition-probability {
+  background: #667eea;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.symptom-checker-page .specialty {
+  font-size: 1.2rem;
+  color: #667eea;
+  font-weight: 600;
+  background: #f0f4ff;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.symptom-checker-page .recommendations-list {
+  list-style: none;
+  padding: 0;
+}
+
+.symptom-checker-page .recommendations-list li {
+  padding: 10px 0;
+  padding-left: 25px;
+  position: relative;
+  color: #555;
+  line-height: 1.6;
+}
+
+.symptom-checker-page .recommendations-list li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.symptom-checker-page .result-item.warning {
+  background: #fffbea;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #ffa500;
+  color: #333;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .symptom-checker-page .content {
+    grid-template-columns: 1fr;
+  }
+
+  .symptom-checker-page .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .symptom-checker-page .form-row {
+    grid-template-columns: 1fr;
+  }
+}
