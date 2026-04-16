@@ -89,3 +89,30 @@ export const generateInvoice = async (paymentId) => {
     throw error.response?.data || error;
   }
 };
+
+export const getAllPaymentsAdmin = async (params = {}) => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/all`, {
+      params,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getPaymentStats = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/stats`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};

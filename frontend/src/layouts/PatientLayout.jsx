@@ -27,10 +27,10 @@ const patientNavItems = [
 
 const getNavItemClassName = ({ isActive }) => {
   if (isActive) {
-    return "group flex items-center gap-3 rounded-xl bg-cyan-700 px-4 py-3 text-sm font-semibold text-white shadow-sm";
+    return "group flex items-center gap-2.5 rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white shadow-sm";
   }
 
-  return "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-cyan-50 hover:text-cyan-700";
+  return "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-cyan-50 hover:text-cyan-700";
 };
 
 function PatientLayout() {
@@ -118,34 +118,34 @@ function PatientLayout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       {/* Fixed Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-77.5 flex flex-col border-r border-slate-200 bg-white px-4 py-5 overflow-y-auto z-50">
-          <div className="mb-6 rounded-2xl border border-cyan-100 bg-cyan-50 p-4 shadow-sm">
-            <p className="text-lg font-bold text-cyan-900">Smart Healthcare</p>
-            <p className="mt-1 text-sm text-cyan-700">Patient Portal</p>
+      <aside className="fixed left-0 top-0 h-screen w-77.5 flex flex-col border-r border-slate-200 bg-white px-4 py-4 overflow-y-auto z-50">
+          <div className="mb-4 rounded-xl border border-cyan-100 bg-cyan-50 p-3 shadow-sm">
+            <p className="text-xs font-bold text-cyan-900">Smart Healthcare</p>
+            <p className="text-xs text-cyan-700">Patient Portal</p>
           </div>
 
           <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
             Main Menu
           </p>
 
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {patientNavItems.map((item) => {
               const Icon = item.icon;
 
               return (
                 <NavLink key={item.to} to={item.to} className={getNavItemClassName}>
-                  <Icon size={17} />
+                  <Icon size={15} />
                   <span>{item.label}</span>
                 </NavLink>
               );
             })}
           </nav>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
               Quick Tip
             </p>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-1.5 text-xs text-slate-600">
               Use Appointments to manage upcoming visits and reschedules quickly.
             </p>
           </div>
@@ -199,9 +199,9 @@ function PatientLayout() {
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 top-14 z-20 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg">
-                    <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-slate-200">
+                  <div className="absolute right-0 top-12 z-20 w-56 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                    <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-2">
+                      <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200">
                         {resolvedImage && !imageError ? (
                           <img
                             src={resolvedImage}

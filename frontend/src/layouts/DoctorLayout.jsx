@@ -89,33 +89,33 @@ function DoctorLayout() {
     <div className="min-h-screen bg-[#f8fafb] text-[#1e293b]">
       {/* Fixed Sidebar */}
       <aside className="fixed left-0 top-0 h-screen w-77.5 flex flex-col border-r border-[#e2e8f0] bg-white overflow-y-auto z-50">
-          <div className="border-b border-[#e2e8f0] px-6 py-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-[#0891b2] to-[#06b6d4] text-2xl text-white shadow-sm">
+          <div className="border-b border-[#e2e8f0] px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br from-[#0891b2] to-[#06b6d4] text-xl text-white shadow-sm">
                 ⛑
               </div>
 
               <div>
-                <h1 className="text-lg font-bold tracking-tight text-[#1e293b]">
+                <h1 className="text-sm font-bold tracking-tight text-[#1e293b]">
                   HealthConnect
                 </h1>
-                <p className="text-sm text-slate-500">Doctor Workspace</p>
+                <p className="text-xs text-slate-500">Doctor Workspace</p>
               </div>
             </div>
           </div>
 
-          <div className="border-b border-[#e2e8f0] px-6 py-6">
-            <div className="rounded-3xl bg-[#f8fafb] p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0891b2] text-lg font-semibold text-white shadow-sm">
+          <div className="border-b border-[#e2e8f0] px-5 py-3">
+            <div className="rounded-2xl bg-[#f8fafb] p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0891b2] text-xs font-semibold text-white shadow-sm">
                   {user?.name?.[0]?.toUpperCase() || "D"}
                 </div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-[#1e293b]">
+                  <p className="truncate text-xs font-semibold text-[#1e293b]">
                     {user?.name || "Doctor User"}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-xs text-slate-500">
                     {user?.role
                       ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
                       : "Doctor"}
@@ -125,22 +125,22 @@ function DoctorLayout() {
             </div>
           </div>
 
-          <nav className="flex-1 space-y-3 px-4 py-6">
+          <nav className="flex-1 space-y-2 px-3 py-4">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to}>
                 {({ isActive }) => (
                   <div
-                    className="group flex items-center gap-4 rounded-[22px] px-4 py-4 transition"
+                    className="group flex items-center gap-3 rounded-lg px-3 py-3 transition"
                     style={{
                       background: isActive
                         ? "linear-gradient(135deg, #0891b2, #06b6d4)"
                         : "transparent",
                       color: isActive ? "#ffffff" : "#475569",
-                      boxShadow: isActive ? "0 8px 24px rgba(8,145,178,0.18)" : "none",
+                      boxShadow: isActive ? "0 4px 12px rgba(8,145,178,0.15)" : "none",
                     }}
                   >
                     <div
-                      className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-xs"
                       style={{
                         backgroundColor: isActive ? "rgba(255,255,255,0.18)" : "#f8fafb",
                         color: isActive ? "#ffffff" : "#1e293b",
@@ -151,7 +151,7 @@ function DoctorLayout() {
 
                     <div className="min-w-0">
                       <p
-                        className="text-sm font-semibold"
+                        className="text-xs font-semibold"
                         style={{
                           color: isActive ? "#ffffff" : "#1e293b",
                         }}
@@ -173,18 +173,18 @@ function DoctorLayout() {
             ))}
           </nav>
 
-          <div className="border-t border-[#e2e8f0] px-4 py-6">
+          <div className="border-t border-[#e2e8f0] px-3 py-4">
             <button
               onClick={handleLogout}
               type="button"
-              className="flex w-full items-center gap-4 rounded-[20px] px-4 py-4 text-left transition hover:bg-rose-50"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-rose-50"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-lg text-rose-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-xs text-rose-600">
                 ↪
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Logout</p>
-                <p className="text-xs text-slate-500">End current session</p>
+                <p className="text-xs font-semibold text-slate-900">Logout</p>
+                <p className="text-xs text-slate-500">End session</p>
               </div>
             </button>
           </div>
@@ -192,13 +192,13 @@ function DoctorLayout() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col ml-77.5 min-h-screen">
-          <header className="border-b border-[#e2e8f0] bg-white px-8 py-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-wide text-slate-400">
-                  Doctor Panel
-                </p>
-                <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#1e293b]">
+        <header className="border-b border-[#e2e8f0] bg-white px-6 py-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-400">
+                Doctor Panel
+              </p>
+              <h2 className="mt-1 text-lg font-bold tracking-tight text-[#1e293b]">
                   {currentTitle}
                 </h2>
               </div>
