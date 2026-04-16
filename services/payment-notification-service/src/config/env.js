@@ -24,7 +24,7 @@ export default {
     secret: process.env.JWT_SECRET || "your_payment_service_secret",
     expiresIn: process.env.JWT_EXPIRY || "7d",
   },
-  port: process.env.PORT || 3004,
+  port: process.env.PORT || 5005,
   smtp: {
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: parseInt(process.env.SMTP_PORT || "587"),
@@ -42,7 +42,7 @@ export default {
       "https://sandbox.payhere.lk/merchant/pay/check",
   },
   consultationServiceUrl:
-    process.env.CONSULTATION_SERVICE_URL || "http://localhost:3003",
+    process.env.CONSULTATION_SERVICE_URL || "http://localhost:5004",
   appointmentServiceUrl:
     process.env.APPOINTMENT_SERVICE_URL || "http://localhost:3002",
 };

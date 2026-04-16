@@ -19,7 +19,7 @@ spec:
         image: smart-healthcare/consultation-service:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 3003
+        - containerPort: 5004
           name: http
         env:
         - name: MONGODB_URI
@@ -33,11 +33,11 @@ spec:
               name: consultation-secret
               key: jwt_secret
         - name: PORT
-          value: "3003"
+          value: "5004"
         - name: APPOINTMENT_SERVICE_URL
           value: "http://appointment-service:3002"
         - name: PATIENT_SERVICE_URL
-          value: "http://patient-service:3004"
+          value: "http://patient-service:5005"
         - name: DOCTOR_SERVICE_URL
           value: "http://doctor-service:3005"
         - name: JITSI_DOMAIN
@@ -45,13 +45,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 3003
+            port: 5004
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 3003
+            port: 5004
           initialDelaySeconds: 10
           periodSeconds: 5
         resources:
@@ -73,8 +73,8 @@ spec:
   selector:
     app: consultation-service
   ports:
-  - port: 3003
-    targetPort: 3003
+  - port: 5004
+    targetPort: 5004
     protocol: TCP
     name: http
 ---

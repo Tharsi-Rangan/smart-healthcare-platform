@@ -19,7 +19,7 @@ spec:
         image: smart-healthcare/payment-notification-service:1.0.0
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 3004
+        - containerPort: 5005
           name: http
         env:
         - name: MONGODB_URI
@@ -33,7 +33,7 @@ spec:
               name: payment-secret
               key: jwt_secret
         - name: PORT
-          value: "3004"
+          value: "5005"
         - name: SMTP_HOST
           valueFrom:
             secretKeyRef:
@@ -55,19 +55,19 @@ spec:
               name: payment-secret
               key: smtp_pass
         - name: CONSULTATION_SERVICE_URL
-          value: "http://consultation-service:3003"
+          value: "http://consultation-service:5004"
         - name: APPOINTMENT_SERVICE_URL
           value: "http://appointment-service:3002"
         livenessProbe:
           httpGet:
             path: /health
-            port: 3004
+            port: 5005
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 3004
+            port: 5005
           initialDelaySeconds: 10
           periodSeconds: 5
         resources:
@@ -89,8 +89,8 @@ spec:
   selector:
     app: payment-notification-service
   ports:
-  - port: 3004
-    targetPort: 3004
+  - port: 5005
+    targetPort: 5005
     protocol: TCP
     name: http
 ---

@@ -31,7 +31,7 @@ const PaymentPage = () => {
       // Fetch payment status
       try {
         const paymentResponse = await axios.get(
-          `http://localhost:3004/api/payments/status/${appointmentId}`,
+          `http://localhost:5005/api/payments/status/${appointmentId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -53,7 +53,7 @@ const PaymentPage = () => {
     try {
       setPaymentProcessing(true);
       const response = await axios.post(
-        "http://localhost:3004/api/payments/initiate",
+        "http://localhost:5005/api/payments/initiate",
         {
           appointmentId,
           patientId: appointment.patientId,
@@ -79,7 +79,7 @@ const PaymentPage = () => {
 
       // Simulate payment success
       const response = await axios.post(
-        "http://localhost:3004/api/payments/success",
+        "http://localhost:5005/api/payments/success",
         {
           appointmentId,
           transactionId: `TXN-${Date.now()}`,

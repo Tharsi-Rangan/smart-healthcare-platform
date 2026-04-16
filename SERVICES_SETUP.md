@@ -32,8 +32,8 @@ docker-compose logs -f
 
 Services will be available at:
 - Frontend: http://localhost:5173
-- Consultation Service: http://localhost:3003
-- Payment Service: http://localhost:3004
+- Consultation Service: http://localhost:5004
+- Payment Service: http://localhost:5005
 - MongoDB: localhost:27017
 
 ### Option 2: Manual Setup
@@ -70,9 +70,9 @@ mongod
 ```env
 MONGODB_URI=mongodb://localhost:27017/consultation_db
 JWT_SECRET=your_consultation_service_secret
-PORT=3003
+PORT=5004
 APPOINTMENT_SERVICE_URL=http://localhost:3002
-PATIENT_SERVICE_URL=http://localhost:3004
+PATIENT_SERVICE_URL=http://localhost:5005
 DOCTOR_SERVICE_URL=http://localhost:3005
 JITSI_DOMAIN=meet.jit.si
 ```
@@ -81,12 +81,12 @@ JITSI_DOMAIN=meet.jit.si
 ```env
 MONGODB_URI=mongodb://localhost:27017/payment_notification_db
 JWT_SECRET=your_payment_service_secret
-PORT=3004
+PORT=5005
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-CONSULTATION_SERVICE_URL=http://localhost:3003
+CONSULTATION_SERVICE_URL=http://localhost:5004
 APPOINTMENT_SERVICE_URL=http://localhost:3002
 ```
 
@@ -110,7 +110,7 @@ npm run dev
 
 ## 📋 API Documentation
 
-### Consultation Service (Port 3003)
+### Consultation Service (Port 5004)
 
 #### 1. Create Consultation
 
@@ -205,7 +205,7 @@ Authorization: Bearer <token>
 
 ---
 
-### Payment Service (Port 3004)
+### Payment Service (Port 5005)
 
 #### 1. Initiate Payment
 
@@ -444,8 +444,8 @@ import NotificationsPage from "./pages/shared/NotificationsPage";
 ### Environment Variables
 
 ```env
-VITE_CONSULTATION_SERVICE_URL=http://localhost:3003
-VITE_PAYMENT_SERVICE_URL=http://localhost:3004
+VITE_CONSULTATION_SERVICE_URL=http://localhost:5004
+VITE_PAYMENT_SERVICE_URL=http://localhost:5005
 ```
 
 ---

@@ -26,13 +26,13 @@ services:
       dockerfile: Dockerfile
     container_name: smart-healthcare-consultation
     ports:
-      - "3003:3003"
+      - "5004:5004"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/consultation_db
       JWT_SECRET: your_consultation_service_secret
-      PORT: 3003
+      PORT: 5004
       APPOINTMENT_SERVICE_URL: http://appointment-service:3002
-      PATIENT_SERVICE_URL: http://patient-service:3004
+      PATIENT_SERVICE_URL: http://patient-service:5005
       DOCTOR_SERVICE_URL: http://doctor-service:3005
       JITSI_DOMAIN: meet.jit.si
     depends_on:
@@ -52,16 +52,16 @@ services:
       dockerfile: Dockerfile
     container_name: smart-healthcare-payment
     ports:
-      - "3004:3004"
+      - "5005:5005"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/payment_notification_db
       JWT_SECRET: your_payment_service_secret
-      PORT: 3004
+      PORT: 5005
       SMTP_HOST: smtp.gmail.com
       SMTP_PORT: 587
       SMTP_USER: your-email@gmail.com
       SMTP_PASS: your-app-password
-      CONSULTATION_SERVICE_URL: http://consultation-service:3003
+      CONSULTATION_SERVICE_URL: http://consultation-service:5004
       APPOINTMENT_SERVICE_URL: http://appointment-service:3002
     depends_on:
       mongodb:

@@ -20,7 +20,7 @@ const NotificationsPage = () => {
 
     try {
       const response = await axios.get(
-        `http://localhost:3004/api/payments/notifications/user/${userId}`,
+        `http://localhost:5005/api/payments/notifications/user/${userId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -36,7 +36,7 @@ const NotificationsPage = () => {
   const markAsRead = async (notificationId) => {
     try {
       const response = await axios.put(
-        `http://localhost:3004/api/payments/notifications/${notificationId}/read`,
+        `http://localhost:5005/api/payments/notifications/${notificationId}/read`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

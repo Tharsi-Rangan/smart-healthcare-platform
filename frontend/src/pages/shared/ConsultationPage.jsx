@@ -21,7 +21,7 @@ useEffect(() => {
   const fetchConsultation = async () => {
     try {
       const response = await axios.get(
-        `http://localhost:3003/api/consultations/${consultationId}`,
+        `http://localhost:5004/api/consultations/${consultationId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -37,7 +37,7 @@ useEffect(() => {
   const startConsultation = async () => {
     try {
       const response = await axios.post(
-        `http://localhost:3003/api/consultations/${consultationId}/start`,
+        `http://localhost:5004/api/consultations/${consultationId}/start`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -53,7 +53,7 @@ useEffect(() => {
   const endConsultation = async () => {
     try {
       await axios.post(
-        `http://localhost:3003/api/consultations/${consultationId}/end`,
+        `http://localhost:5004/api/consultations/${consultationId}/end`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -69,7 +69,7 @@ useEffect(() => {
   const saveNotes = async () => {
     try {
       const response = await axios.put(
-        `http://localhost:3003/api/consultations/${consultationId}/notes`,
+        `http://localhost:5004/api/consultations/${consultationId}/notes`,
         { notes, prescription },
         {
           headers: { Authorization: `Bearer ${token}` },

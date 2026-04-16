@@ -7,7 +7,7 @@ This directory contains Kubernetes manifests for deploying the smart healthcare 
 
 ### 1. Consultation Service
 - **File**: consultation-service.yaml
-- **Port**: 3003
+- **Port**: 5004
 - **Replicas**: 2
 - **Database**: MongoDB
 - **Features**:
@@ -17,7 +17,7 @@ This directory contains Kubernetes manifests for deploying the smart healthcare 
 
 ### 2. Payment-Notification Service
 - **File**: payment-notification-service.yaml
-- **Port**: 3004
+- **Port**: 5005
 - **Replicas**: 2
 - **Database**: MongoDB
 - **Features**:
@@ -89,10 +89,10 @@ kubectl logs -f deployment/payment-notification-service
 ### Port Forward for Local Testing
 ```bash
 # Consultation Service
-kubectl port-forward svc/consultation-service 3003:3003
+kubectl port-forward svc/consultation-service 5004:5004
 
 # Payment-Notification Service
-kubectl port-forward svc/payment-notification-service 3004:3004
+kubectl port-forward svc/payment-notification-service 5005:5005
 
 # MongoDB
 kubectl port-forward svc/mongodb 27017:27017

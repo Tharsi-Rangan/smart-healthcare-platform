@@ -12,7 +12,7 @@
          │                                                 │
 ┌────────▼──────────────────┐        ┌─────────────────────▼───┐
 │  Consultation Service     │        │ Payment-Notification    │
-│  (Port 3003)              │        │ Service (Port 3004)     │
+│  (Port 5004)              │        │ Service (Port 5005)     │
 │                           │        │                         │
 │ - Create consultation     │        │ - Initiate payment      │
 │ - Start/End consultation  │        │ - Handle payment status │
@@ -190,10 +190,10 @@ Frontend (Browser)
     ↓
 [Cookie/Token-based Authentication via Auth Service]
     ↓
-    ├─→ Consultation Service (Port 3003)
+    ├─→ Consultation Service (Port 5004)
     │    └─→ Call Appointment Service (verify appointment exists)
     │
-    └─→ Payment Service (Port 3004)
+    └─→ Payment Service (Port 5005)
          ├─→ Initiates on Consultation Service (when payment succeeds)
          └─→ Sends Email (Nodemailer)
 ```
@@ -237,8 +237,8 @@ DevOps:
 ```
 docker-compose up
 ├─ MongoDB (volume)
-├─ Consultation Service (port 3003, nodemon watch)
-├─ Payment Service (port 3004, nodemon watch)
+├─ Consultation Service (port 5004, nodemon watch)
+├─ Payment Service (port 5005, nodemon watch)
 └─ Frontend (port 5173, Vite dev server)
 ```
 
@@ -247,13 +247,13 @@ docker-compose up
 Services:
 ├─ consultation-service
 │  ├─ Deployment (2 replicas)
-│  ├─ Service (ClusterIP:3003)
+│  ├─ Service (ClusterIP:5004)
 │  ├─ ConfigMap (mongodb_uri)
 │  └─ Secret (jwt_secret)
 │
 ├─ payment-notification-service
 │  ├─ Deployment (2 replicas)
-│  ├─ Service (ClusterIP:3004)
+│  ├─ Service (ClusterIP:5005)
 │  ├─ ConfigMap...
 │  └─ Secret...
 │

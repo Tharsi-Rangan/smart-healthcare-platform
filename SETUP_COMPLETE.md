@@ -6,7 +6,7 @@
 
 #### 1. **Consultation Service** (`services/consultation-service/`)
 - **Purpose**: Manages consultation lifecycle and video sessions
-- **Port**: 3003
+- **Port**: 5004
 - **Key Features**:
   - Create consultations when appointments are confirmed
   - Generate Jitsi video meeting links
@@ -28,7 +28,7 @@
 
 #### 2. **Payment & Notification Service** (`services/payment-notification-service/`)
 - **Purpose**: Handles payments and sends notifications
-- **Port**: 3004
+- **Port**: 5005
 - **Key Features**:
   - Initiate payments and generate payment links
   - Handle payment success/failure callbacks
@@ -113,8 +113,8 @@ docker-compose ps
 
 **Services will be available at:**
 - Frontend: http://localhost:5173
-- Consultation Service: http://localhost:3003
-- Payment Service: http://localhost:3004
+- Consultation Service: http://localhost:5004
+- Payment Service: http://localhost:5005
 - MongoDB: localhost:27017
 
 ### 2. Manual Setup
@@ -141,7 +141,7 @@ cd frontend && npm run dev
 
 ## 📚 API Endpoints
 
-### Consultation Service (Port 3003)
+### Consultation Service (Port 5004)
 
 ```
 POST   /api/consultations                - Create consultation
@@ -154,7 +154,7 @@ GET    /api/consultations/doctor/:id     - Get doctor's consultations
 GET    /health                           - Health check
 ```
 
-### Payment Service (Port 3004)
+### Payment Service (Port 5005)
 
 ```
 POST   /api/payments/initiate            - Initiate payment
@@ -244,9 +244,9 @@ Databases:
 ```env
 MONGODB_URI=mongodb://localhost:27017/consultation_db
 JWT_SECRET=your_consultation_service_secret
-PORT=3003
+PORT=5004
 APPOINTMENT_SERVICE_URL=http://localhost:3002
-PATIENT_SERVICE_URL=http://localhost:3004
+PATIENT_SERVICE_URL=http://localhost:5005
 DOCTOR_SERVICE_URL=http://localhost:3005
 JITSI_DOMAIN=meet.jit.si
 ```
@@ -255,12 +255,12 @@ JITSI_DOMAIN=meet.jit.si
 ```env
 MONGODB_URI=mongodb://localhost:27017/payment_notification_db
 JWT_SECRET=your_payment_service_secret
-PORT=3004
+PORT=5005
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-CONSULTATION_SERVICE_URL=http://localhost:3003
+CONSULTATION_SERVICE_URL=http://localhost:5004
 APPOINTMENT_SERVICE_URL=http://localhost:3002
 ```
 
@@ -413,7 +413,7 @@ docker-compose up -d
 ### 2. Test Consultation Service
 ```bash
 # Create consultation
-curl -X POST http://localhost:3003/api/consultations \
+curl -X POST http://localhost:5004/api/consultations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
@@ -423,14 +423,14 @@ curl -X POST http://localhost:3003/api/consultations \
   }'
 
 # Start consultation
-curl -X POST http://localhost:3003/api/consultations/<id>/start \
+curl -X POST http://localhost:5004/api/consultations/<id>/start \
   -H "Authorization: Bearer <token>"
 ```
 
 ### 3. Test Payment Service
 ```bash
 # Initiate payment
-curl -X POST http://localhost:3004/api/payments/initiate \
+curl -X POST http://localhost:5005/api/payments/initiate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
@@ -441,7 +441,7 @@ curl -X POST http://localhost:3004/api/payments/initiate \
   }'
 
 # Simulate payment success
-curl -X POST http://localhost:3004/api/payments/success \
+curl -X POST http://localhost:5005/api/payments/success \
   -H "Content-Type: application/json" \
   -d '{
     "appointmentId": "apt_123",
