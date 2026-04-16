@@ -38,6 +38,14 @@ export const fetchPatientProfile = async () => {
     headers: buildHeaders(),
   });
 
+  if (response.status === 404) {
+    return {
+      success: true,
+      message: "Patient profile not created yet",
+      data: { profile: null },
+    };
+  }
+
   return handleResponse(response);
 };
 
@@ -164,4 +172,4 @@ export const deletePatientReport = async (id) => {
   });
 
   return handleResponse(response);
-};
+};

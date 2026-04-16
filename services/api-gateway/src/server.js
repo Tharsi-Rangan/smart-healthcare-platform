@@ -187,6 +187,7 @@ const serviceMap = {
   'auth': process.env.AUTH_SERVICE_URL || 'http://localhost:5001',
   'patients': process.env.PATIENT_SERVICE_URL || 'http://localhost:5002',
   'appointments': process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5003',
+  'symptoms': process.env.SYMPTOM_CHECKER_URL || 'http://localhost:5007',
   'consultations': process.env.CONSULTATION_SERVICE_URL || 'http://localhost:5004',
   'payments': process.env.PAYMENT_SERVICE_URL || 'http://localhost:5005',
   'doctors': process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006',
