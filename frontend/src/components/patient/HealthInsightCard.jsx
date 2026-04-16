@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { HEALTH_INSIGHTS } from "../../features/patient/patientConstants";
 
@@ -19,7 +19,7 @@ function HealthInsightCard() {
   const insight = HEALTH_INSIGHTS[index];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-500 to-indigo-600 p-8 text-white shadow-lg shadow-sky-100">
+    <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-sky-500 to-indigo-600 p-8 text-white shadow-lg shadow-sky-100">
       {/* Decorative background circle */}
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
       <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-sky-300/20 blur-2xl" />
@@ -35,7 +35,7 @@ function HealthInsightCard() {
         </div>
 
         <AnimatePresence mode="wait">
-          <motion.div
+          <Motion.div
             key={insight.id}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -47,7 +47,7 @@ function HealthInsightCard() {
             <p className="text-lg font-medium leading-relaxed text-sky-50">
               {insight.text}
             </p>
-          </motion.div>
+          </Motion.div>
         </AnimatePresence>
 
         <div className="flex items-center justify-between border-t border-white/10 pt-4">

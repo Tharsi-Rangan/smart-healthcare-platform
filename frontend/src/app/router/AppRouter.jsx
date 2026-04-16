@@ -21,6 +21,7 @@ import PrescriptionsPage from "../../pages/patient/PrescriptionsPage";
 import MyAppointmentsPage from "../../pages/patient/MyAppointmentsPage";
 import AppointmentHistoryPage from "../../pages/patient/AppointmentHistoryPage";
 import NotificationsPage from "../../pages/patient/NotificationsPage";
+import SymptomCheckerPage from "../../pages/patient/SymptomCheckerPage";
 
 import DoctorDashboardPage from "../../pages/doctor/DashboardPage";
 import DoctorProfilePage from "../../pages/doctor/ProfilePage";
@@ -74,6 +75,7 @@ function AppRouter() {
             <Route path="appointments" element={<MyAppointmentsPage />} />
             <Route path="appointment-history" element={<AppointmentHistoryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="symptom-checker" element={<SymptomCheckerPage />} />
           </Route>
         </Route>
 

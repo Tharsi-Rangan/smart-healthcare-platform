@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { getAdminDashboardSummary } from "../../api/doctorApi";
 import { getAllUsers } from "../../api/adminUserApi";
 
@@ -95,7 +96,7 @@ function DashboardPage() {
     },
     {
       title: "Transactions",
-      description: "Access transaction and payment section.",
+      description: "Access payment monitoring section.",
       to: "/admin/transactions",
     },
   ];
@@ -108,10 +109,33 @@ function DashboardPage() {
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+  };
+
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-linear-to-r from-slate-950 via-sky-950 to-cyan-700 text-white shadow-sm">
-        <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-5"
+      >
+      <motion.section
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-[34px] border border-cyan-800/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 text-white shadow-xl shadow-cyan-900/10"
+      >
+        {/* Abstract shapes for premium depth */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-cyan-600/20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-8 px-8 py-10 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-sm uppercase tracking-[0.28em] text-cyan-100">
               Platform Administration
@@ -119,9 +143,9 @@ function DashboardPage() {
             <h1 className="mt-3 text-3xl font-bold md:text-4xl">
               Admin Dashboard
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-cyan-50">
-              Monitor doctor approvals, manage platform users, and access key
-              admin actions from one professional dashboard.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-cyan-50">
+              Monitor doctor approvals, manage platform users, and control key
+              admin actions from one connected dashboard.
             </p>
           </div>
 
@@ -132,7 +156,7 @@ function DashboardPage() {
             </p>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-600 shadow-sm">
@@ -140,7 +164,7 @@ function DashboardPage() {
         </div>
       )}
 
-      <section className="space-y-3">
+      <motion.section variants={itemVariants} className="space-y-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Doctor Summary</h2>
           <p className="text-xs text-slate-500">
@@ -166,13 +190,16 @@ function DashboardPage() {
             </div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
-      <section className="space-y-3">
+      <motion.section
+        variants={itemVariants}
+        className="space-y-4"
+      >
         <div>
           <h2 className="text-xl font-bold text-slate-900">User Summary</h2>
-          <p className="text-xs text-slate-500">
-            Overview of all account roles in the system.
+          <p className="mt-1 text-slate-500">
+            Overview of account roles related to admin management.
           </p>
         </div>
 
@@ -191,9 +218,12 @@ function DashboardPage() {
             </div>
           ))}
         </div>
-      </section>
+      </motion.section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <motion.section
+        variants={itemVariants}
+        className="rounded-[30px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl"
+      >
         <div>
           <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
           <p className="text-xs text-slate-500">
@@ -222,7 +252,8 @@ function DashboardPage() {
             </Link>
           ))}
         </div>
-      </section>
+      </motion.section>
+    </motion.div>
     </div>
   );
 }

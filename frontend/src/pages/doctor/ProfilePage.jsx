@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDoctorProfile, updateDoctorProfile } from "../../api/doctorApi";
+import { motion } from "framer-motion";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -263,9 +264,28 @@ function ProfilePage() {
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  };
+
   return (
-    <div className="space-y-8">
-      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-cyan-600 to-sky-700 p-8 text-white shadow-sm">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
+      <motion.section
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-[34px] border border-cyan-800/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-8 text-white shadow-xl shadow-cyan-900/10"
+      >
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-cyan-600/20 blur-3xl" />
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
@@ -282,7 +302,7 @@ function ProfilePage() {
             <p className="mt-2 text-3xl font-bold">{profileCompletion}%</p>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {message && (
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-base text-emerald-700">
@@ -296,7 +316,7 @@ function ProfilePage() {
         </div>
       )}
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <motion.section variants={itemVariants} className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
             Approval Status
@@ -334,14 +354,18 @@ function ProfilePage() {
             {formData.experience || 0} years
           </h3>
         </div>
-      </section>
+      </motion.section>
 
-      <div className="grid gap-8 xl:grid-cols-[360px,1fr]">
-        <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+      <motion.div variants={itemVariants} className="grid gap-8 xl:grid-cols-[360px,1fr]">
+        <section className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl">
           <div className="flex flex-col items-center text-center">
             {photoPreview ? (
               <img
-                src={photoPreview}
+                src={
+                  photoPreview.startsWith("/")
+                    ? `http://localhost:5006${photoPreview}`
+                    : photoPreview
+                }
                 alt="Doctor profile"
                 className="h-28 w-28 rounded-full border-4 border-cyan-100 object-cover"
               />
@@ -397,7 +421,7 @@ function ProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <section className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-slate-900">Professional Details</h2>
             <p className="mt-2 text-slate-500">
@@ -546,8 +570,8 @@ function ProfilePage() {
             </div>
           </form>
         </section>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

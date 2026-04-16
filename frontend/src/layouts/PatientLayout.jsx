@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Pill,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { useAuth } from "../features/auth/AuthContext";
@@ -22,6 +23,7 @@ const patientNavItems = [
   { to: "/patient/reports", label: "Reports", icon: FileText },
   { to: "/patient/prescriptions", label: "Prescriptions", icon: Pill },
   { to: "/patient/appointments", label: "Appointments", icon: CalendarDays },
+  { to: "/patient/symptom-checker", label: "Symptom Checker", icon: Sparkles },
   { to: "/patient/notifications", label: "Notifications", icon: Bell },
 ];
 

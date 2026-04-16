@@ -26,25 +26,57 @@ function ConsultationPage() {
   const joinSession = async (appt) => {
     setJoining(appt._id);
     try {
-      // Try to get existing room from consultation-service
-      let roomName;
-      try {
-        const res = await getConsultationByAppointment(appt._id);
-        roomName = res.data?.consultation?.roomName;
-      } catch {
-        // No consultation started yet — generate a room name
-        roomName = `mediconnect-${appt._id}`;
-      }
-      window.open(`https://meet.jit.si/${roomName}`, '_blank');
-    } catch {
-      alert('Could not join session. Please try again.');
-    } finally {
-      setJoining(null);
+      const response = await apiClient.get(
+        `/api/consultations/${consultationId}`
+      );
+      setConsultation(response.data.data);
+      setLoading(false);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to fetch consultation");
+      setLoading(false);
     }
   };
 
-  // Pre-select appointment passed from MyAppointmentsPage
-  const preSelected = location.state?.appointment;
+  const startConsultation = async () => {
+    try {
+      const response = await apiClient.post(
+        `/api/consultations/${consultationId}/start`,
+        {}
+      );
+      setConsultation(response.data.data.consultation);
+      setVideoStarted(true);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to start consultation");
+    }
+  };
+
+  const endConsultation = async () => {
+    try {
+      await apiClient.post(
+        `/api/consultations/${consultationId}/end`,
+        {}
+      );
+      alert("Consultation ended");
+      navigate("/appointments");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to end consultation");
+    }
+  };
+
+  const saveNotes = async () => {
+    try {
+      const response = await apiClient.put(
+        `/api/consultations/${consultationId}/notes`,
+        { notes, prescription }
+      );
+      setConsultation(response.data.data);
+      alert("Notes and prescription saved successfully");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save notes");
+    }
+  };
+
+  if (loading) return <div className="consultation-loading">Loading...</div>;
 
   return (
     <div className="space-y-4">

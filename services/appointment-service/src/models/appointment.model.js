@@ -40,6 +40,29 @@ const appointmentSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
+    patientDetails: {
+      fullName: {
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 2,
+        maxlength: 120,
+      },
+      phone: {
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 7,
+        maxlength: 20,
+      },
+      address: {
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 5,
+        maxlength: 250,
+      },
+    },
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled", "completed"],

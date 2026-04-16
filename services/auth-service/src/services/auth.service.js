@@ -37,27 +37,31 @@ const createUserAccount = async ({ name, email, password, role, phone }) => {
     accountStatus: "pending_verification",
   });
 
-const otp = generateOtp();
-const otpHash = hashToken(otp);
+  try {
+    const otp = generateOtp();
+    const otpHash = hashToken(otp);
 
-await EmailVerificationOtp.deleteMany({ userId: user._id });
+    await EmailVerificationOtp.deleteMany({ userId: user._id });
 
-await EmailVerificationOtp.create({
-  userId: user._id,
-  otpHash,
-  expiresAt: new Date(Date.now() + VERIFICATION_OTP_EXPIRY_MS),
-  attempts: 0,
-});
+    await EmailVerificationOtp.create({
+      userId: user._id,
+      otpHash,
+      expiresAt: new Date(Date.now() + VERIFICATION_OTP_EXPIRY_MS),
+      attempts: 0,
+    });
 
-await sendVerificationOtpEmail(user.email, otp);
+    await sendVerificationOtpEmail(user.email, otp);
 
-if (user.phone) {
-  const smsBody = `Welcome to MediConnect, ${name}! Your OTP for email verification is ${otp}.`;
-  sendSMS(user.phone, smsBody).catch(err => console.error(err));
-  sendWhatsApp(user.phone, smsBody).catch(err => console.error(err));
-}
-
-  return user;
+    return user;
+  } catch (error) {
+    // Rollback DB inserts if anything fails during OTP saving or Email Sending
+    await User.findByIdAndDelete(user._id);
+    await EmailVerificationOtp.deleteMany({ userId: user._id });
+    
+    // Log error internally if needed, then bubble it up to frontend
+    console.error("Registration aborted due to email/token error:", error);
+    throw new AppError("Error sending verification email. Registration cancelled.", 500);
+  }
 };
 
 export const registerPatient = async ({ name, email, password, phone }) => {

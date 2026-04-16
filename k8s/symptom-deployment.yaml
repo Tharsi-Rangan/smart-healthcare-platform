@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: symptom-checker-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: symptom-checker-service
+  template:
+    metadata:
+      labels:
+        app: symptom-checker-service
+    spec:
+      containers:
+        - name: symptom-checker-service
+          image: your-registry/symptom-checker-service:latest
+          ports:
+            - containerPort: 5007
