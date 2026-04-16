@@ -87,8 +87,8 @@ function DoctorLayout() {
 
   return (
     <div className="min-h-screen bg-[#f8fafb] text-[#1e293b]">
-      <div className="flex min-h-screen">
-        <aside className="flex w-[320px] flex-col border-r border-[#e2e8f0] bg-white">
+      {/* Fixed Sidebar */}
+      <aside className="fixed left-0 top-0 h-screen w-77.5 flex flex-col border-r border-[#e2e8f0] bg-white overflow-y-auto z-50">
           <div className="border-b border-[#e2e8f0] px-6 py-6">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-[#0891b2] to-[#06b6d4] text-2xl text-white shadow-sm">
@@ -172,9 +172,26 @@ function DoctorLayout() {
               </NavLink>
             ))}
           </nav>
-        </aside>
 
-        <div className="flex flex-1 flex-col">
+          <div className="border-t border-[#e2e8f0] px-4 py-6">
+            <button
+              onClick={handleLogout}
+              type="button"
+              className="flex w-full items-center gap-4 rounded-[20px] px-4 py-4 text-left transition hover:bg-rose-50"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-lg text-rose-600">
+                ↪
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Logout</p>
+                <p className="text-xs text-slate-500">End current session</p>
+              </div>
+            </button>
+          </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col ml-77.5 min-h-screen">
           <header className="border-b border-[#e2e8f0] bg-white px-8 py-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -264,7 +281,6 @@ function DoctorLayout() {
           <main className="flex-1 px-8 py-8">
             <Outlet />
           </main>
-        </div>
       </div>
     </div>
   );

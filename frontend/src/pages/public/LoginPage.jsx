@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import AuthCard from "../../components/auth/AuthCard";
 import { loginUser } from "../../services/authApi";
 import { useAuth } from "../../features/auth/AuthContext";
+import "./LoginPage.css";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -14,6 +14,7 @@ function LoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleChange = (event) => {
     setFormData((prev) => ({
@@ -26,84 +27,143 @@ function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
       const response = await loginUser(formData);
       const { token, user } = response.data;
 
       login({ token, user });
+      setSuccessMessage("Login successful! Redirecting...");
 
-      if (user.role === "patient") {
-        navigate("/patient/dashboard");
-      } else if (user.role === "doctor") {
-        navigate("/doctor/dashboard");
-      } else if (user.role === "admin") {
-        navigate("/admin/dashboard");
-      }
+      setTimeout(() => {
+        if (user.role === "patient") {
+          navigate("/patient/dashboard");
+        } else if (user.role === "doctor") {
+          navigate("/doctor/dashboard");
+        } else if (user.role === "admin") {
+          navigate("/admin/dashboard");
+        }
+      }, 1000);
     } catch (error) {
-      setErrorMessage(error?.response?.data?.message || "Login failed");
+      setErrorMessage(error?.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthCard
-      title="Welcome back"
-      subtitle="Login to access your healthcare dashboard."
-    >
-      <form onSubmit={handleSubmit} className="grid gap-4">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Email
-          </label>
-          <input
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-          />
+    <div className="login-page">
+      <div className="login-container">
+        {/* Left Side - Illustration */}
+        <div className="login-illustration">
+          <div className="illustration-content">
+            <div className="illustration-icon">⚕️</div>
+            <h2>Welcome to MediConnect</h2>
+            <p>Your trusted healthcare companion</p>
+            <div className="illustration-features">
+              <div className="feature">✓ Expert Doctors</div>
+              <div className="feature">✓ Secure Records</div>
+              <div className="feature">✓ 24/7 Support</div>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Password
-          </label>
-          <input
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Enter your password"
-            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-          />
+        {/* Right Side - Login Form */}
+        <div className="login-form-wrapper">
+          <div className="login-form-container">
+            <div className="form-header">
+              <h1 className="text-h2">Welcome back</h1>
+              <p className="text-body-md">Login to access your healthcare dashboard</p>
+            </div>
+
+            {errorMessage && (
+              <div className="alert alert-danger">
+                <span className="alert-icon">⚠️</span>
+                <div className="alert-content">
+                  <p className="alert-title">Login Error</p>
+                  <p className="alert-message">{errorMessage}</p>
+                </div>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="alert alert-success">
+                <span className="alert-icon">✓</span>
+                <div className="alert-content">
+                  <p className="alert-title">Success</p>
+                  <p className="alert-message">{successMessage}</p>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="form-group">
+                <label className="input-label">Email Address</label>
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="your@email.com"
+                  className="input-field"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <div className="label-with-link">
+                  <label className="input-label">Password</label>
+                  <Link to="/forgot-password" className="forgot-password-link">
+                    Forgot Password?
+                  </Link>
+                </div>
+                <input
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="input-field"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`btn btn-primary btn-lg w-full ${loading ? "is-loading" : ""}`}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </button>
+            </form>
+
+            <div className="form-divider">
+              <span>Don't have an account?</span>
+            </div>
+
+            <Link to="/register" className="btn btn-outline btn-lg w-full">
+              Create Account
+            </Link>
+
+            <div className="login-footer">
+              <p className="text-caption">
+                By logging in, you agree to our{" "}
+                <a href="#terms" className="footer-link">Terms of Service</a> and{" "}
+                <a href="#privacy" className="footer-link">Privacy Policy</a>
+              </p>
+            </div>
+          </div>
         </div>
-
-        {errorMessage && (
-          <div className="text-sm text-red-500">{errorMessage}</div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-xl bg-cyan-700 px-4 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-
-        <div className="flex justify-between text-sm">
-          <Link to="/forgot-password" className="text-cyan-700 hover:underline">
-            Forgot Password?
-          </Link>
-
-          <Link to="/register" className="text-cyan-700 hover:underline">
-            Create account
-          </Link>
-        </div>
-      </form>
-    </AuthCard>
+      </div>
+    </div>
   );
 }
 

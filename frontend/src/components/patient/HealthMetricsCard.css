@@ -1,0 +1,166 @@
+/* Health Metrics Card Styles */
+.health-metrics-card {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid var(--neutral-200);
+  padding: 20px;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.health-metrics-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--neutral-200);
+  transition: background 0.3s ease;
+}
+
+.health-metrics-card.status-good::before {
+  background: var(--success-500);
+}
+
+.health-metrics-card.status-warning::before {
+  background: var(--warning-500);
+}
+
+.health-metrics-card.status-critical::before {
+  background: var(--danger-500);
+}
+
+.health-metrics-card.status-normal::before {
+  background: var(--primary-500);
+}
+
+.health-metrics-card:hover {
+  border-color: var(--primary-600);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.metrics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.metrics-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.metrics-icon {
+  font-size: 1.5rem;
+}
+
+.metrics-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  gap: 15px;
+}
+
+.metrics-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.value-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+
+.value-unit {
+  font-size: 0.9rem;
+  color: var(--neutral-500);
+  font-weight: 500;
+}
+
+.metrics-trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--neutral-50);
+  white-space: nowrap;
+}
+
+.metrics-trend.up {
+  background: var(--success-50);
+  color: var(--success-600);
+}
+
+.metrics-trend.down {
+  background: var(--danger-50);
+  color: var(--danger-600);
+}
+
+.trend-icon {
+  font-size: 1rem;
+}
+
+.trend-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.metrics-footer {
+  padding-top: 15px;
+  border-top: 1px solid var(--neutral-200);
+}
+
+.metrics-status {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--neutral-100);
+  color: var(--neutral-600);
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.health-metrics-card.status-good .metrics-status {
+  background: var(--success-100);
+  color: var(--success-700);
+}
+
+.health-metrics-card.status-warning .metrics-status {
+  background: var(--warning-100);
+  color: var(--warning-700);
+}
+
+.health-metrics-card.status-critical .metrics-status {
+  background: var(--danger-100);
+  color: var(--danger-700);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .health-metrics-card {
+    padding: 15px;
+  }
+
+  .metrics-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .value-number {
+    font-size: 1.75rem;
+  }
+}

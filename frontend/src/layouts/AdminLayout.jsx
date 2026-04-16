@@ -64,8 +64,8 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
-      <div className="flex min-h-screen">
-        <aside className="flex w-77.5 flex-col border-r border-slate-200 bg-white">
+      {/* Fixed Sidebar */}
+      <aside className="fixed left-0 top-0 h-screen w-77.5 flex flex-col border-r border-slate-200 bg-white overflow-y-auto z-50">
           <div className="border-b border-slate-200 px-6 py-6">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-600 to-sky-700 text-2xl text-white shadow-sm">
@@ -150,7 +150,8 @@ function AdminLayout() {
           </div>
         </aside>
 
-        <div className="flex flex-1 flex-col">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col ml-77.5 min-h-screen">
           <header className="border-b border-slate-200 bg-white px-8 py-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -181,7 +182,6 @@ function AdminLayout() {
             <Outlet />
           </main>
         </div>
-      </div>
     </div>
   );
 }

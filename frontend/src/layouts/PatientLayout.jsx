@@ -117,8 +117,8 @@ function PatientLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
-      <div className="flex min-h-screen">
-        <aside className="w-72 border-r border-slate-200 bg-white px-4 py-5">
+      {/* Fixed Sidebar */}
+      <aside className="fixed left-0 top-0 h-screen w-77.5 flex flex-col border-r border-slate-200 bg-white px-4 py-5 overflow-y-auto z-50">
           <div className="mb-6 rounded-2xl border border-cyan-100 bg-cyan-50 p-4 shadow-sm">
             <p className="text-lg font-bold text-cyan-900">Smart Healthcare</p>
             <p className="mt-1 text-sm text-cyan-700">Patient Portal</p>
@@ -149,9 +149,24 @@ function PatientLayout() {
               Use Appointments to manage upcoming visits and reschedules quickly.
             </p>
           </div>
-        </aside>
 
-        <div className="flex flex-1 flex-col">
+          <div className="mt-auto border-t border-slate-200 pt-4">
+            <button
+              onClick={handleLogout}
+              type="button"
+              className="flex w-full items-center gap-3 rounded-xl bg-rose-50 px-4 py-3 text-left transition hover:bg-rose-100"
+            >
+              <LogOut size={18} className="text-rose-600" />
+              <div>
+                <p className="text-sm font-semibold text-rose-900">Logout</p>
+                <p className="text-xs text-rose-700">End current session</p>
+              </div>
+            </button>
+          </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col ml-77.5 min-h-screen">
           <header className="border-b border-slate-200 bg-white px-8 py-5">
             <div className="flex items-center justify-between">
               <div>
@@ -240,7 +255,6 @@ function PatientLayout() {
           <main className="flex-1 p-8">
             <Outlet />
           </main>
-        </div>
       </div>
     </div>
   );
