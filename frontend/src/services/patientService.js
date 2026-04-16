@@ -28,6 +28,24 @@ export const fetchPatientSummary = async () => {
     headers: buildHeaders(),
   });
 
+  if (response.status === 404) {
+    return {
+      success: true,
+      message: "Patient profile not created yet",
+      data: {
+        summary: {
+          profile: null,
+          counts: {
+            medicalHistory: 0,
+            reports: 0,
+          },
+          latestMedicalHistory: null,
+          latestReport: null,
+        },
+      },
+    };
+  }
+
   return handleResponse(response);
 };
 
@@ -45,6 +63,18 @@ export const fetchPatientProfile = async () => {
       data: { profile: null },
     };
   }
+
+  return handleResponse(response);
+};
+
+export const createPatientProfile = async (profileData) => {
+  const response = await fetch(`${PATIENT_SERVICE_BASE_URL}/api/patients/profile`, {
+    method: "POST",
+    headers: buildHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(profileData),
+  });
 
   return handleResponse(response);
 };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  createPatientProfile,
   fetchPatientProfile,
   updatePatientProfile,
   uploadPatientAvatar,
@@ -22,7 +23,7 @@ const emptyForm = {
   profileImage: "",
 };
 
-const mapProfileToForm = (profile) => ({
+const mapProfileToForm = (profile = {}) => ({
   fullName: profile.fullName || "",
   phone: profile.phone || "",
   dateOfBirth: toDateInputValue(profile.dateOfBirth),
@@ -46,6 +47,7 @@ function usePatientProfile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [hasExistingProfile, setHasExistingProfile] = useState(false);
 
   const maxDate = useMemo(() => new Date().toISOString().split("T")[0], []);
 
@@ -53,9 +55,11 @@ function usePatientProfile() {
     const loadProfile = async () => {
       try {
         const response = await fetchPatientProfile();
-        const mapped = mapProfileToForm(response.data.profile);
+        const profile = response?.data?.profile || null;
+        const mapped = mapProfileToForm(profile);
         setFormData(mapped);
         setOriginalData(mapped);
+        setHasExistingProfile(Boolean(profile));
       } catch (error) {
         setErrorMessage(error.message || "Failed to load profile");
       } finally {
@@ -104,10 +108,13 @@ function usePatientProfile() {
         chronicConditionsSummary: formData.chronicConditionsSummary,
       };
 
-      const response = await updatePatientProfile(payload);
+      const response = hasExistingProfile
+        ? await updatePatientProfile(payload)
+        : await createPatientProfile(payload);
       const mapped = mapProfileToForm(response.data.profile);
       setFormData(mapped);
       setOriginalData(mapped);
+      setHasExistingProfile(true);
       setSuccessMessage(response.message || "Profile updated successfully");
       setIsEditing(false);
       confetti({
