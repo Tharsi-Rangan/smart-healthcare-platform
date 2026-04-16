@@ -213,6 +213,7 @@ function DashboardPage() {
           { label: "Book Doctor", icon: Search, to: "/doctors", color: "bg-emerald-500" },
           { label: "Upload Report", icon: FileUp, to: "/patient/reports", color: "bg-sky-500" },
           { label: "My Appointments", icon: CalendarDays, to: "/patient/appointments", color: "bg-indigo-500" },
+          { label: "Symptom Checker", icon: Sparkles, to: "/patient/symptom-checker", color: "bg-cyan-600" },
           { label: "Profile Settings", icon: Settings, to: "/patient/profile", color: "bg-slate-700" },
         ].map((action, i) => (
           <Link 

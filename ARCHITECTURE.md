@@ -38,6 +38,7 @@
     - Global CORS handling for the React frontend.
     - Unified request logging (Observability).
     - Simplified frontend environment configuration.
+  - Public aggregation endpoints for frontend views that need doctor data without exposing doctor-service internals.
 
 ### 2. Auth Service (Port 5001)
 - **Responsibilities**: JWT issuance, user login/registration, OTP verification, and role-based access control (RBAC).
@@ -76,6 +77,13 @@
 3. **API Gateway** proxies the request to `http://localhost:5002/api/patients/profile`.
 4. **Patient Service** processes the request and returns data to the Gateway.
 5. **API Gateway** sends the response back to the Frontend.
+
+### Public Doctor Flow
+1. **Frontend** calls `http://localhost:5000/api/public/doctors` or `http://localhost:5000/api/public/doctors/:id`.
+2. **API Gateway** authenticates the internal service request to doctor-service using a short-lived service JWT.
+3. **API Gateway** fetches doctor records from the protected doctor-service admin endpoints.
+4. **API Gateway** filters the results to approved, active doctors before returning them to the Frontend.
+5. **Frontend** renders the live doctor list, doctor details, and booking flow from backend data instead of local mocks.
 
 ## Technology Stack
 

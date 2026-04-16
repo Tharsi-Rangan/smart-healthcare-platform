@@ -10,7 +10,17 @@ const getPatientSummary = asyncHandler(async (req, res) => {
   });
 
   if (!profile) {
-    return sendError(res, 404, "Patient profile not found.");
+    return sendSuccess(res, 200, "Patient summary fetched successfully.", {
+      summary: {
+        profile: null,
+        counts: {
+          medicalHistory: 0,
+          reports: 0,
+        },
+        latestMedicalHistory: null,
+        latestReport: null,
+      },
+    });
   }
 
   const [medicalHistoryCount, reportsCount, latestMedicalHistory, latestReport] =

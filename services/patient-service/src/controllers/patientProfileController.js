@@ -41,7 +41,9 @@ const getCurrentPatientProfile = asyncHandler(async (req, res) => {
   });
 
   if (!profile) {
-    return sendError(res, 404, "Patient profile not found.");
+    return sendSuccess(res, 200, "Patient profile fetched successfully.", {
+      profile: null,
+    });
   }
 
   return sendSuccess(res, 200, "Patient profile fetched successfully.", {

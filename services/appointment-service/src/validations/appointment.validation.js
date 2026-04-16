@@ -116,6 +116,36 @@ export const createAppointmentValidation = [
     .bail()
     .isLength({ min: 5, max: 500 })
     .withMessage("reason must be between 5 and 500 characters"),
+
+  body("patientDetails.fullName")
+    .notEmpty()
+    .withMessage("patientDetails.fullName is required")
+    .bail()
+    .isString()
+    .withMessage("patientDetails.fullName must be a string")
+    .bail()
+    .isLength({ min: 2, max: 120 })
+    .withMessage("patientDetails.fullName must be between 2 and 120 characters"),
+
+  body("patientDetails.phone")
+    .notEmpty()
+    .withMessage("patientDetails.phone is required")
+    .bail()
+    .isString()
+    .withMessage("patientDetails.phone must be a string")
+    .bail()
+    .isLength({ min: 7, max: 20 })
+    .withMessage("patientDetails.phone must be between 7 and 20 characters"),
+
+  body("patientDetails.address")
+    .notEmpty()
+    .withMessage("patientDetails.address is required")
+    .bail()
+    .isString()
+    .withMessage("patientDetails.address must be a string")
+    .bail()
+    .isLength({ min: 5, max: 250 })
+    .withMessage("patientDetails.address must be between 5 and 250 characters"),
 ];
 
 export const appointmentIdValidation = [

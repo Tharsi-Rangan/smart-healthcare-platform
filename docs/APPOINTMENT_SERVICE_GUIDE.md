@@ -2,120 +2,175 @@
 
 ## Purpose
 
-This document explains how other team members should use the Appointment Service in the Smart Healthcare Platform.
+This document is the current integration reference for the Appointment Service.
 
-The Appointment Service is responsible for:
+The Appointment Service handles:
 
 - creating appointments
-- viewing appointments
-- cancelling appointments
-- rescheduling appointments
-- preventing double booking
-- enforcing appointment business rules
-- doctor-side appointment management (view + status updates)
+- listing patient appointments
+- getting one appointment by id (patient ownership only)
+- cancelling/rescheduling patient appointments
+- listing doctor appointments
+- doctor status updates (confirmed/completed)
+- double-booking prevention by doctor + date + time
 
 ---
 
-## Base URL
+## Base URLs
 
-### Local Development
+### Direct service (local)
 
-http://localhost:5002
+http://localhost:5003
 
-### Appointment Route Base
+### Direct route base
 
-http://localhost:5002/api/appointments
+http://localhost:5003/api/appointments
+
+### Through API Gateway (recommended for frontend)
+
+http://localhost:5000/api/appointments
 
 ---
 
 ## Authentication
 
-All appointment routes are protected.
+All routes are protected with JWT.
 
-- use JWT issued by auth-service
-- send token in header for every request
+Authorization header:
 
 Authorization: Bearer TOKEN
 
----
-
-## Integration with Auth Service
-
-Appointment service does not handle login or token generation.
-
-It only:
-
-- verifies JWT
-- extracts user info
-
-### Required JWT fields
+### Required JWT payload fields
 
 {
   "userId": "USER_ID",
-  "email": "user@example.com",
   "role": "patient | doctor"
 }
 
 ---
 
+## Role Rules
+
+### Patient role
+
+Allowed:
+
+- POST /api/appointments
+- GET /api/appointments/my
+- GET /api/appointments/:id (own only)
+- PUT /api/appointments/:id/cancel (own only)
+- PUT /api/appointments/:id/reschedule (own only)
+
+### Doctor role
+
+Allowed:
+
+- GET /api/appointments/doctor/my
+- PUT /api/appointments/:id/status
+
+---
+
 ## Business Rules
 
-### General Rules
-
 - appointment date + time must be in the future
-- no double booking for same doctor + date + time
-- response format must be consistent
+- no double-booking on same doctor/date/time unless existing booking is cancelled
+- patient cannot cancel completed appointments
+- patient cannot reschedule cancelled or completed appointments
+- doctor can update status only for their own appointments
+- doctor can set status only to `confirmed` or `completed`
 
 ---
 
-### Patient Rules
+## Current Data Model
 
-- only `patient` role can:
-  - create appointments
-  - view own appointments
-  - cancel own appointments
-  - reschedule own appointments
-
-- patient can only access their own appointments
-
----
-
-### Doctor Rules
-
-- only `doctor` role can:
-  - view own appointments
-  - update appointment status
-
-- doctor can only access appointments where:
-  appointment.doctorId === logged-in doctor userId
-
----
-
-### Status Rules
-
-- valid status transitions:
-  - pending → confirmed
-  - confirmed → completed
-
-- cannot:
-  - reschedule cancelled appointment
-  - cancel completed appointment
-  - update appointment of another doctor
-
----
-
-## Appointment Model Fields
+Stored appointment document:
 
 {
-  "patientId": "USER_ID",
-  "doctorId": "DOCTOR_ID",
-  "specialty": "Cardiology",
-  "appointmentDate": "2026-04-20T00:00:00.000Z",
-  "appointmentTime": "14:30",
+  "patientId": "ObjectId",
+  "doctorId": "ObjectId",
+  "specialty": "string",
+  "appointmentDate": "Date",
+  "appointmentTime": "HH:mm",
+  "consultationType": "online | offline",
+  "reason": "string",
+  "patientDetails": {
+    "fullName": "string",
+    "phone": "string",
+    "address": "string"
+  },
+  "status": "pending | confirmed | cancelled | completed",
+  "paymentStatus": "pending | paid | failed",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+
+---
+
+## Validation Rules
+
+### Create appointment (POST /api/appointments)
+
+Required:
+
+- doctorId: valid MongoDB id
+- specialty: string, 2..100
+- appointmentDate: YYYY-MM-DD valid date
+- appointmentTime: HH:mm and future with appointmentDate
+- reason: string, 5..500
+- patientDetails.fullName: string, 2..120
+- patientDetails.phone: string, 7..20
+- patientDetails.address: string, 5..250
+
+Optional:
+
+- consultationType: `online` or `offline`
+
+### Reschedule (PUT /api/appointments/:id/reschedule)
+
+Required:
+
+- appointmentDate (valid, future)
+- appointmentTime (valid, future)
+
+### Doctor status update (PUT /api/appointments/:id/status)
+
+Required:
+
+- status: `confirmed` or `completed`
+
+---
+
+## API Endpoints
+
+### Patient
+
+1. POST /api/appointments
+2. GET /api/appointments/my
+3. GET /api/appointments/:id
+4. PUT /api/appointments/:id/cancel
+5. PUT /api/appointments/:id/reschedule
+
+### Doctor
+
+6. GET /api/appointments/doctor/my
+7. PUT /api/appointments/:id/status
+
+---
+
+## Create Appointment Example (Current)
+
+{
+  "doctorId": "69cdec3ff82f6960d49dc41a",
+  "specialty": "cardiologist",
+  "appointmentDate": "2026-04-19",
+  "appointmentTime": "16:14",
   "consultationType": "online",
-  "reason": "Chest pain follow-up",
-  "status": "pending",
-  "paymentStatus": "pending"
+  "reason": "heavy fever",
+  "patientDetails": {
+    "fullName": "Tharsiga Ranganathan",
+    "phone": "0771234567",
+    "address": "No 10, Main Street, Jaffna"
+  }
 }
 
 ---
@@ -138,162 +193,33 @@ It only:
   "data": null
 }
 
----
-
-## API Endpoints
-
----
-
-### PATIENT ROUTES
-
----
-
-### 1. Create Appointment
-
-POST /api/appointments
+Validation failures include:
 
 {
-  "doctorId": "DOCTOR_ID",
-  "specialty": "Cardiology",
-  "appointmentDate": "2026-04-20",
-  "appointmentTime": "14:30",
-  "consultationType": "online",
-  "reason": "Chest pain follow-up"
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": "patientDetails.fullName",
+      "msg": "patientDetails.fullName is required"
+    }
+  ]
 }
-
----
-
-### 2. Get My Appointments
-
-GET /api/appointments/my
-
----
-
-### 3. Get Appointment By ID
-
-GET /api/appointments/:id
-
----
-
-### 4. Cancel Appointment
-
-PUT /api/appointments/:id/cancel
-
----
-
-### 5. Reschedule Appointment
-
-PUT /api/appointments/:id/reschedule
-
-{
-  "appointmentDate": "2026-04-25",
-  "appointmentTime": "10:00"
-}
-
----
-
-## DOCTOR ROUTES
-
----
-
-### 6. Get Doctor Appointments
-
-GET /api/appointments/doctor/my
-
----
-
-### 7. Update Appointment Status
-
-PUT /api/appointments/:id/status
-
-{
-  "status": "confirmed"
-}
-
-Allowed values:
-- confirmed
-- completed
-
----
-
-## Protected Route Flow
-
-1. client logs in via auth-service
-2. receives JWT token
-3. sends token in header
-4. appointment-service verifies JWT
-5. extracts:
-   - userId
-   - role
-6. applies role + ownership checks
-
----
-
-## Role Behavior Summary
-
-| Action | Patient | Doctor |
-|--------|--------|--------|
-| Create appointment | ✅ | ❌ |
-| View own appointments | ✅ | ❌ |
-| Cancel appointment | ✅ | ❌ |
-| Reschedule appointment | ✅ | ❌ |
-| View doctor appointments | ❌ | ✅ |
-| Update appointment status | ❌ | ✅ |
-
----
-
-## Postman Test Order
-
-### Patient Flow
-
-1. login (patient)
-2. create appointment
-3. duplicate booking test
-4. get my appointments
-5. reschedule appointment
-6. cancel appointment
-
----
-
-### Doctor Flow
-
-1. login (doctor)
-2. get doctor appointments
-3. update appointment status (confirmed)
-4. update appointment status (completed)
 
 ---
 
 ## Important Notes
 
-- do NOT implement auth logic here
-- always use auth-service token
-- use correct database: appointment_service_db
-- NEVER use auth_db here
-- use real doctor userId when testing doctor endpoints
+- Appointment Service does not issue tokens; always use auth-service token.
+- Frontend should prefer API Gateway route base (`http://localhost:5000/api/appointments`).
+- Older appointment records created before `patientDetails` became mandatory may not contain that object.
 
 ---
 
-## Common Mistakes (IMPORTANT)
+## Quick Test Order
 
-❌ Using fake doctorId  
-✔ Always use real doctor userId from auth-service  
-
-❌ Using patient token for doctor endpoints  
-✔ Use doctor token for:
-- /doctor/my
-- /:id/status  
-
-❌ Sending body as Text instead of JSON  
-✔ Always use raw → JSON in Postman  
-
----
-
-## Contact Point
-
-All team members integrating with appointment APIs must follow this document as the single source of truth for:
-
-- request formats
-- JWT usage
-- role-based access
-- business rules
+1. Login as patient and copy token.
+2. Create appointment with required `patientDetails`.
+3. Get my appointments.
+4. Reschedule and cancel one appointment.
+5. Login as doctor.
+6. Get doctor/my and update status.
