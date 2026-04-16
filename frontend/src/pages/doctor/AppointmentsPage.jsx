@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getDoctorAppointments,
   updateDoctorAppointmentStatus,
@@ -249,11 +249,10 @@ function AppointmentsPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
-                activeTab === tab
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${activeTab === tab
                   ? "bg-cyan-600 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
+                }`}
             >
               {tab}
             </button>
@@ -278,10 +277,10 @@ function AppointmentsPage() {
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
                       <h3 className="text-2xl font-bold text-slate-900">
-                        {item.patientName || "Unknown Patient"}
+                        {item.patientName || `Patient #${item.patientId?.substring(0, 8) || "Unknown"}`}
                       </h3>
                       <p className="mt-2 text-sm text-slate-500">
-                        {item.patientEmail || "No email provided"}
+                        {item.patientEmail || `ID: ${item.patientId || "Not provided"}`}
                       </p>
                     </div>
 
@@ -326,10 +325,10 @@ function AppointmentsPage() {
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     <div className="rounded-2xl bg-slate-50 px-4 py-3">
                       <p className="text-xs uppercase tracking-wide text-slate-400">
-                        Patient Age
+                        Payment Status
                       </p>
-                      <p className="mt-1 font-medium text-slate-900">
-                        {item.patientAge || 0} years
+                      <p className="mt-1 font-medium capitalize text-slate-900">
+                        {item.paymentStatus || "pending"}
                       </p>
                     </div>
 

@@ -65,10 +65,10 @@ function AdminLayout() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       <div className="flex min-h-screen">
-        <aside className="flex w-77.5 flex-col border-r border-slate-200 bg-white">
+        <aside className="flex w-[310px] flex-col border-r border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-6 py-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-cyan-600 to-sky-700 text-2xl text-white shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-600 to-sky-700 text-2xl text-white shadow-sm">
                 ⛑
               </div>
 
@@ -82,7 +82,7 @@ function AdminLayout() {
           </div>
 
           <div className="border-b border-slate-200 px-6 py-6">
-            <div className="flex items-center gap-4 rounded-3xl bg-slate-50 p-4">
+            <div className="flex items-center gap-4 rounded-[24px] bg-slate-50 p-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-600 text-lg font-semibold text-white">
                 {user?.name?.[0]?.toUpperCase() || "A"}
               </div>

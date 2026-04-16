@@ -1,5 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { getDoctorAvailability, getDoctorProfile } from "../../api/doctorApi";
 
 function DashboardPage() {
@@ -36,7 +37,9 @@ setAvailability(availabilityRes.data?.availability || []);
   const experience = profile?.experience || 0;
   const hospital = profile?.hospital || "Not added";
   const licenseNumber = profile?.licenseNumber || "Not added";
-  const profilePhotoUrl = profile?.profilePhotoUrl || "";
+  const profilePhotoUrl = profile?.profilePhotoUrl
+    ? `http://localhost:5006${profile?.profilePhotoUrl}`
+    : "";
 
   const activeAvailabilityCount = useMemo(() => {
     return availability.filter((slot) => slot.isActive !== false).length;
@@ -102,11 +105,32 @@ setAvailability(availabilityRes.data?.availability || []);
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+  };
+
   return (
-    <div className="space-y-8">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
       {/* Hero */}
-      <section className="overflow-hidden rounded-4xl border border-slate-200 bg-linear-to-r from-cyan-600 via-sky-700 to-slate-900 text-white shadow-sm">
-        <div className="grid gap-8 p-8 lg:grid-cols-[1.2fr,0.8fr] lg:p-10">
+      <motion.section
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-[34px] border border-cyan-800/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 text-white shadow-xl shadow-cyan-900/10"
+      >
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-cyan-600/20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
+
+        <div className="relative grid gap-8 p-8 lg:grid-cols-[1.2fr,0.8fr] lg:p-10">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
               Doctor Workspace
@@ -217,7 +241,7 @@ setAvailability(availabilityRes.data?.availability || []);
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {error && (
         <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-base text-red-600">
@@ -226,7 +250,7 @@ setAvailability(availabilityRes.data?.availability || []);
       )}
 
       {/* Stats */}
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <motion.section variants={itemVariants} className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
             Approval Status
@@ -283,10 +307,13 @@ setAvailability(availabilityRes.data?.availability || []);
             Active consultation schedule slots.
           </p>
         </div>
-      </section>
+      </motion.section>
 
       {/* Quick actions */}
-      <section className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
+      <motion.section
+        variants={itemVariants}
+        className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl"
+      >
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold text-slate-900">Quick Actions</h2>
           <p className="text-slate-500">
@@ -345,11 +372,11 @@ setAvailability(availabilityRes.data?.availability || []);
             </p>
           </Link>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="grid gap-8 xl:grid-cols-[1.1fr,0.9fr]">
+      <motion.section variants={itemVariants} className="grid gap-8 xl:grid-cols-[1.1fr,0.9fr]">
         {/* Profile summary */}
-        <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
@@ -400,7 +427,7 @@ setAvailability(availabilityRes.data?.availability || []);
         </div>
 
         {/* Checklist */}
-        <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl">
           <h2 className="text-2xl font-bold text-slate-900">Setup Checklist</h2>
           <p className="mt-2 text-slate-500">
             Complete these items to make your doctor account presentation-ready.
@@ -424,10 +451,13 @@ setAvailability(availabilityRes.data?.availability || []);
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Availability preview */}
-      <section className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
+      <motion.section
+        variants={itemVariants}
+        className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl"
+      >
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-900">
@@ -495,8 +525,8 @@ setAvailability(availabilityRes.data?.availability || []);
             </div>
           )}
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 

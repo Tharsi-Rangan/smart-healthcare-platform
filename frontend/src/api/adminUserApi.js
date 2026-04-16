@@ -1,43 +1,26 @@
-import axios from "axios";
-import { getToken } from "../features/auth/authStorage";
-
-const adminUserApi = axios.create({
-  baseURL: "http://localhost:5001",
-});
-
-adminUserApi.interceptors.request.use((config) => {
-  const token = getToken();
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
+import apiClient from "../services/apiClient";
 
 export const getAllUsers = async (params = {}) => {
-  const response = await adminUserApi.get("/api/admin/users", {
+  const response = await apiClient.get("/api/admin/users", {
     params,
   });
   return response.data;
 };
 
 export const getUserById = async (userId) => {
-  const response = await adminUserApi.get(`/api/admin/users/${userId}`);
+  const response = await apiClient.get(`/api/admin/users/${userId}`);
   return response.data;
 };
 
 export const updateUserStatus = async (userId, payload) => {
-  const response = await adminUserApi.patch(
+  const response = await apiClient.patch(
     `/api/admin/users/${userId}/status`,
-    payload,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
+    payload
   );
   return response.data;
 };
 
-export default adminUserApi;
+export const getAllTransactions = async () => {
+  const response = await apiClient.get("/api/payments/admin/all");
+  return response.data;
+};
