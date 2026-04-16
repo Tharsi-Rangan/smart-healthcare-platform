@@ -122,21 +122,25 @@ export const toggleDoctorActiveStatusController = asyncHandler(async (req, res) 
     throw new AppError("Doctor not found", 404);
   }
 
-  doctor.isActive = !doctor.isActive;
+  const updateData = { isActive: !doctor.isActive };
 
   if (adminReviewMessage.trim()) {
-    doctor.adminReviewMessage = adminReviewMessage.trim();
+    updateData.adminReviewMessage = adminReviewMessage.trim();
   }
 
-  await doctor.save();
+  const updatedDoctor = await Doctor.findByIdAndUpdate(
+    req.params.id,
+    updateData,
+    { new: true, runValidators: false }
+  );
 
   res.status(200).json({
     success: true,
-    message: doctor.isActive
+    message: updatedDoctor.isActive
       ? "Doctor account activated successfully"
       : "Doctor account deactivated successfully",
     data: {
-      doctor,
+      doctor: updatedDoctor,
     },
   });
 });
