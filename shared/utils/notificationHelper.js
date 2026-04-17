@@ -1,9 +1,29 @@
-import axios from 'axios';
+const NOTIFICATION_BASE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5008/api';
 
-const notificationClient = axios.create({
-  baseURL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5008/api',
-  timeout: 5000,
-});
+const postNotification = async (endpoint, payload) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(`${NOTIFICATION_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${responseText || response.statusText}`);
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 /**
  * Send appointment booked notification
@@ -25,7 +45,7 @@ export const notifyAppointmentBooked = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/appointment-booked', {
+    const responseData = await postNotification('/notifications/appointment-booked', {
       patientId,
       patientName,
       patientEmail,
@@ -38,7 +58,7 @@ export const notifyAppointmentBooked = async ({
     });
     
     console.log('[Notification] Appointment booked notification sent successfully');
-    return response.data;
+    return responseData;
   } catch (error) {
     console.error('[notifyAppointmentBooked] Error:', error.message);
     // Don't throw - notifications shouldn't block main flow
@@ -64,7 +84,7 @@ export const notifyConsultationCompleted = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/consultation-completed', {
+    const responseData = await postNotification('/notifications/consultation-completed', {
       patientId,
       patientName,
       patientEmail,
@@ -75,7 +95,7 @@ export const notifyConsultationCompleted = async ({
     });
 
     console.log('[Notification] Consultation completed notification sent successfully');
-    return response.data;
+    return responseData;
   } catch (error) {
     console.error('[notifyConsultationCompleted] Error:', error.message);
     return { success: false, error: error.message };
@@ -101,7 +121,7 @@ export const notifyAppointmentCancelled = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/appointment-cancelled', {
+    const responseData = await postNotification('/notifications/appointment-cancelled', {
       patientId,
       patientName,
       patientEmail,
@@ -113,7 +133,7 @@ export const notifyAppointmentCancelled = async ({
     });
 
     console.log('[Notification] Appointment cancelled notification sent successfully');
-    return response.data;
+    return responseData;
   } catch (error) {
     console.error('[notifyAppointmentCancelled] Error:', error.message);
     return { success: false, error: error.message };
@@ -139,7 +159,7 @@ export const notifyPaymentReceived = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/payment-received', {
+    const responseData = await postNotification('/notifications/payment-received', {
       patientId,
       patientName,
       patientEmail,
@@ -151,7 +171,7 @@ export const notifyPaymentReceived = async ({
     });
 
     console.log('[Notification] Payment received notification sent successfully');
-    return response.data;
+    return responseData;
   } catch (error) {
     console.error('[notifyPaymentReceived] Error:', error.message);
     return { success: false, error: error.message };
@@ -176,7 +196,7 @@ export const notifyDoctorRegistration = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/doctor-registration', {
+    const responseData = await postNotification('/notifications/doctor-registration', {
       doctorId,
       doctorName,
       doctorEmail,
@@ -187,7 +207,7 @@ export const notifyDoctorRegistration = async ({
     });
 
     console.log('[Notification] Doctor registration notification sent successfully');
-    return response.data;
+    return responseData;
   } catch (error) {
     console.error('[notifyDoctorRegistration] Error:', error.message);
     return { success: false, error: error.message };
@@ -234,23 +254,47 @@ export const sendNotificationViaService = (
   token
 ) => {
   // Fire-and-forget - don't await or block
-  if (!data || !axiosInstance) {
-    console.warn('Notification helper: Missing axios or data');
+  if (!data) {
+    console.warn('Notification helper: Missing notification data');
     return;
   }
 
+  const url = `http://localhost:5008${endpoint}`;
+
   try {
-    // Send without awaiting - this should never block
-    axiosInstance.post(`http://localhost:5008${endpoint}`, data, {
+    // Prefer provided HTTP client when available (axios-like API).
+    if (axiosInstance && typeof axiosInstance.post === 'function') {
+      axiosInstance.post(url, data, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 3000,
+      }).catch((error) => {
+        // Silently catch - notifications failing shouldn't affect main flow
+        console.debug('Notification delivery failed (non-critical):', error.message);
+      });
+      return;
+    }
+
+    // Fallback for services that don't pass axios.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    fetch(url, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      timeout: 3000,
-    }).catch((error) => {
-      // Silently catch - notifications failing shouldn't affect main flow
-      console.debug('Notification delivery failed (non-critical):', error.message);
-    });
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    })
+      .catch((error) => {
+        console.debug('Notification delivery failed (non-critical):', error.message);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
   } catch (error) {
     // Silently fail - this should never throw
     console.debug('Notification service error (non-critical):', error.message);

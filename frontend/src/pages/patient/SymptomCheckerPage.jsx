@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import Lottie from "lottie-react";
+import doctorAnimation from "../../assets/animations/Doctor.json";
 import heartbeatAnalysisAnimation from "../../assets/animations/Heartbeat Lottie Animation.json";
 import {
   analyzeSymptoms,
@@ -94,6 +94,83 @@ const normalizeHistory = (payload) => {
   return [];
 };
 
+class AnimationErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.warn("Animation render failed, showing fallback:", error?.message || error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
+
+function SafeLottieAnimation({ animationData, className, fallback, ariaLabel }) {
+  const [LottieComponent, setLottieComponent] = useState(null);
+  const [failedToLoad, setFailedToLoad] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadLottie = async () => {
+      try {
+        const module = await import("lottie-react");
+        const candidate = module?.default || module?.Lottie;
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (typeof candidate !== "function") {
+          setFailedToLoad(true);
+          return;
+        }
+
+        setLottieComponent(() => candidate);
+      } catch (error) {
+        if (isMounted) {
+          console.warn("Unable to load lottie-react. Falling back to static animation.", error);
+          setFailedToLoad(true);
+        }
+      }
+    };
+
+    loadLottie();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (failedToLoad || !LottieComponent) {
+    return fallback;
+  }
+
+  return (
+    <AnimationErrorBoundary fallback={fallback}>
+      <LottieComponent
+        animationData={animationData}
+        loop
+        autoplay
+        className={className}
+        aria-label={ariaLabel}
+      />
+    </AnimationErrorBoundary>
+  );
+}
+
 function SymptomCheckerPage() {
   const navigate = useNavigate();
   const recognitionRef = useRef(null);
@@ -118,7 +195,6 @@ function SymptomCheckerPage() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [analyzingMessageIndex, setAnalyzingMessageIndex] = useState(0);
-  const [isLottieReady, setIsLottieReady] = useState(false);
 
   useEffect(() => {
     if (!isAnalyzing) {
@@ -131,14 +207,6 @@ function SymptomCheckerPage() {
     }, 1600);
 
     return () => clearInterval(interval);
-  }, [isAnalyzing]);
-
-  useEffect(() => {
-    if (isAnalyzing) {
-      setIsLottieReady(true);
-    } else {
-      setIsLottieReady(false);
-    }
   }, [isAnalyzing]);
 
   useEffect(() => {
@@ -438,6 +506,18 @@ function SymptomCheckerPage() {
               AI-assisted only
             </span>
           </div>
+          <div className="hidden md:flex h-24 w-32 items-center justify-center rounded-xl border border-cyan-100 bg-white/80">
+            <SafeLottieAnimation
+              animationData={doctorAnimation}
+              className="h-20 w-28"
+              ariaLabel="Doctor helper animation"
+              fallback={
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-cyan-50">
+                  <Stethoscope size={24} className="text-cyan-700" aria-hidden="true" />
+                </div>
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -580,21 +660,17 @@ function SymptomCheckerPage() {
       {isAnalyzing && (
         <div className="rounded-2xl border border-cyan-100 bg-white p-6 text-center shadow-sm ring-1 ring-cyan-100/70">
           <div className="mx-auto mb-3 flex h-20 w-28 items-center justify-center">
-          {isLottieReady && (
-            <Lottie
+            <SafeLottieAnimation
               animationData={heartbeatAnalysisAnimation}
-              loop
-              autoplay
               className="h-20 w-28"
-              aria-label="Analyzing symptoms animation"
+              ariaLabel="Analyzing symptoms animation"
+              fallback={
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 shadow-sm">
+                  <HeartPulse size={28} className="animate-pulse text-cyan-700" aria-hidden="true" />
+                </div>
+              }
             />
-          )}
-          {!isLottieReady && (
-            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 shadow-sm">
-              <HeartPulse size={28} className="animate-pulse text-cyan-700" aria-hidden="true" />
-            </div>
-          )}
-        </div>
+          </div>
           <p className="text-base font-semibold text-cyan-900">Analyzing your symptoms...</p>
           <p className="mt-1 text-sm text-slate-700">Preparing a helpful recommendation for you.</p>
           <p className="mt-3 text-sm font-medium text-cyan-800" aria-live="polite">
