@@ -12,6 +12,7 @@ import { prescriptionValidation } from "../validations/prescription.validation.j
 import {
   getDoctorProfileController,
   createOrUpdateDoctorProfileController,
+  updateConsultationFeeController,
 } from "../controllers/doctor.controller.js";
 
 import {
@@ -20,6 +21,7 @@ import {
 } from "../controllers/availability.controller.js";
 
 import {
+  getPublicDoctorsController,
   getPendingDoctorsController,
   getAllDoctorsController,
   approveDoctorController,
@@ -49,6 +51,11 @@ import {
 
 const router = express.Router();
 
+/* Public endpoint for getting approved doctors (no authentication required) */
+router.get("/public/list", getPublicDoctorsController);
+
+router.get("/public/:id", getDoctorByIdController);
+
 /* Doctor profile */
 router.get("/profile", protect, authorize("doctor"), getDoctorProfileController);
 
@@ -59,6 +66,14 @@ router.put(
   uploadDoctorProfilePhoto.single("profilePhoto"),
   doctorProfileValidation,
   createOrUpdateDoctorProfileController
+);
+
+/* Doctor consultation fee */
+router.put(
+  "/consultation-fee",
+  protect,
+  authorize("doctor"),
+  updateConsultationFeeController
 );
 
 /* Doctor availability */

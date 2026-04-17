@@ -2,6 +2,7 @@ import express from 'express';
 import {
   startConsultation, getConsultationByAppointment,
   endConsultation, getDoctorConsultations, getPatientConsultations,
+  getVideoToken, createVideoSessionRoom, endVideoSession, getConsultationRecordings,
 } from '../controllers/consultationController.js';
 import {
   createPrescription, getPatientPrescriptions,
@@ -24,6 +25,12 @@ router.get('/consultations/doctor',                     protect, authorize('doct
 router.get('/consultations/patient',                    protect, authorize('patient'), getPatientConsultations);
 router.get('/consultations/appointment/:appointmentId', protect, getConsultationByAppointment);
 router.patch('/consultations/:id/end',                  protect, authorize('doctor'), endConsultation);
+
+// Twilio Video Consultation routes
+router.post('/consultations/video/token',               protect, getVideoToken);
+router.post('/consultations/video/room',                protect, createVideoSessionRoom);
+router.post('/consultations/video/end',                 protect, endVideoSession);
+router.get('/consultations/:id/recordings',             protect, getConsultationRecordings);
 
 // Prescription routes
 router.post('/prescriptions',          protect, authorize('doctor'), createPrescription);

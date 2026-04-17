@@ -23,6 +23,8 @@ export const createPrescription = async (authUserId, payload) => {
 
   return await Prescription.create({
     doctorId: doctor._id,
+    doctorName: doctor.doctorName,
+    specialization: doctor.specialization,
     ...payload,
     issuedAt: new Date().toLocaleString(),
   });

@@ -1,19 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAllDoctors, toggleDoctorActiveStatus } from "../../api/doctorApi";
+import { motion } from "framer-motion";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { 
+  getAllDoctors, 
+  toggleDoctorActiveStatus, 
+  getPendingDoctors,
+  approveDoctor,
+  rejectDoctor
+} from "../../api/doctorApi";
 
 function ManageDoctorsPage() {
   const [doctors, setDoctors] = useState([]);
+  const [pendingDoctors, setPendingDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [approvalFilter, setApprovalFilter] = useState(""); // pending, approved, rejected, all
+  const [statusFilter, setStatusFilter] = useState(""); // active, inactive, all
   const [actionLoadingId, setActionLoadingId] = useState("");
   const [adminMessages, setAdminMessages] = useState({});
+  const [reviewMessages, setReviewMessages] = useState({});
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const loadDoctors = async () => {
     try {
-      const response = await getAllDoctors();
-      setDoctors(response.data?.doctors || []);
+      const [allResponse, pendingResponse] = await Promise.all([
+        getAllDoctors(),
+        getPendingDoctors()
+      ]);
+      setDoctors(allResponse.data?.doctors || []);
+      setPendingDoctors(pendingResponse.data?.doctors || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load doctors");
     } finally {
@@ -29,23 +45,40 @@ function ManageDoctorsPage() {
     return {
       total: doctors.length,
       approved: doctors.filter((d) => d.approvalStatus === "approved").length,
-      pending: doctors.filter((d) => d.approvalStatus === "pending").length,
+      pending: pendingDoctors.length,
       inactive: doctors.filter((d) => d.isActive === false).length,
+      withHospital: pendingDoctors.filter((d) => d.hospital).length,
+      withExperience: pendingDoctors.filter((d) => Number(d.experience) > 0).length,
     };
-  }, [doctors]);
+  }, [doctors, pendingDoctors]);
 
   const filteredDoctors = useMemo(() => {
     const value = search.toLowerCase();
 
     return doctors.filter((doctor) => {
-      return (
+      // Search filter
+      const matchesSearch =
         doctor.doctorName?.toLowerCase().includes(value) ||
         doctor.specialization?.toLowerCase().includes(value) ||
         doctor.hospital?.toLowerCase().includes(value) ||
-        doctor.licenseNumber?.toLowerCase().includes(value)
-      );
+        doctor.licenseNumber?.toLowerCase().includes(value);
+
+      // Approval status filter
+      const matchesApprovalFilter =
+        approvalFilter === "" ||
+        (approvalFilter === "pending" && doctor.approvalStatus !== "approved" && doctor.approvalStatus !== "rejected") ||
+        (approvalFilter === "approved" && doctor.approvalStatus === "approved") ||
+        (approvalFilter === "rejected" && doctor.approvalStatus === "rejected");
+
+      // Account status filter
+      const matchesStatusFilter =
+        statusFilter === "" ||
+        (statusFilter === "active" && doctor.isActive !== false) ||
+        (statusFilter === "inactive" && doctor.isActive === false);
+
+      return matchesSearch && matchesApprovalFilter && matchesStatusFilter;
     });
-  }, [doctors, search]);
+  }, [doctors, search, approvalFilter, statusFilter]);
 
   const getStatusClasses = (status) => {
     switch ((status || "").toLowerCase()) {
@@ -63,6 +96,58 @@ function ManageDoctorsPage() {
       ...prev,
       [doctorId]: value,
     }));
+  };
+
+  const handleReviewMessageChange = (doctorId, value) => {
+    setReviewMessages((prev) => ({
+      ...prev,
+      [doctorId]: value,
+    }));
+  };
+
+  const handleApprove = async (doctorId) => {
+    try {
+      setActionLoadingId(doctorId);
+      setMessage("");
+      setError("");
+
+      const response = await approveDoctor(doctorId, {
+        adminReviewMessage: reviewMessages[doctorId] || "Approved by admin",
+      });
+
+      setMessage(response.message || "Doctor approved successfully");
+      await loadDoctors();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to approve doctor");
+    } finally {
+      setActionLoadingId("");
+    }
+  };
+
+  const handleReject = async (doctorId) => {
+    const reviewMessage = reviewMessages[doctorId]?.trim();
+
+    if (!reviewMessage) {
+      setError("Please enter a rejection reason before rejecting a doctor.");
+      return;
+    }
+
+    try {
+      setActionLoadingId(doctorId);
+      setMessage("");
+      setError("");
+
+      const response = await rejectDoctor(doctorId, {
+        adminReviewMessage: reviewMessage,
+      });
+
+      setMessage(response.message || "Doctor rejected successfully");
+      await loadDoctors();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to reject doctor");
+    } finally {
+      setActionLoadingId("");
+    }
   };
 
   const handleToggleActive = async (doctorId) => {
@@ -93,91 +178,145 @@ function ManageDoctorsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-slate-900 to-cyan-700 p-8 text-white shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-4"
+    >
+      <section className="rounded-2xl border border-cyan-200 bg-gradient-to-r from-cyan-600 to-sky-700 p-4 text-white shadow-sm">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
+            <p className="text-xs uppercase tracking-[0.25em] text-cyan-100">
               Doctor Management
             </p>
-            <h1 className="mt-3 text-4xl font-bold md:text-5xl">
+            <h1 className="mt-2 text-2xl font-bold md:text-3xl">
               Manage Doctors
             </h1>
-            <p className="mt-3 max-w-2xl text-base text-cyan-50 md:text-lg">
-              Review all doctors, monitor approval states, and activate or deactivate access.
+            <p className="mt-2 max-w-2xl text-sm text-cyan-50 md:text-base">
+              Verify doctor applications, manage approvals, and control doctor access.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white/10 px-5 py-4 backdrop-blur-sm">
-            <p className="text-sm text-cyan-100">Total Doctors</p>
-            <p className="mt-2 text-3xl font-bold">{stats.total}</p>
+          <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-sm">
+            <p className="text-xs text-cyan-100">Total Doctors</p>
+            <p className="mt-1 text-2xl font-bold">{stats.total}</p>
           </div>
         </div>
       </section>
 
       {message && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-base text-emerald-700">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-base text-red-600">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
           {error}
         </div>
       )}
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+      {/* Stats */}
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Total Doctors
           </p>
-          <h3 className="mt-4 text-3xl font-bold text-slate-900">{stats.total}</h3>
+          <h3 className="mt-2 text-2xl font-bold text-slate-900">{stats.total}</h3>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Approved
           </p>
-          <h3 className="mt-4 text-3xl font-bold text-emerald-600">{stats.approved}</h3>
+          <h3 className="mt-2 text-2xl font-bold text-emerald-600">{stats.approved}</h3>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
-            Pending
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            Pending Verification
           </p>
-          <h3 className="mt-4 text-3xl font-bold text-amber-600">{stats.pending}</h3>
+          <h3 className="mt-2 text-2xl font-bold text-amber-600">{stats.pending}</h3>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Inactive
           </p>
-          <h3 className="mt-4 text-3xl font-bold text-rose-600">{stats.inactive}</h3>
+          <h3 className="mt-2 text-2xl font-bold text-rose-600">{stats.inactive}</h3>
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-bold text-slate-900">Doctor Directory</h2>
-        <p className="mt-2 text-slate-500">
-          Search by doctor name, specialization, hospital, or license number.
-        </p>
+      {/* Search and Filters */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-2">Search</label>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, specialization, hospital, or license..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              />
+            </div>
+          </div>
 
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search doctors..."
-          className="mt-5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
-        />
+          {/* Filters Grid */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Approval Status Filter */}
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-2">Approval Status</label>
+              <select
+                value={approvalFilter}
+                onChange={(e) => setApprovalFilter(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending Verification</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            {/* Account Status Filter */}
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-2">Account Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              >
+                <option value="">All Accounts</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div className="text-sm text-slate-500 pt-2 border-t border-slate-100">
+            Showing {filteredDoctors.length} of {doctors.length} doctors
+          </div>
+        </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        {filteredDoctors.length > 0 ? (
-          filteredDoctors.map((doctor) => (
+      {/* Doctors Grid */}
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">
+          Loading doctors...
+        </div>
+      ) : filteredDoctors.length > 0 ? (
+        <section className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          {filteredDoctors.map((doctor) => (
             <div
               key={doctor._id}
-              className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
+              className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -190,7 +329,7 @@ function ManageDoctorsPage() {
                 </div>
 
                 <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusClasses(
+                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize whitespace-nowrap ${getStatusClasses(
                     doctor.approvalStatus
                   )}`}
                 >
@@ -235,60 +374,105 @@ function ManageDoctorsPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    Admin Message
-                  </p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {doctor.adminReviewMessage || "No admin message"}
-                  </p>
-                </div>
+                {doctor.adminReviewMessage && (
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">
+                      Admin Message
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      {doctor.adminReviewMessage}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-5">
-                <label className="mb-2 block text-sm font-medium text-slate-600">
-                  Admin Note
-                </label>
-                <textarea
-                  rows="3"
-                  value={adminMessages[doctor._id] || ""}
-                  onChange={(e) => handleMessageChange(doctor._id, e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
-                  placeholder="Example: Temporarily deactivated due to incomplete schedule."
-                />
-              </div>
+              {/* Show approval/rejection buttons only for pending doctors */}
+              {doctor.approvalStatus === "pending" && (
+                <>
+                  <div className="mt-5">
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      Admin Review Message
+                    </label>
+                    <textarea
+                      rows="3"
+                      value={reviewMessages[doctor._id] || ""}
+                      onChange={(e) => handleReviewMessageChange(doctor._id, e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                      placeholder="Optional review message for approval..."
+                    />
+                  </div>
 
-              <div className="mt-5">
-                <button
-                  onClick={() => handleToggleActive(doctor._id)}
-                  disabled={actionLoadingId === doctor._id}
-                  className={`w-full rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:opacity-70 ${
-                    doctor.isActive === false
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                      : "bg-rose-50 text-rose-600 hover:bg-rose-100"
-                  }`}
-                >
-                  {actionLoadingId === doctor._id
-                    ? "Processing..."
-                    : doctor.isActive === false
-                    ? "Activate Doctor"
-                    : "Deactivate Doctor"}
-                </button>
-              </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleApprove(doctor._id)}
+                      disabled={actionLoadingId === doctor._id}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:opacity-70"
+                    >
+                      <CheckCircle2 size={16} />
+                      Approve
+                    </button>
+
+                    <button
+                      onClick={() => handleReject(doctor._id)}
+                      disabled={actionLoadingId === doctor._id}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-70"
+                    >
+                      <XCircle size={16} />
+                      Reject
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Activate/Deactivate and Admin Note for approved doctors */}
+              {doctor.approvalStatus === "approved" && (
+                <>
+                  <div className="mt-5">
+                    <label className="mb-2 block text-sm font-medium text-slate-600">
+                      Admin Note
+                    </label>
+                    <textarea
+                      rows="2"
+                      value={adminMessages[doctor._id] || ""}
+                      onChange={(e) => handleMessageChange(doctor._id, e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                      placeholder="Add a note for this doctor..."
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <button
+                      onClick={() => handleToggleActive(doctor._id)}
+                      disabled={actionLoadingId === doctor._id}
+                      className={`w-full rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-70 ${
+                        doctor.isActive === false
+                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      }`}
+                    >
+                      {actionLoadingId === doctor._id
+                        ? "Processing..."
+                        : doctor.isActive === false
+                        ? "Activate"
+                        : "Deactivate"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-          ))
-        ) : (
-          <div className="lg:col-span-2 xl:col-span-3 rounded-[28px] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
-            <p className="text-lg font-semibold text-slate-800">
-              No doctors found
-            </p>
-            <p className="mt-2 text-slate-500">
-              Try changing the search keyword.
-            </p>
-          </div>
-        )}
-      </section>
-    </div>
+          ))}
+        </section>
+      ) : (
+        <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+          <p className="text-lg font-semibold text-slate-800">
+            No doctors found
+          </p>
+          <p className="mt-2 text-slate-500">
+            Try adjusting your search or filters.
+          </p>
+        </div>
+      )}
+    </motion.div>
   );
 }
 

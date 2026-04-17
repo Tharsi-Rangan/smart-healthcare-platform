@@ -19,7 +19,117 @@ services:
       timeout: 5s
       retries: 5
 
-  # Consultation Service
+  # API Gateway - Main entry point for all services
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      AUTH_SERVICE_URL: http://auth-service:5001
+      PATIENT_SERVICE_URL: http://patient-service:5002
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5003
+      CONSULTATION_SERVICE_URL: http://consultation-service:5004
+      PAYMENT_SERVICE_URL: http://payment-service:5005
+      DOCTOR_SERVICE_URL: http://doctor-service:5006
+      SYMPTOM_CHECKER_URL: http://symptom-checker-service:5007
+      NOTIFICATION_SERVICE_URL: http://notification-service:5008
+      CLIENT_URL: http://localhost:5173
+    depends_on:
+      - auth-service
+      - patient-service
+      - appointment-service
+      - consultation-service
+      - payment-service
+      - doctor-service
+      - symptom-checker-service
+      - notification-service
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Auth Service - User authentication and JWT token management
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-auth
+    ports:
+      - "5001:5001"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/auth_db
+      JWT_SECRET: your_auth_service_secret_key_change_in_production
+      PORT: 5001
+      NODE_ENV: production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Patient Service - Patient profile and health information management
+  patient-service:
+    build:
+      context: ./services/patient-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-patient
+    ports:
+      - "5002:5002"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/patient_db
+      JWT_SECRET: your_patient_service_secret_key_change_in_production
+      PORT: 5002
+      NODE_ENV: production
+      CLIENT_URL: http://localhost:5173
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/patient-service:/app
+      - ./services/patient-service/uploads:/app/uploads
+      - /app/node_modules
+    command: npm run dev
+
+  # Appointment Service - Appointment booking and management
+  appointment-service:
+    build:
+      context: ./services/appointment-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-appointment
+    ports:
+      - "5003:5003"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/appointment_db
+      JWT_SECRET: your_appointment_service_secret_key_change_in_production
+      PORT: 5003
+      NODE_ENV: production
+      PATIENT_SERVICE_URL: http://patient-service:5002
+      DOCTOR_SERVICE_URL: http://doctor-service:5006
+      PAYMENT_SERVICE_URL: http://payment-service:5005
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/appointment-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Consultation Service - Video consultations and communication
   consultation-service:
     build:
       context: ./services/consultation-service
@@ -29,11 +139,12 @@ services:
       - "5004:5004"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/consultation_db
-      JWT_SECRET: your_consultation_service_secret
+      JWT_SECRET: your_consultation_service_secret_key_change_in_production
       PORT: 5004
-      APPOINTMENT_SERVICE_URL: http://appointment-service:3002
-      PATIENT_SERVICE_URL: http://patient-service:5005
-      DOCTOR_SERVICE_URL: http://doctor-service:3005
+      NODE_ENV: production
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5003
+      PATIENT_SERVICE_URL: http://patient-service:5002
+      DOCTOR_SERVICE_URL: http://doctor-service:5006
       JITSI_DOMAIN: meet.jit.si
     depends_on:
       mongodb:
@@ -45,35 +156,113 @@ services:
       - /app/node_modules
     command: npm run dev
 
-  # Payment & Notification Service
-  payment-notification-service:
+  # Payment Service - Payment processing and transactions
+  payment-service:
     build:
-      context: ./services/payment-notification-service
+      context: ./services/payment-service
       dockerfile: Dockerfile
     container_name: smart-healthcare-payment
     ports:
       - "5005:5005"
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/payment_notification_db
-      JWT_SECRET: your_payment_service_secret
+      MONGODB_URI: mongodb://mongodb:27017/payment_db
+      JWT_SECRET: your_payment_service_secret_key_change_in_production
       PORT: 5005
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_USER: your-email@gmail.com
-      SMTP_PASS: your-app-password
-      CONSULTATION_SERVICE_URL: http://consultation-service:5004
-      APPOINTMENT_SERVICE_URL: http://appointment-service:3002
+      NODE_ENV: production
+      STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-pk_test_your_stripe_public_key}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_your_stripe_secret_key}
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5003
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       - smart-healthcare-network
     volumes:
-      - ./services/payment-notification-service:/app
+      - ./services/payment-service:/app
       - /app/node_modules
     command: npm run dev
 
-  # Frontend (React + Vite)
+  # Doctor Service - Doctor profile and availability management
+  doctor-service:
+    build:
+      context: ./services/doctor-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-doctor
+    ports:
+      - "5006:5006"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/doctor_db
+      JWT_SECRET: your_doctor_service_secret_key_change_in_production
+      PORT: 5006
+      NODE_ENV: production
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5003
+      CONSULTATION_SERVICE_URL: http://consultation-service:5004
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/doctor-service:/app
+      - ./services/doctor-service/uploads:/app/uploads
+      - /app/node_modules
+    command: npm run dev
+
+  # Symptom Checker Service - AI-powered symptom analysis
+  symptom-checker-service:
+    build:
+      context: ./services/symptom-checker-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-symptom-checker
+    ports:
+      - "5007:5007"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/symptom_checker_db
+      JWT_SECRET: your_symptom_checker_service_secret_key_change_in_production
+      PORT: 5007
+      NODE_ENV: production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/symptom-checker-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Notification Service - Email, SMS, and in-app notifications
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: smart-healthcare-notification
+    ports:
+      - "5008:5008"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/notification_db
+      JWT_SECRET: your_notification_service_secret_key_change_in_production
+      PORT: 5008
+      NODE_ENV: production
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-your-email@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-your-app-password}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-your-sendgrid-api-key}
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5003
+      PAYMENT_SERVICE_URL: http://payment-service:5005
+      CONSULTATION_SERVICE_URL: http://consultation-service:5004
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - smart-healthcare-network
+    volumes:
+      - ./services/notification-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Frontend (React + Vite) - Web interface for patients, doctors, and admins
   frontend:
     build:
       context: ./frontend
@@ -82,10 +271,9 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_BASE_URL: http://localhost:3000
+      VITE_API_BASE_URL: http://api-gateway:5000
     depends_on:
-      - consultation-service
-      - payment-notification-service
+      - api-gateway
     networks:
       - smart-healthcare-network
     volumes:
@@ -95,6 +283,7 @@ services:
 
 volumes:
   mongodb_data:
+    driver: local
 
 networks:
   smart-healthcare-network:

@@ -117,19 +117,19 @@ function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="space-y-10">
+      <div className="space-y-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3">
-             <div className="h-10 w-64 animate-pulse rounded-xl bg-slate-200" />
-             <div className="h-6 w-96 animate-pulse rounded-xl bg-slate-100" />
+          <div className="space-y-1">
+             <div className="h-10 w-64 animate-pulse rounded-xl bg-cyan-200" />
+             <div className="h-6 w-96 animate-pulse rounded-xl bg-cyan-100" />
           </div>
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
         </div>
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <CardSectionSkeleton />
           <CardSectionSkeleton />
         </div>
@@ -139,9 +139,9 @@ function DashboardPage() {
 
   if (error) {
     return (
-      <AnimatedContainer className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
-        <p className="text-sm text-red-600">Error: {error}</p>
-        <button onClick={() => window.location.reload()} className="mt-4 text-sm font-bold text-red-700 underline">Try Again</button>
+      <AnimatedContainer className="rounded-2xl border border-cyan-200 bg-cyan-50 p-6 shadow-sm">
+        <p className="text-sm text-cyan-600">Error: {error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 text-sm font-bold text-cyan-700 underline">Try Again</button>
       </AnimatedContainer>
     );
   }
@@ -149,27 +149,27 @@ function DashboardPage() {
   const patientName = user?.name || summary?.profile?.fullName || "Patient";
 
   return (
-    <AnimatedContainer className="space-y-10 pb-10">
+    <AnimatedContainer className="space-y-5 pb-10">
       {/* Welcome Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
-            Welcome back, <span className="text-sky-600">{patientName}!</span>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+            Welcome back, <span className="text-cyan-600">{patientName}!</span>
           </h1>
-          <p className="text-lg font-medium text-slate-500">
+          <p className="text-base font-medium text-slate-500">
             Here's what's happening with your health profile today.
           </p>
         </div>
         <div className="flex gap-3 print:hidden">
           <button 
             onClick={handleDownloadPassport}
-            className="hidden items-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-slate-800 md:flex"
+            className="hidden items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-700 px-3 py-2 text-sm font-bold text-white transition-all hover:from-cyan-700 hover:to-sky-800 md:flex"
           >
             <FileText className="h-4 w-4" />
             Medical Passport
           </button>
-          <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 md:flex">
-            <Heart className="h-6 w-6 fill-current animate-pulse" />
+            <div className="hidden h-8 w-8 items-center justify-center rounded-xl bg-sky-50 text-sky-600 md:flex">
+              <Heart className="h-4 w-4 fill-current animate-pulse" />
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@ function DashboardPage() {
         variants={staggerContainer}
         initial="initial"
         animate="animate"
-        className="grid gap-6 md:grid-cols-3"
+        className="grid gap-3 md:grid-cols-3"
       >
         <motion.div variants={itemVariants}>
           <StatCard 
@@ -194,7 +194,7 @@ function DashboardPage() {
             title="Medical Reports" 
             value={summary?.counts?.reports ?? 0} 
             icon={FileText} 
-            colorClass="bg-blue-50 text-blue-600"
+            colorClass="bg-cyan-50 text-cyan-600"
           />
         </motion.div>
         <motion.div variants={itemVariants}>
@@ -208,52 +208,52 @@ function DashboardPage() {
       </motion.div>
 
       {/* Quick Actions */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
         {[
-          { label: "Book Doctor", icon: Search, to: "/doctors", color: "bg-emerald-500" },
-          { label: "Upload Report", icon: FileUp, to: "/patient/reports", color: "bg-sky-500" },
-          { label: "My Appointments", icon: CalendarDays, to: "/patient/appointments", color: "bg-indigo-500" },
-          { label: "Symptom Checker", icon: Sparkles, to: "/patient/symptom-checker", color: "bg-cyan-600" },
-          { label: "Profile Settings", icon: Settings, to: "/patient/profile", color: "bg-slate-700" },
+          { label: "Find Doctor", icon: Search, to: "/patient/doctors", color: "from-cyan-600 to-sky-700" },
+          { label: "Upload Report", icon: FileUp, to: "/patient/reports", color: "from-sky-600 to-cyan-700" },
+          { label: "My Appointments", icon: CalendarDays, to: "/patient/appointments", color: "from-cyan-700 to-sky-800" },
+          { label: "Symptom Checker", icon: Sparkles, to: "/patient/symptom-checker", color: "from-sky-700 to-cyan-800" },
+          { label: "Profile Settings", icon: Settings, to: "/patient/profile", color: "from-cyan-600 to-sky-700" },
         ].map((action, i) => (
           <Link 
             key={i}
             to={action.to}
-            className="group flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-slate-200"
+            className="group flex items-center gap-4 rounded-xl bg-white p-2 shadow-sm border border-cyan-100 transition-all hover:shadow-md hover:border-cyan-200"
           >
-            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white transition-transform group-hover:scale-110 ${action.color}`}>
-              <action.icon className="h-6 w-6" />
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white transition-transform group-hover:scale-110 ${action.color}`}>
+              <action.icon className="h-4 w-4" />
             </div>
-            <span className="font-bold text-slate-700 group-hover:text-slate-900">{action.label}</span>
+            <span className="font-bold text-slate-700 group-hover:text-cyan-700">{action.label}</span>
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
-        <div className="space-y-8">
+      <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+        <div className="space-y-4">
            {/* Upcoming Appointments Section (Unified from Remote) */}
-           <div className="group rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-             <div className="mb-8 flex items-center justify-between">
+           <div className="group rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50/30 p-4 shadow-sm transition-all hover:shadow-md">
+             <div className="mb-4 flex items-center justify-between">
                <div className="flex items-center gap-3">
-                 <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
-                    <CalendarDays className="h-6 w-6" />
+                 <div className="rounded-xl bg-cyan-100 p-2 text-cyan-700">
+                    <CalendarDays className="h-4 w-4" />
                  </div>
-                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Upcoming Visits</h2>
+                 <h2 className="text-lg font-bold text-slate-800 tracking-tight">Upcoming Visits</h2>
                </div>
-               <Link to="/patient/appointments" className="text-sm font-bold text-indigo-600 hover:underline">View All</Link>
+               <Link to="/patient/appointments" className="text-sm font-bold text-cyan-600 hover:underline">View All</Link>
              </div>
              
              {nextThreeDaysAppointments.length === 0 ? (
                <div className="flex flex-col items-center justify-center py-10 text-center">
                  <p className="text-lg font-medium text-slate-400">No appointments in the next 3 days.</p>
-                 <Link to="/doctors" className="mt-2 text-sm font-bold text-sky-600">Find a doctor &rarr;</Link>
+                 <Link to="/patient/doctors" className="mt-2 text-sm font-bold text-cyan-600">Find a doctor &rarr;</Link>
                </div>
              ) : (
-               <div className="space-y-4">
+               <div className="space-y-2">
                  {nextThreeDaysAppointments.slice(0, 3).map((apt) => (
-                   <div key={apt.id} className="flex items-center justify-between rounded-2xl border border-slate-50 bg-slate-50/50 p-4 transition-colors hover:bg-slate-50">
+                   <div key={apt.id} className="flex items-center justify-between rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-2 transition-colors hover:from-sky-100 hover:to-cyan-100">
                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm font-bold text-indigo-600">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-600 to-sky-700 shadow-sm font-bold text-white">
                            {apt.doctorName[0]}
                         </div>
                         <div>
@@ -263,7 +263,7 @@ function DashboardPage() {
                      </div>
                      <div className="text-right">
                         <p className="text-sm font-bold text-slate-700">{apt.appointmentDate}</p>
-                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{apt.status}</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">{apt.status}</span>
                      </div>
                    </div>
                  ))}
@@ -272,27 +272,27 @@ function DashboardPage() {
            </div>
 
            {/* Recent Activity (From Summary) */}
-           <div className="group rounded-3xl border border-slate-100 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-             <div className="mb-8 flex items-center justify-between">
-               <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Medical History</h2>
-               <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-                  <Activity className="h-6 w-6" />
+           <div className="group rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-sky-50/30 p-4 shadow-sm transition-all hover:shadow-md">
+             <div className="mb-4 flex items-center justify-between">
+               <h2 className="text-lg font-bold text-slate-800 tracking-tight">Medical History</h2>
+               <div className="rounded-xl bg-sky-100 p-2 text-sky-700">
+                  <Activity className="h-4 w-4" />
                </div>
              </div>
              {summary?.latestMedicalHistory ? (
-               <div className="space-y-6">
+               <div className="space-y-3">
                  <div className="flex items-start gap-4">
-                   <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mt-1"><Layers className="h-5 w-5" /></div>
+                   <div className="h-8 w-8 flex items-center justify-center rounded-full bg-sky-100 text-sky-700 mt-1"><Layers className="h-4 w-4" /></div>
                    <div>
                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Diagnosis</p>
                      <p className="text-xl font-bold text-slate-800">{summary.latestMedicalHistory.conditionName}</p>
                    </div>
                  </div>
                  <div className="flex items-center gap-4">
-                   <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-400"><Clock className="h-5 w-5" /></div>
+                   <div className="h-8 w-8 flex items-center justify-center rounded-full bg-cyan-100 text-cyan-700"><Clock className="h-4 w-4" /></div>
                    <div>
                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Status</p>
-                     <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700 capitalize">
+                     <span className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-sm font-bold text-sky-700 capitalize">
                        {summary.latestMedicalHistory.status}
                      </span>
                    </div>
@@ -307,18 +307,18 @@ function DashboardPage() {
         </div>
 
         {/* Sidebar Insights */}
-        <div className="space-y-8 print:hidden">
+        <div className="space-y-4 print:hidden">
           <HealthInsightCard />
           
           {/* Latest Uploaded Report Snapshot */}
-          <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-            <div className="mb-6 flex items-center justify-between">
-               <h2 className="text-xl font-bold text-slate-800 tracking-tight">Latest Report</h2>
-               <FileText className="h-5 w-5 text-sky-500" />
+          <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50/40 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+               <h2 className="text-base font-bold text-slate-800 tracking-tight">Latest Report</h2>
+               <FileText className="h-4 w-4 text-cyan-600" />
             </div>
             {summary?.latestReport ? (
-              <div className="space-y-4">
-                <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="space-y-2">
+                <div className="rounded-xl bg-gradient-to-br from-cyan-50 to-sky-50 p-2 border border-cyan-200">
                   <p className="text-sm font-bold text-slate-800 line-clamp-1">{summary.latestReport.title}</p>
                   <p className="mt-1 text-xs font-medium text-slate-500">{summary.latestReport.reportType || "General Report"}</p>
                 </div>

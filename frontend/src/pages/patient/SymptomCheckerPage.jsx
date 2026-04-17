@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import lottie from "lottie-web";
+import Lottie from "lottie-react";
 import heartbeatAnalysisAnimation from "../../assets/animations/Heartbeat Lottie Animation.json";
 import {
   analyzeSymptoms,
@@ -98,7 +98,6 @@ function SymptomCheckerPage() {
   const navigate = useNavigate();
   const recognitionRef = useRef(null);
   const baseSymptomsRef = useRef("");
-  const lottieContainerRef = useRef(null);
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState("en-US");
@@ -135,32 +134,11 @@ function SymptomCheckerPage() {
   }, [isAnalyzing]);
 
   useEffect(() => {
-    if (!isAnalyzing || !lottieContainerRef.current) {
-      setIsLottieReady(false);
-      return;
-    }
-
-    let animationInstance;
-
-    try {
-      animationInstance = lottie.loadAnimation({
-        container: lottieContainerRef.current,
-        renderer: "svg",
-        loop: true,
-        autoplay: true,
-        animationData: heartbeatAnalysisAnimation,
-      });
+    if (isAnalyzing) {
       setIsLottieReady(true);
-    } catch {
+    } else {
       setIsLottieReady(false);
     }
-
-    return () => {
-      if (animationInstance) {
-        animationInstance.destroy();
-      }
-      setIsLottieReady(false);
-    };
   }, [isAnalyzing]);
 
   useEffect(() => {
@@ -500,7 +478,7 @@ function SymptomCheckerPage() {
               <select
                 value={voiceLanguage}
                 onChange={(event) => setVoiceLanguage(event.target.value)}
-                className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                 aria-label="Voice input language"
               >
                 <option value="en-US">English</option>
@@ -537,7 +515,7 @@ function SymptomCheckerPage() {
               value={formData.duration}
               onChange={onChange}
               placeholder="Example: 2 days"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
             />
           </div>
 
@@ -549,7 +527,7 @@ function SymptomCheckerPage() {
               name="severity"
               value={formData.severity}
               onChange={onChange}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
             >
               <option value="">Select severity</option>
               <option value="low">Low</option>
@@ -566,7 +544,7 @@ function SymptomCheckerPage() {
               name="ageGroup"
               value={formData.ageGroup}
               onChange={onChange}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
             >
               <option value="">Select age group</option>
               <option value="child">Child</option>
@@ -602,17 +580,21 @@ function SymptomCheckerPage() {
       {isAnalyzing && (
         <div className="rounded-2xl border border-cyan-100 bg-white p-6 text-center shadow-sm ring-1 ring-cyan-100/70">
           <div className="mx-auto mb-3 flex h-20 w-28 items-center justify-center">
-            <div
-              ref={lottieContainerRef}
-              className={isLottieReady ? "h-20 w-28" : "hidden"}
+          {isLottieReady && (
+            <Lottie
+              animationData={heartbeatAnalysisAnimation}
+              loop
+              autoplay
+              className="h-20 w-28"
               aria-label="Analyzing symptoms animation"
             />
-            {!isLottieReady && (
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 shadow-sm">
-                <HeartPulse size={28} className="animate-pulse text-cyan-700" aria-hidden="true" />
-              </div>
-            )}
-          </div>
+          )}
+          {!isLottieReady && (
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 shadow-sm">
+              <HeartPulse size={28} className="animate-pulse text-cyan-700" aria-hidden="true" />
+            </div>
+          )}
+        </div>
           <p className="text-base font-semibold text-cyan-900">Analyzing your symptoms...</p>
           <p className="mt-1 text-sm text-slate-700">Preparing a helpful recommendation for you.</p>
           <p className="mt-3 text-sm font-medium text-cyan-800" aria-live="polite">

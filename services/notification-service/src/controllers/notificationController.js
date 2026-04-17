@@ -356,6 +356,118 @@ export const notifyDoctorRegistration = async (req, res) => {
 };
 
 /**
+ * Notify patient that doctor started consultation
+ */
+export const notifyConsultationStarted = async (req, res) => {
+  try {
+    const { 
+      patientId,
+      patientName, 
+      patientEmail, 
+      patientPhone,
+      doctorName,
+      appointmentId,
+      appointmentTime,
+      message
+    } = req.body;
+
+    if (!patientId) {
+      return res.status(400).json({ success: false, message: 'Missing patientId' });
+    }
+
+    console.log('[Notification] Doctor started consultation for patient', patientId);
+
+    // Create notification record
+    const notification = await Notification.create({
+      recipient: {
+        userId: patientId,
+        email: patientEmail,
+        phone: patientPhone,
+        name: patientName,
+        role: 'patient',
+      },
+      type: 'consultation_started',
+      subject: `Dr. ${doctorName} has started your consultation`,
+      message: message || `Dr. ${doctorName} has started the video consultation. Please join now.`,
+      htmlContent: `<p>Dr. ${doctorName} has started your video consultation at ${appointmentTime}. Please join the session immediately.</p>`,
+      relatedEntity: {
+        entityType: 'appointment',
+        entityId: appointmentId,
+      },
+      status: 'sent',
+      isRead: false,
+    });
+
+    await notification.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Consultation started notification sent',
+      data: { notification },
+    });
+  } catch (error) {
+    console.error('[Notification] Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Notify doctor that patient joined consultation
+ */
+export const notifyPatientJoinedSession = async (req, res) => {
+  try {
+    const { 
+      doctorId,
+      doctorName, 
+      doctorEmail, 
+      doctorPhone,
+      patientName,
+      appointmentId,
+      appointmentTime,
+      message
+    } = req.body;
+
+    if (!doctorId) {
+      return res.status(400).json({ success: false, message: 'Missing doctorId' });
+    }
+
+    console.log('[Notification] Patient joined consultation for doctor', doctorId);
+
+    // Create notification record
+    const notification = await Notification.create({
+      recipient: {
+        userId: doctorId,
+        email: doctorEmail,
+        phone: doctorPhone,
+        name: doctorName,
+        role: 'doctor',
+      },
+      type: 'patient_joined_session',
+      subject: `${patientName} has joined the consultation`,
+      message: message || `${patientName} has joined the video consultation. Please join now.`,
+      htmlContent: `<p>${patientName} has joined your video consultation at ${appointmentTime}. Please join the session immediately.</p>`,
+      relatedEntity: {
+        entityType: 'appointment',
+        entityId: appointmentId,
+      },
+      status: 'sent',
+      isRead: false,
+    });
+
+    await notification.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Patient joined notification sent',
+      data: { notification },
+    });
+  } catch (error) {
+    console.error('[Notification] Error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
  * Get notifications for user
  */
 export const getUserNotifications = async (req, res) => {

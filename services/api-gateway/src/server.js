@@ -3,7 +3,6 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import dotenv from 'dotenv';
-import crypto from 'crypto';
 
 dotenv.config();
 
@@ -22,47 +21,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'API Gateway is running' });
 });
 
-const toBase64Url = (value) => Buffer.from(value).toString('base64url');
-
-const createInternalServiceToken = () => {
-  const jwtSecret = process.env.DOCTOR_SERVICE_JWT_SECRET || process.env.JWT_SECRET;
-
-  if (!jwtSecret) {
-    throw new Error('Missing DOCTOR_SERVICE_JWT_SECRET or JWT_SECRET for gateway public doctors endpoint');
-  }
-
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const expiresAt = issuedAt + 60;
-
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const payload = {
-    userId: 'api-gateway-service',
-    email: 'gateway@internal.local',
-    role: 'admin',
-    iat: issuedAt,
-    exp: expiresAt,
-  };
-
-  const encodedHeader = toBase64Url(JSON.stringify(header));
-  const encodedPayload = toBase64Url(JSON.stringify(payload));
-  const data = `${encodedHeader}.${encodedPayload}`;
-
-  const signature = crypto
-    .createHmac('sha256', jwtSecret)
-    .update(data)
-    .digest('base64url');
-
-  return `${data}.${signature}`;
-};
-
-const normalizeDoctorsPayload = (payload) => {
-  const doctors = payload?.data?.doctors;
-  return Array.isArray(doctors) ? doctors : [];
-};
-
 app.get('/api/public/doctors', async (req, res) => {
   try {
-    const token = createInternalServiceToken();
     const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const specialization =
@@ -74,12 +34,15 @@ app.get('/api/public/doctors', async (req, res) => {
     if (search) {
       query.set('search', search);
     }
+    if (specialization) {
+      query.set('specialization', specialization);
+    }
 
     const response = await fetch(
-      `${doctorServiceUrl}/api/doctors${query.toString() ? `?${query.toString()}` : ''}`,
+      `${doctorServiceUrl}/api/doctors/public/list${query.toString() ? `?${query.toString()}` : ''}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       }
     );
@@ -93,49 +56,28 @@ app.get('/api/public/doctors', async (req, res) => {
       });
     }
 
-    const approvedDoctors = normalizeDoctorsPayload(payload).filter((doctor) => {
-      const isApproved = doctor?.approvalStatus === 'approved';
-      const isActive = doctor?.isActive !== false;
-      const specializationMatches =
-        !specialization || String(doctor?.specialization || '').toLowerCase() === specialization;
-
-      return isApproved && isActive && specializationMatches;
-    });
-
     return res.status(200).json({
       success: true,
-      message: 'Public doctors fetched successfully',
-      data: {
-        doctors: approvedDoctors,
-      },
+      data: payload?.data || { doctors: [] },
     });
   } catch (error) {
-    console.error('Gateway public doctors error:', error.message);
-
-    if (error.message.includes('DOCTOR_SERVICE_JWT_SECRET')) {
-      return res.status(500).json({
-        success: false,
-        message: 'Gateway misconfiguration: missing doctor-service JWT secret',
-      });
-    }
-
-    return res.status(500).json({
+    console.error('Error fetching public doctors:', error.message);
+    res.status(500).json({
       success: false,
-      message: 'Failed to fetch public doctors',
+      message: 'Internal server error while fetching doctors',
     });
   }
 });
 
 app.get('/api/public/doctors/:id', async (req, res) => {
   try {
-    const token = createInternalServiceToken();
     const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
 
     const response = await fetch(
-      `${doctorServiceUrl}/api/doctors/${req.params.id}`,
+      `${doctorServiceUrl}/api/doctors/public/${req.params.id}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       }
     );
@@ -150,8 +92,9 @@ app.get('/api/public/doctors/:id', async (req, res) => {
     }
 
     const doctor = payload?.data?.doctor;
+    const availability = payload?.data?.availability || [];
 
-    if (!doctor || doctor.approvalStatus !== 'approved' || doctor.isActive === false) {
+    if (!doctor) {
       return res.status(404).json({
         success: false,
         message: 'Doctor not found',
@@ -163,21 +106,112 @@ app.get('/api/public/doctors/:id', async (req, res) => {
       message: 'Doctor fetched successfully',
       data: {
         doctor,
+        availability,  // Include availability slots
       },
     });
   } catch (error) {
-    console.error('Gateway public doctor details error:', error.message);
+    console.error('Error fetching public doctor details:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching doctor details',
+    });
+  }
+});
 
-    if (error.message.includes('DOCTOR_SERVICE_JWT_SECRET')) {
-      return res.status(500).json({
+// Alternative routing: /api/doctors/public/* (for backward compatibility)
+app.get('/api/doctors/public/list', async (req, res) => {
+  try {
+    const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const specialization =
+      typeof req.query.specialization === 'string'
+        ? req.query.specialization.trim().toLowerCase()
+        : '';
+
+    const query = new URLSearchParams();
+    if (search) {
+      query.set('search', search);
+    }
+    if (specialization) {
+      query.set('specialization', specialization);
+    }
+
+    const response = await fetch(
+      `${doctorServiceUrl}/api/doctors/public/list${query.toString() ? `?${query.toString()}` : ''}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
         success: false,
-        message: 'Gateway misconfiguration: missing doctor-service JWT secret',
+        message: payload?.message || 'Failed to fetch doctors from doctor service',
       });
     }
 
-    return res.status(500).json({
+    return res.status(200).json({
+      success: true,
+      data: payload?.data || { doctors: [] },
+    });
+  } catch (error) {
+    console.error('Error fetching public doctors:', error.message);
+    res.status(500).json({
       success: false,
-      message: 'Failed to fetch doctor details',
+      message: 'Internal server error while fetching doctors',
+    });
+  }
+});
+
+app.get('/api/doctors/public/:id', async (req, res) => {
+  try {
+    const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
+
+    const response = await fetch(
+      `${doctorServiceUrl}/api/doctors/public/${req.params.id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        message: payload?.message || 'Failed to fetch doctor details',
+      });
+    }
+
+    const doctor = payload?.data?.doctor;
+    const availability = payload?.data?.availability || [];
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Doctor fetched successfully',
+      data: {
+        doctor,
+        availability,  // Include availability slots
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching public doctor details:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching doctor details',
     });
   }
 });
@@ -190,6 +224,7 @@ const serviceMap = {
   'symptoms': process.env.SYMPTOM_CHECKER_URL || 'http://localhost:5007',
   'consultations': process.env.CONSULTATION_SERVICE_URL || 'http://localhost:5004',
   'payments': process.env.PAYMENT_SERVICE_URL || 'http://localhost:5005',
+  'notifications': process.env.PAYMENT_SERVICE_URL || 'http://localhost:5005',  // Notifications are part of payment service
   'doctors': process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006',
   'symptom-checker': process.env.SYMPTOM_CHECKER_URL || 'http://localhost:5007',
 };

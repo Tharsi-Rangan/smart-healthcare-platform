@@ -147,7 +147,7 @@ function DoctorListPage() {
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
               placeholder="Search by doctor name, specialization, or hospital"
-              className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-3 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
             />
           </div>
         </div>
@@ -159,7 +159,7 @@ function DoctorListPage() {
           <select
             value={specializationFilter}
             onChange={(event) => setSpecializationFilter(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+            className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
           >
             {specializations.map((specialization) => (
               <option key={specialization} value={specialization}>

@@ -97,7 +97,7 @@ setAvailability(availabilityRes.data?.availability || []);
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
           <p className="text-base text-slate-500">Loading doctor dashboard...</p>
         </div>
@@ -125,7 +125,7 @@ setAvailability(availabilityRes.data?.availability || []);
       {/* Hero */}
       <motion.section
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[34px] border border-cyan-800/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 text-white shadow-xl shadow-cyan-900/10"
+        className="relative overflow-hidden rounded-[34px] border border-cyan-200/30 bg-gradient-to-br from-cyan-600 via-sky-700 to-cyan-700 text-white shadow-xl shadow-cyan-500/20"
       >
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-cyan-600/20 blur-3xl" />
         <div className="absolute bottom-0 left-20 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
@@ -324,7 +324,7 @@ setAvailability(availabilityRes.data?.availability || []);
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           <Link
             to="/doctor/profile"
-            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
+            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
           >
             <p className="text-lg font-semibold text-slate-900">My Profile</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -334,7 +334,7 @@ setAvailability(availabilityRes.data?.availability || []);
 
           <Link
             to="/doctor/availability"
-            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
+            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
           >
             <p className="text-lg font-semibold text-slate-900">Availability</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -344,7 +344,7 @@ setAvailability(availabilityRes.data?.availability || []);
 
           <Link
             to="/doctor/appointments"
-            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
+            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
           >
             <p className="text-lg font-semibold text-slate-900">Appointments</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -354,7 +354,7 @@ setAvailability(availabilityRes.data?.availability || []);
 
           <Link
             to="/doctor/reports"
-            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
+            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
           >
             <p className="text-lg font-semibold text-slate-900">Patient Reports</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -364,7 +364,7 @@ setAvailability(availabilityRes.data?.availability || []);
 
           <Link
             to="/doctor/prescriptions"
-            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
+            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
           >
             <p className="text-lg font-semibold text-slate-900">Prescriptions</p>
             <p className="mt-2 text-sm text-slate-500">
@@ -396,15 +396,15 @@ setAvailability(availabilityRes.data?.availability || []);
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 p-5">
-              <p className="text-sm text-slate-500">Doctor Name</p>
+            <div className="rounded-2xl bg-cyan-50 border border-cyan-200 p-5">
+              <p className="text-sm text-cyan-600">Doctor Name</p>
               <p className="mt-2 text-lg font-semibold text-slate-900">
                 {doctorName}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 p-5">
-              <p className="text-sm text-slate-500">License Number</p>
+            <div className="rounded-2xl bg-sky-50 border border-sky-200 p-5">
+              <p className="text-sm text-sky-600">License Number</p>
               <p className="mt-2 text-lg font-semibold text-slate-900">
                 {licenseNumber}
               </p>

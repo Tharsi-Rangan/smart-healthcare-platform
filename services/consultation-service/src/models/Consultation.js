@@ -17,6 +17,19 @@ const consultationSchema = new mongoose.Schema({
   endedAt:     { type: Date },
   durationMin: { type: Number, default: 0 },
   doctorNotes: { type: String, default: '' },
+  
+  // Twilio Video Session fields
+  twilioRoomName: { type: String },
+  twilioRoomSid: { type: String },
+  recordingUrl: { type: String, default: null },
+  recordingSid: { type: String, default: null },
+  maxDuration: { type: Number, default: 30 }, // in minutes
+  recordings: [{
+    sid: String,
+    url: String,
+    duration: Number,
+    dateCreated: Date,
+  }],
 }, { timestamps: true });
 
 const Consultation = mongoose.model('Consultation', consultationSchema);

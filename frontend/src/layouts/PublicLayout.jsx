@@ -39,7 +39,11 @@ function PublicLayout() {
       </header>
 
       <main className="w-full flex-1 px-6 py-8">
-        <Outlet />
+        <div className="mx-auto max-w-7xl">
+          <div className={isAuthPage ? "" : "app-main-surface p-5 md:p-7"}>
+            <Outlet />
+          </div>
+        </div>
       </main>
 
       {!isAuthPage && (

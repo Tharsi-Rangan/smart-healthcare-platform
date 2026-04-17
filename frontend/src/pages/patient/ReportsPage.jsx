@@ -38,11 +38,11 @@ function ReportsPage() {
   } = usePatientReports();
 
   return (
-    <AnimatedContainer className="space-y-8 pb-10">
+    <AnimatedContainer className="space-y-4 pb-10">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Medical Reports</h1>
-        <p className="text-lg font-medium text-slate-500">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Medical Reports</h1>
+        <p className="text-base font-medium text-slate-500">
           Securely store and manage your lab results, scans, and prescriptions.
         </p>
       </div>
@@ -55,7 +55,7 @@ function ReportsPage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm"
+            className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800 shadow-sm"
           >
             <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
             <span className="font-semibold">{successMessage}</span>
@@ -67,7 +67,7 @@ function ReportsPage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm"
+            className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-800 shadow-sm"
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
             <span className="font-semibold">{errorMessage}</span>
@@ -97,10 +97,10 @@ function ReportsPage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             onSubmit={handleEditSubmit}
-            className="rounded-3xl border border-sky-200 bg-white p-8 shadow-md"
+            className="rounded-2xl border border-sky-200 bg-white p-4 shadow-md"
           >
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-slate-800">Edit Report Details</h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Edit Report Details</h2>
               <button
                 type="button"
                 onClick={handleCancelEdit}
@@ -110,7 +110,7 @@ function ReportsPage() {
               </button>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-bold uppercase tracking-wider text-slate-500 ml-1">
                   Report Title <span className="text-red-400">*</span>
@@ -123,16 +123,16 @@ function ReportsPage() {
               </div>
             </div>
 
-            <div className="mt-6 space-y-2">
+            <div className="mt-3 space-y-2">
               <label className="text-sm font-bold uppercase tracking-wider text-slate-500 ml-1">Description</label>
               <textarea name="description" value={editForm.description} onChange={handleEditChange} rows="3" className={inputClass} />
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="submit"
                 disabled={editing}
-                className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70 active:scale-95"
+                className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70 active:scale-95"
               >
                 <Save className="h-5 w-5" />
                 {editing ? "Saving..." : "Save Changes"}
@@ -141,7 +141,7 @@ function ReportsPage() {
                 type="button"
                 onClick={handleCancelEdit}
                 disabled={editing}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 py-4 text-base font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-95"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-95"
               >
                 <X className="h-5 w-5" />
                 Cancel
@@ -152,10 +152,10 @@ function ReportsPage() {
       </AnimatePresence>
 
       {/* Reports list */}
-      <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-        <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">My Document Vault</h2>
-          <span className="rounded-xl bg-sky-50 px-4 py-1.5 text-sm font-bold text-sky-700">
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">My Document Vault</h2>
+          <span className="rounded-lg bg-sky-50 px-2 py-1 text-xs font-bold text-sky-700">
             {reports.length} {reports.length === 1 ? "File" : "Files"}
           </span>
         </div>
@@ -176,7 +176,7 @@ function ReportsPage() {
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="space-y-6"
+            className="space-y-3"
           >
             {reports.map((report) => (
               <motion.div key={report._id} variants={itemVariants}>

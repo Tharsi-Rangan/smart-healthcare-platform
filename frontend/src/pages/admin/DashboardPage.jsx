@@ -90,7 +90,7 @@ function DashboardPage() {
       to: "/admin/manage-doctors",
     },
     {
-      title: "Manage Users",
+      title: "Manage Patients",
       description: "Review patient, doctor, and admin accounts.",
       to: "/admin/manage-users",
     },
@@ -120,7 +120,7 @@ function DashboardPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -129,11 +129,11 @@ function DashboardPage() {
       >
       <motion.section
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[34px] border border-cyan-800/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 text-white shadow-xl shadow-cyan-900/10"
+        className="relative overflow-hidden rounded-[34px] border border-cyan-200/30 bg-gradient-to-br from-cyan-600 via-sky-700 to-cyan-700 text-white shadow-xl shadow-cyan-500/20"
       >
         {/* Abstract shapes for premium depth */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-cyan-600/20 blur-3xl" />
-        <div className="absolute bottom-0 left-20 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-sky-400/20 blur-3xl" />
+        <div className="absolute bottom-0 left-20 h-24 w-24 rounded-full bg-cyan-400/15 blur-3xl" />
 
         <div className="relative flex flex-col gap-8 px-8 py-10 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">

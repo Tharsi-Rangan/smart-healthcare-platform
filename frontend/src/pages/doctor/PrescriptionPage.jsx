@@ -1,303 +1,188 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  createPrescription,
-  getPrescriptions,
-} from "../../api/doctorApi";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { Users, Search, FileText, Activity, Phone, BarChart3 } from "lucide-react";
+import apiClient from "../../services/apiClient";
 
 function PrescriptionPage() {
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState({
-    patientName: "",
-    diagnosis: "",
-    medicines: [{ name: "", dosage: "" }],
-    notes: "",
-  });
-
-  const loadPrescriptions = async () => {
+  const loadPatients = async () => {
     try {
-      setError("");
-      const response = await getPrescriptions();
-      setPrescriptions(response.data?.prescriptions || []);
+      const response = await apiClient.get("/api/appointments/doctor/my");
+      const appointments = response.data?.data?.appointments || [];
+
+      const uniquePatients = [];
+      const seenPatientIds = new Set();
+
+      appointments.forEach((apt) => {
+        if (apt.patientId && !seenPatientIds.has(apt.patientId)) {
+          seenPatientIds.add(apt.patientId);
+          uniquePatients.push({
+            patientId: apt.patientId,
+            patientName: apt.patientDetails?.fullName || "Unknown Patient",
+            phone: apt.patientDetails?.phone || "-",
+            email: apt.patientDetails?.email || "-",
+            lastAppointment: apt.appointmentDate,
+            appointmentCount: appointments.filter(
+              (a) => a.patientId === apt.patientId
+            ).length,
+          });
+        }
+      });
+
+      setPatients(uniquePatients);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load prescriptions");
+      console.error("Error loading patients:", err);
+      setError("Unable to load patient records. Please try refreshing the page.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPrescriptions();
+    loadPatients();
   }, []);
 
-  const filteredPrescriptions = useMemo(() => {
-    return prescriptions.filter((item) => {
-      return (
-        item.patientName?.toLowerCase().includes(search.toLowerCase()) ||
-        item.diagnosis?.toLowerCase().includes(search.toLowerCase())
-      );
-    });
-  }, [prescriptions, search]);
+  const filteredPatients = useMemo(() => {
+    return patients.filter((patient) =>
+      patient.patientName?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.phone?.toLowerCase().includes(patientSearch.toLowerCase())
+    );
+  }, [patients, patientSearch]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleMedicineChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicines: prev.medicines.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const addMedicine = () => {
-    setFormData((prev) => ({
-      ...prev,
-      medicines: [...prev.medicines, { name: "", dosage: "" }],
-    }));
-  };
-
-  const removeMedicine = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicines: prev.medicines.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage("");
-    setError("");
-
-    try {
-      const cleanedMedicines = formData.medicines.filter(
-        (item) => item.name.trim() && item.dosage.trim()
-      );
-
-      const payload = {
-        ...formData,
-        medicines: cleanedMedicines,
-      };
-
-      const response = await createPrescription(payload);
-
-      setMessage(response.message || "Prescription created successfully");
-
-      setFormData({
-        patientName: "",
-        diagnosis: "",
-        medicines: [{ name: "", dosage: "" }],
-        notes: "",
-      });
-
-      await loadPrescriptions();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to create prescription");
-    } finally {
-      setSaving(false);
-    }
+  const handleSelectPatient = (patient) => {
+    navigate(`/doctor/prescriptions/${patient.patientId}`);
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl font-bold text-slate-900">
-          Digital Prescriptions
-        </h1>
-        <p className="mt-3 text-2xl text-slate-500">
-          Create and manage prescriptions
-        </p>
-      </div>
-
-      {message && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-lg text-emerald-700">
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-lg text-red-600">
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-8 xl:grid-cols-[1fr,1fr]">
-        {/* LEFT - FORM */}
-        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="mb-8 text-4xl font-semibold text-slate-900">
-            Issue Prescription
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between">
             <div>
-              <label className="mb-3 block text-xl text-slate-500">
-                Patient Name
-              </label>
-              <input
-                type="text"
-                name="patientName"
-                value={formData.patientName}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                placeholder="John Doe"
-              />
+              <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+                Prescription Management
+              </h1>
+              <p className="text-lg text-slate-600 mt-2">
+                Select a patient to issue or review their electronic prescriptions
+              </p>
             </div>
-
-            <div>
-              <label className="mb-3 block text-xl text-slate-500">
-                Diagnosis
-              </label>
-              <input
-                type="text"
-                name="diagnosis"
-                value={formData.diagnosis}
-                onChange={handleChange}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                placeholder="Mild hypertension"
-              />
-            </div>
-
-            {/* Medicines */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xl text-slate-500">Medicines</label>
-                <button
-                  type="button"
-                  onClick={addMedicine}
-                  className="rounded-2xl bg-slate-100 px-5 py-3 text-xl font-medium text-slate-900"
-                >
-                  Add
-                </button>
+            <div className="text-right">
+              <div className="inline-block bg-white rounded-lg border border-slate-200 px-6 py-3 shadow-sm">
+                <div className="text-sm font-semibold text-slate-900">{patients.length}</div>
+                <div className="text-xs text-slate-600 mt-0.5">Active Patients</div>
               </div>
-
-              {formData.medicines.map((med, index) => (
-                <div
-                  key={index}
-                  className="grid gap-4 rounded-[24px] border border-slate-200 p-5 md:grid-cols-[1fr,1fr,auto]"
-                >
-                  <input
-                    type="text"
-                    value={med.name}
-                    onChange={(e) =>
-                      handleMedicineChange(index, "name", e.target.value)
-                    }
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xl outline-none"
-                    placeholder="Medicine name"
-                  />
-
-                  <input
-                    type="text"
-                    value={med.dosage}
-                    onChange={(e) =>
-                      handleMedicineChange(index, "dosage", e.target.value)
-                    }
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-xl outline-none"
-                    placeholder="Dosage"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => removeMedicine(index)}
-                    className="rounded-2xl bg-rose-50 px-4 py-4 text-xl text-red-500"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
             </div>
-
-            <div>
-              <label className="mb-3 block text-xl text-slate-500">
-                Notes
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows="4"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                placeholder="Additional instructions..."
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-2xl bg-cyan-600 px-8 py-4 text-2xl font-semibold text-white"
-            >
-              {saving ? "Saving..." : "Create Prescription"}
-            </button>
-          </form>
+          </div>
         </div>
 
-        {/* RIGHT - LIST */}
-        <div className="space-y-6">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-            <h2 className="text-4xl font-semibold text-slate-900">
-              Prescriptions
-            </h2>
+        {error && (
+          <div className="mb-8 rounded-xl bg-red-50 border border-red-200 px-6 py-4 text-red-700">
+            {error}
+          </div>
+        )}
 
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="mt-6 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
+              placeholder="Search by patient name or phone number..."
+              value={patientSearch}
+              onChange={(e) => setPatientSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition shadow-sm"
             />
           </div>
+        </div>
 
-          {loading ? (
-            <div className="text-xl text-slate-500">Loading...</div>
-          ) : filteredPrescriptions.length > 0 ? (
-            filteredPrescriptions.map((item) => (
-              <div
-                key={item._id}
-                className="rounded-[28px] border border-slate-200 bg-white p-7 shadow-sm"
+        {/* Patients Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-slate-300 border-t-cyan-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-slate-600 font-medium">Loading patient records...</p>
+            </div>
+          </div>
+        ) : filteredPatients.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredPatients.map((patient) => (
+              <button
+                key={patient.patientId}
+                onClick={() => handleSelectPatient(patient)}
+                className="group bg-white rounded-2xl border border-slate-200 shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden text-left hover:border-cyan-300 transform hover:-translate-y-1"
               >
-                <h3 className="text-3xl font-semibold text-slate-900">
-                  {item.patientName}
-                </h3>
+                {/* Header Background */}
+                <div className="h-2 bg-gradient-to-r from-cyan-600 to-sky-700 group-hover:from-cyan-700 group-hover:to-sky-800 transition"></div>
 
-                <p className="mt-2 text-xl text-slate-500">
-                  {item.issuedAt}
-                </p>
-
-                <div className="mt-4 text-xl">
-                  <p>
-                    <b>Diagnosis:</b> {item.diagnosis}
-                  </p>
-
-                  <div className="mt-3 space-y-2">
-                    {item.medicines.map((med, i) => (
-                      <div key={i} className="rounded-xl bg-slate-50 p-3">
-                        {med.name} — {med.dosage}
-                      </div>
-                    ))}
+                {/* Content */}
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-cyan-600 transition line-clamp-2">
+                        {patient.patientName}
+                      </h3>
+                      <p className="text-sm text-slate-600 mt-1">ID: {patient.patientId.slice(0, 8)}...</p>
+                    </div>
+                    <div className="p-3 bg-cyan-50 rounded-lg group-hover:bg-cyan-100 transition">
+                      <Users size={20} className="text-cyan-600" />
+                    </div>
                   </div>
 
-                  <p className="mt-3">
-                    <b>Notes:</b> {item.notes}
-                  </p>
+                  {/* Contact Info */}
+                  <div className="space-y-3 mb-6 pt-4 border-t border-slate-100">
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone size={16} className="text-slate-400" />
+                      <span className="text-slate-700 font-medium">{patient.phone}</span>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div className="text-center py-2">
+                      <div className="text-2xl font-bold text-cyan-600">{patient.appointmentCount}</div>
+                      <div className="text-xs text-slate-600 mt-1 font-medium">Consultation{patient.appointmentCount !== 1 ? "s" : ""}</div>
+                    </div>
+                    <div className="text-center py-2">
+                      <div className="text-lg font-bold text-slate-900">
+                        {patient.lastAppointment ? new Date(patient.lastAppointment).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "—"}
+                      </div>
+                      <div className="text-xs text-slate-600 mt-1 font-medium">Last Visit</div>
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="mt-6 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPatient(patient)}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-sky-700 text-white rounded-lg font-semibold hover:from-cyan-700 hover:to-sky-800 transition shadow-sm group-hover:shadow-md"
+                    >
+                      <FileText size={16} className="inline mr-2" />
+                      Issue Prescription
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-xl text-slate-500">No prescriptions found</p>
-          )}
-        </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-96 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <Users size={64} className="text-slate-300 mb-4" />
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">No Patients Found</h3>
+            <p className="text-slate-600 text-center max-w-sm">
+              {patients.length === 0
+                ? "You don't have any patients yet. Patients will appear here after they book an appointment with you."
+                : "No patients match your search criteria. Try adjusting your search terms."}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

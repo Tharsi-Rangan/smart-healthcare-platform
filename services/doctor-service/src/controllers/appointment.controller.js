@@ -4,12 +4,25 @@ import { Appointment } from "../models/appointment.model.js";
 import { Doctor } from "../models/doctor.model.js";
 
 export const getDoctorAppointmentsController = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findOne({ authUserId: req.user.userId });
+  const authUserId = req.user.userId;
+  
+  // Try to find doctor profile by authUserId
+  let doctor = await Doctor.findOne({ authUserId });
 
+  // If no profile exists, create an empty one
   if (!doctor) {
-    throw new AppError("Doctor profile not found", 404);
+    doctor = await Doctor.create({
+      authUserId,
+      doctorName: req.user.email?.split("@")[0] || "Doctor",
+      specialization: "General",
+      licenseNumber: "",
+      hospital: "",
+      experience: 0,
+      profilePhotoUrl: "",
+    });
   }
 
+  // Now query appointments by the doctor profile ID
   const appointments = await Appointment.find({ doctorId: doctor._id }).sort({
     appointmentDate: -1,
     createdAt: -1,

@@ -7,6 +7,8 @@ import {
   rescheduleAppointmentController,
   getDoctorAppointmentsController,
   updateAppointmentStatusController,
+  getPendingAppointmentsController,
+  confirmAppointmentController,
 } from "../controllers/appointment.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
@@ -33,7 +35,7 @@ router.post(
 
 router.get(
   "/my",
-  requireRole("patient"),
+  requireRole("patient", "doctor"),
   getMyAppointmentsController
 );
 
@@ -74,6 +76,21 @@ router.put(
   updateAppointmentStatusValidation,
   validateRequest,
   updateAppointmentStatusController
+);
+
+// Admin routes
+router.get(
+  "/admin/pending",
+  requireRole("admin"),
+  getPendingAppointmentsController
+);
+
+router.put(
+  "/:id/confirm",
+  requireRole("admin"),
+  appointmentIdValidation,
+  validateRequest,
+  confirmAppointmentController
 );
 
 export default router;

@@ -45,3 +45,35 @@ export const createOrUpdateDoctorProfileController = asyncHandler(async (req, re
     },
   });
 });
+
+export const updateConsultationFeeController = asyncHandler(async (req, res) => {
+  const { consultationFee } = req.body;
+
+  if (consultationFee === undefined || consultationFee === null) {
+    throw new AppError("Consultation fee is required", 400);
+  }
+
+  if (typeof consultationFee !== "number" || consultationFee < 0) {
+    throw new AppError("Consultation fee must be a non-negative number", 400);
+  }
+
+  const { Doctor } = await import("../models/doctor.model.js");
+  
+  const doctor = await Doctor.findOneAndUpdate(
+    { authUserId: req.user.userId },
+    { consultationFee },
+    { new: true }
+  );
+
+  if (!doctor) {
+    throw new AppError("Doctor profile not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Consultation fee updated successfully",
+    data: {
+      doctor,
+    },
+  });
+});

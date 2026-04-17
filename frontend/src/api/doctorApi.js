@@ -29,6 +29,14 @@ export const updateDoctorProfile = async (payload) => {
   return response.data;
 };
 
+export const updateConsultationFee = async (consultationFee) => {
+  const response = await apiClient.put(`${DOCTOR_BASE}/consultation-fee`, {
+    consultationFee,
+  });
+
+  return response.data;
+};
+
 /* Doctor availability */
 export const getDoctorAvailability = async () => {
   const response = await apiClient.get(`${DOCTOR_BASE}/availability`);

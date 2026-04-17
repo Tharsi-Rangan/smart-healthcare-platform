@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/payments`;
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payments`;
 
 export const initiatePayment = async (paymentData) => {
   try {
@@ -112,6 +112,20 @@ export const getPaymentStats = async () => {
       },
     });
     return response;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getPatientPayments = async (filters = {}) => {
+  try {
+    const response = await axios.get(`${API_URL}/patient/my`, {
+      params: filters,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
   } catch (error) {
     throw error.response?.data || error;
   }

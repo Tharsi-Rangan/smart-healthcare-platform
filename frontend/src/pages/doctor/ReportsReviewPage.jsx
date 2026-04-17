@@ -1,535 +1,188 @@
-import { useEffect, useState } from "react";
-import {
-  createPatientReport,
-  getPatientReportById,
-  getPatientReports,
-} from "../../api/doctorApi";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { Users, Search, FileText, Phone, ClipboardList } from "lucide-react";
+import apiClient from "../../services/apiClient";
 
 function ReportsReviewPage() {
-  const [reports, setReports] = useState([]);
-  const [selectedReport, setSelectedReport] = useState(null);
+  const navigate = useNavigate();
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState({
-    patientName: "",
-    patientAge: "",
-    bloodType: "",
-    allergies: "",
-    reports: [
-      {
-        title: "",
-        type: "",
-        fileUrl: "",
-        reportDate: "",
-        size: "",
-      },
-    ],
-    medicalHistory: [
-      {
-        condition: "",
-        description: "",
-        diagnosedYear: "",
-      },
-    ],
-  });
-
-  const loadReports = async () => {
+  const loadPatients = async () => {
     try {
-      setError("");
-      const response = await getPatientReports();
-      setReports(response.data?.reports || []);
+      const response = await apiClient.get("/api/appointments/doctor/my");
+      const appointments = response.data?.data?.appointments || [];
+
+      // Extract unique patients from appointments
+      const uniquePatients = [];
+      const seenPatientIds = new Set();
+
+      appointments.forEach((apt) => {
+        if (apt.patientId && !seenPatientIds.has(apt.patientId)) {
+          seenPatientIds.add(apt.patientId);
+          uniquePatients.push({
+            patientId: apt.patientId,
+            patientName: apt.patientDetails?.fullName || "Unknown Patient",
+            phone: apt.patientDetails?.phone || "-",
+            email: apt.patientDetails?.email || "-",
+            lastAppointment: apt.appointmentDate,
+            appointmentCount: appointments.filter(
+              (a) => a.patientId === apt.patientId
+            ).length,
+          });
+        }
+      });
+
+      setPatients(uniquePatients);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load patient reports");
+      console.error("Error loading patients:", err);
+      setError("Unable to load patient records. Please try refreshing the page.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadReports();
+    loadPatients();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const filteredPatients = useMemo(() => {
+    return patients.filter((patient) =>
+      patient.patientName?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+      patient.phone?.toLowerCase().includes(patientSearch.toLowerCase())
+    );
+  }, [patients, patientSearch]);
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "patientAge" ? Number(value) : value,
-    }));
-  };
-
-  const handleReportFieldChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      reports: prev.reports.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const handleHistoryFieldChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }));
-  };
-
-  const addReportRow = () => {
-    setFormData((prev) => ({
-      ...prev,
-      reports: [
-        ...prev.reports,
-        {
-          title: "",
-          type: "",
-          fileUrl: "",
-          reportDate: "",
-          size: "",
-        },
-      ],
-    }));
-  };
-
-  const addHistoryRow = () => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: [
-        ...prev.medicalHistory,
-        {
-          condition: "",
-          description: "",
-          diagnosedYear: "",
-        },
-      ],
-    }));
-  };
-
-  const removeReportRow = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      reports: prev.reports.filter((_, i) => i !== index),
-    }));
-  };
-
-  const removeHistoryRow = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleCreateReport = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage("");
-    setError("");
-
-    try {
-      const cleanedReports = formData.reports.filter((item) => item.title.trim());
-      const cleanedHistory = formData.medicalHistory.filter((item) =>
-        item.condition.trim()
-      );
-
-      const payload = {
-        ...formData,
-        reports: cleanedReports,
-        medicalHistory: cleanedHistory,
-      };
-
-      const response = await createPatientReport(payload);
-      setMessage(response.message || "Patient report created successfully");
-
-      setFormData({
-        patientName: "",
-        patientAge: "",
-        bloodType: "",
-        allergies: "",
-        reports: [
-          {
-            title: "",
-            type: "",
-            fileUrl: "",
-            reportDate: "",
-            size: "",
-          },
-        ],
-        medicalHistory: [
-          {
-            condition: "",
-            description: "",
-            diagnosedYear: "",
-          },
-        ],
-      });
-
-      await loadReports();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to create patient report");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleViewReport = async (reportId) => {
-    try {
-      setError("");
-      const response = await getPatientReportById(reportId);
-      setSelectedReport(response.data?.report || null);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch report details");
-    }
+  const handleSelectPatient = (patient) => {
+    navigate(`/doctor/reports/${patient.patientId}`);
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl font-bold text-slate-900">Patient Medical Reports</h1>
-        <p className="mt-3 text-2xl text-slate-500">
-          Create and review patient medical reports
-        </p>
-      </div>
-
-      {message && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-lg text-emerald-700">
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-lg text-red-600">
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-8 xl:grid-cols-[1fr,1fr]">
-        <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="mb-8 text-4xl font-semibold text-slate-900">
-            Create Patient Report
-          </h2>
-
-          <form onSubmit={handleCreateReport} className="space-y-6">
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-3 block text-xl text-slate-500">
-                  Patient Name
-                </label>
-                <input
-                  type="text"
-                  name="patientName"
-                  value={formData.patientName}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                  placeholder="John Doe"
-                />
-              </div>
-
-              <div>
-                <label className="mb-3 block text-xl text-slate-500">
-                  Patient Age
-                </label>
-                <input
-                  type="number"
-                  name="patientAge"
-                  value={formData.patientAge}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                  placeholder="35"
-                />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+                Medical Reports Management
+              </h1>
+              <p className="text-lg text-slate-600 mt-2">
+                Select a patient to create or update their medical records
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="inline-block bg-white rounded-lg border border-slate-200 px-6 py-3 shadow-sm">
+                <div className="text-sm font-semibold text-slate-900">{patients.length}</div>
+                <div className="text-xs text-slate-600 mt-0.5">Active Patients</div>
               </div>
             </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-3 block text-xl text-slate-500">
-                  Blood Type
-                </label>
-                <input
-                  type="text"
-                  name="bloodType"
-                  value={formData.bloodType}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                  placeholder="O+"
-                />
-              </div>
-
-              <div>
-                <label className="mb-3 block text-xl text-slate-500">
-                  Allergies
-                </label>
-                <input
-                  type="text"
-                  name="allergies"
-                  value={formData.allergies}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                  placeholder="Penicillin"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-semibold text-slate-900">Reports</h3>
-                <button
-                  type="button"
-                  onClick={addReportRow}
-                  className="rounded-2xl bg-slate-100 px-5 py-3 text-xl font-medium text-slate-900"
-                >
-                  Add Report
-                </button>
-              </div>
-
-              {formData.reports.map((item, index) => (
-                <div
-                  key={index}
-                  className="space-y-4 rounded-[24px] border border-slate-200 p-5"
-                >
-                  <input
-                    type="text"
-                    value={item.title}
-                    onChange={(e) =>
-                      handleReportFieldChange(index, "title", e.target.value)
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                    placeholder="ECG Report.pdf"
-                  />
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <input
-                      type="text"
-                      value={item.type}
-                      onChange={(e) =>
-                        handleReportFieldChange(index, "type", e.target.value)
-                      }
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                      placeholder="Diagnostic"
-                    />
-
-                    <input
-                      type="text"
-                      value={item.reportDate}
-                      onChange={(e) =>
-                        handleReportFieldChange(index, "reportDate", e.target.value)
-                      }
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                      placeholder="2026-03-28"
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <input
-                      type="text"
-                      value={item.size}
-                      onChange={(e) =>
-                        handleReportFieldChange(index, "size", e.target.value)
-                      }
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                      placeholder="180 KB"
-                    />
-
-                    <input
-                      type="text"
-                      value={item.fileUrl}
-                      onChange={(e) =>
-                        handleReportFieldChange(index, "fileUrl", e.target.value)
-                      }
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                      placeholder="File URL (optional)"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => removeReportRow(index)}
-                    className="rounded-2xl bg-rose-50 px-4 py-3 text-xl font-medium text-red-500"
-                  >
-                    Remove Report
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-semibold text-slate-900">
-                  Medical History
-                </h3>
-                <button
-                  type="button"
-                  onClick={addHistoryRow}
-                  className="rounded-2xl bg-slate-100 px-5 py-3 text-xl font-medium text-slate-900"
-                >
-                  Add History
-                </button>
-              </div>
-
-              {formData.medicalHistory.map((item, index) => (
-                <div
-                  key={index}
-                  className="space-y-4 rounded-[24px] border border-slate-200 p-5"
-                >
-                  <input
-                    type="text"
-                    value={item.condition}
-                    onChange={(e) =>
-                      handleHistoryFieldChange(index, "condition", e.target.value)
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                    placeholder="Hypertension"
-                  />
-
-                  <input
-                    type="text"
-                    value={item.description}
-                    onChange={(e) =>
-                      handleHistoryFieldChange(index, "description", e.target.value)
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                    placeholder="Currently on medication"
-                  />
-
-                  <input
-                    type="text"
-                    value={item.diagnosedYear}
-                    onChange={(e) =>
-                      handleHistoryFieldChange(index, "diagnosedYear", e.target.value)
-                    }
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-xl outline-none"
-                    placeholder="2020"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => removeHistoryRow(index)}
-                    className="rounded-2xl bg-rose-50 px-4 py-3 text-xl font-medium text-red-500"
-                  >
-                    Remove History
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-2xl bg-cyan-600 px-8 py-4 text-2xl font-semibold text-white disabled:opacity-70"
-            >
-              {saving ? "Saving..." : "Create Report"}
-            </button>
-          </form>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-            <h2 className="text-4xl font-semibold text-slate-900">
-              Patient Reports
-            </h2>
-
-            {loading ? (
-              <p className="mt-6 text-xl text-slate-500">Loading reports...</p>
-            ) : reports.length > 0 ? (
-              <div className="mt-6 space-y-5">
-                {reports.map((report) => (
-                  <div
-                    key={report._id}
-                    className="rounded-[24px] border border-slate-200 p-6"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-3xl font-semibold text-slate-900">
-                          {report.patientName}
-                        </h3>
-                        <p className="mt-2 text-xl text-slate-500">
-                          Age: {report.patientAge || 0} • Blood Type: {report.bloodType || "-"}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => handleViewReport(report._id)}
-                        className="rounded-2xl bg-slate-100 px-5 py-3 text-xl font-medium text-slate-900"
-                      >
-                        View
-                      </button>
-                    </div>
-
-                    <p className="mt-4 text-xl text-slate-500">
-                      Allergies: {report.allergies || "-"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-6 text-xl text-slate-500">No reports found.</p>
-            )}
           </div>
-
-          {selectedReport && (
-            <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-              <h2 className="mb-6 text-4xl font-semibold text-slate-900">
-                Selected Report
-              </h2>
-
-              <div className="space-y-5">
-                <div>
-                  <p className="text-xl text-slate-500">Patient</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">
-                    {selectedReport.patientName}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xl text-slate-500">Reports</p>
-                  <div className="mt-3 space-y-3">
-                    {selectedReport.reports?.length > 0 ? (
-                      selectedReport.reports.map((item, index) => (
-                        <div
-                          key={index}
-                          className="rounded-2xl bg-slate-50 px-5 py-4 text-xl"
-                        >
-                          <p className="font-semibold text-slate-900">{item.title}</p>
-                          <p className="mt-1 text-slate-500">
-                            {item.type} • {item.reportDate} • {item.size}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xl text-slate-500">No report files found.</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xl text-slate-500">Medical History</p>
-                  <div className="mt-3 space-y-3">
-                    {selectedReport.medicalHistory?.length > 0 ? (
-                      selectedReport.medicalHistory.map((item, index) => (
-                        <div
-                          key={index}
-                          className="rounded-2xl bg-slate-50 px-5 py-4 text-xl"
-                        >
-                          <p className="font-semibold text-slate-900">
-                            {item.condition}
-                          </p>
-                          <p className="mt-1 text-slate-500">
-                            {item.description} • Diagnosed: {item.diagnosedYear}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xl text-slate-500">No medical history found.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+
+        {error && (
+          <div className="mb-8 rounded-xl bg-red-50 border border-red-200 px-6 py-4 text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search by patient name or phone number..."
+              value={patientSearch}
+              onChange={(e) => setPatientSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition shadow-sm"
+            />
+          </div>
+        </div>
+
+        {/* Patients Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-slate-300 border-t-cyan-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-slate-600 font-medium">Loading patient records...</p>
+            </div>
+          </div>
+        ) : filteredPatients.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredPatients.map((patient) => (
+              <button
+                key={patient.patientId}
+                onClick={() => handleSelectPatient(patient)}
+                className="group bg-white rounded-2xl border border-slate-200 shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden text-left hover:border-cyan-300 transform hover:-translate-y-1"
+              >
+                {/* Header Background */}
+                <div className="h-2 bg-gradient-to-r from-cyan-600 to-sky-700 group-hover:from-cyan-700 group-hover:to-sky-800 transition"></div>
+
+                {/* Content */}
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-cyan-600 transition line-clamp-2">
+                        {patient.patientName}
+                      </h3>
+                      <p className="text-sm text-slate-600 mt-1">ID: {patient.patientId.slice(0, 8)}...</p>
+                    </div>
+                    <div className="p-3 bg-cyan-50 rounded-lg group-hover:bg-cyan-100 transition">
+                      <ClipboardList size={20} className="text-cyan-600" />
+                    </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="space-y-3 mb-6 pt-4 border-t border-slate-100">
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone size={16} className="text-slate-400" />
+                      <span className="text-slate-700 font-medium">{patient.phone}</span>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div className="text-center py-2">
+                      <div className="text-2xl font-bold text-cyan-600">{patient.appointmentCount}</div>
+                      <div className="text-xs text-slate-600 mt-1 font-medium">Visit{patient.appointmentCount !== 1 ? "s" : ""}</div>
+                    </div>
+                    <div className="text-center py-2">
+                      <div className="text-lg font-bold text-slate-900">
+                        {patient.lastAppointment ? new Date(patient.lastAppointment).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : "—"}
+                      </div>
+                      <div className="text-xs text-slate-600 mt-1 font-medium">Last Visit</div>
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="mt-6 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPatient(patient)}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-sky-700 text-white rounded-lg font-semibold hover:from-cyan-700 hover:to-sky-800 transition shadow-sm group-hover:shadow-md"
+                    >
+                      <FileText size={16} className="inline mr-2" />
+                      Update Records
+                    </button>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-96 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <Users size={64} className="text-slate-300 mb-4" />
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">No Patients Found</h3>
+            <p className="text-slate-600 text-center max-w-sm">
+              {patients.length === 0
+                ? "You don't have any patients yet. Patients will appear here after they book an appointment with you."
+                : "No patients match your search criteria. Try adjusting your search terms."}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,56 @@
+.video-room-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.video-room-loading,
+.video-room-error,
+.video-room-blocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.video-room-error,
+.video-room-blocked {
+  background: #fff;
+  border-radius: 8px;
+  flex-direction: column;
+  text-align: center;
+  max-width: 500px;
+  margin: auto;
+}
+
+.video-room-error h2,
+.video-room-blocked h2 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.video-room-error p,
+.video-room-blocked p {
+  color: #666;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.video-room-error button,
+.video-room-blocked button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.video-room-error button:hover,
+.video-room-blocked button:hover {
+  background: #5568d3;
+}

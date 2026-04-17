@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getDoctorAvailability,
   updateDoctorAvailability,
 } from "../../api/doctorApi";
+import { AlertCircle } from "lucide-react";
+import { TimePickerInput } from "../../components/shared/TimePickerInput";
 
 const newSlot = {
   day: "Monday",
@@ -23,11 +26,13 @@ const daysOfWeek = [
 ];
 
 function AvailabilityPage() {
+  const navigate = useNavigate();
   const [slots, setSlots] = useState([newSlot]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [profileMissing, setProfileMissing] = useState(false);
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -47,8 +52,15 @@ function AvailabilityPage() {
           );
         }
       } catch (err) {
-        if (err.response?.status !== 404) {
-          setError(err.response?.data?.message || "Failed to load availability");
+        const errorMsg = err.response?.data?.message || "Failed to load availability";
+        console.error("Error loading availability:", errorMsg);
+        
+        // Check if error is because doctor profile doesn't exist
+        if (err.response?.status === 404 && errorMsg.includes("Doctor profile not found")) {
+          setProfileMissing(true);
+          setError("");
+        } else {
+          setError(errorMsg);
         }
       } finally {
         setLoading(false);
@@ -133,8 +145,20 @@ function AvailabilityPage() {
     try {
       const response = await updateDoctorAvailability({ slots });
       setMessage(response.message || "Availability saved successfully");
+      setError("");
+      // Reset form after successful save
+      setTimeout(() => setMessage(""), 5000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to save availability");
+      const errorMsg = err.response?.data?.message || "Failed to save availability";
+      console.error("Error saving availability:", errorMsg);
+      
+      // Check if error is because doctor profile doesn't exist
+      if (err.response?.status === 404 && errorMsg.includes("Doctor profile not found")) {
+        setProfileMissing(true);
+        setError("");
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
@@ -148,45 +172,72 @@ function AvailabilityPage() {
     );
   }
 
+  if (profileMissing) {
+    return (
+      <div className="space-y-4">
+        <section className="rounded-[32px] border border-amber-200 bg-amber-50 p-8 shadow-sm">
+          <div className="flex items-start gap-4">
+            <AlertCircle className="h-6 w-6 flex-shrink-0 text-amber-600 mt-1" />
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-amber-900">
+                Complete Your Doctor Profile First
+              </h2>
+              <p className="mt-2 text-sm text-amber-800">
+                You need to complete your doctor profile before you can manage availability slots.
+                This ensures your profile is properly set up in the system with your actual doctor ID.
+              </p>
+              <button
+                onClick={() => navigate("/doctor/profile")}
+                className="mt-4 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
+              >
+                Go to Profile Setup
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header */}
-      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-cyan-600 to-sky-700 p-8 text-white shadow-sm">
+      <section className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-cyan-600 to-sky-700 p-4 text-white shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
+            <p className="text-xs uppercase tracking-[0.25em] text-cyan-100">
               Doctor Schedule Management
             </p>
-            <h1 className="mt-3 text-4xl font-bold md:text-5xl">
+            <h1 className="mt-2 text-2xl font-bold md:text-3xl">
               Availability
             </h1>
-            <p className="mt-3 max-w-2xl text-lg text-cyan-50">
+            <p className="mt-2 max-w-2xl text-base text-cyan-50">
               Set your weekly working hours and manage consultation slots for
               appointment handling.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white/10 px-5 py-4 backdrop-blur-sm">
-            <p className="text-sm text-cyan-100">Active Slots</p>
-            <p className="mt-2 text-3xl font-bold">{stats.active}</p>
+          <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-sm">
+            <p className="text-xs text-cyan-100">Active Slots</p>
+            <p className="mt-1 text-2xl font-bold">{stats.active}</p>
           </div>
         </div>
       </section>
 
       {message && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-base text-emerald-700">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-base text-red-600">
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600">
           {error}
         </div>
       )}
 
       {/* Stats */}
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
             Total Slots
@@ -226,7 +277,7 @@ function AvailabilityPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Actions */}
-        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
@@ -237,11 +288,11 @@ function AvailabilityPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={addSlot}
-                className="rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                className="rounded-xl bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-cyan-700"
               >
                 Add Time Slot
               </button>
@@ -249,7 +300,7 @@ function AvailabilityPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {saving ? "Saving..." : "Save Schedule"}
               </button>
@@ -258,14 +309,14 @@ function AvailabilityPage() {
         </section>
 
         {/* Slot cards */}
-        <section className="space-y-5">
+        <section className="space-y-3">
           {slots.length > 0 ? (
             slots.map((slot, index) => (
               <div
                 key={index}
-                className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm"
+                className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm"
               >
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-slate-900">
@@ -276,11 +327,11 @@ function AvailabilityPage() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => toggleActive(index)}
-                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                           slot.isActive
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : "bg-slate-100 text-slate-700 border border-slate-200"
@@ -292,14 +343,14 @@ function AvailabilityPage() {
                       <button
                         type="button"
                         onClick={() => removeSlot(index)}
-                        className="rounded-2xl bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                        className="rounded-xl bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
                       >
                         Remove
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                     <div>
                       <label className="mb-2 block text-sm font-medium text-slate-600">
                         Day
@@ -307,7 +358,7 @@ function AvailabilityPage() {
                       <select
                         value={slot.day}
                         onChange={(e) => handleChange(index, "day", e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                       >
                         {daysOfWeek.map((day) => (
                           <option key={day} value={day}>
@@ -318,30 +369,18 @@ function AvailabilityPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-600">
-                        Start Time
-                      </label>
-                      <input
-                        type="time"
+                      <TimePickerInput
+                        label="Start Time"
                         value={slot.startTime}
-                        onChange={(e) =>
-                          handleChange(index, "startTime", e.target.value)
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+                        onChange={(value) => handleChange(index, "startTime", value)}
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-600">
-                        End Time
-                      </label>
-                      <input
-                        type="time"
+                      <TimePickerInput
+                        label="End Time"
                         value={slot.endTime}
-                        onChange={(e) =>
-                          handleChange(index, "endTime", e.target.value)
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+                        onChange={(value) => handleChange(index, "endTime", value)}
                       />
                     </div>
 
@@ -356,7 +395,7 @@ function AvailabilityPage() {
                         onChange={(e) =>
                           handleChange(index, "slotDuration", e.target.value)
                         }
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
                         placeholder="30"
                       />
                     </div>

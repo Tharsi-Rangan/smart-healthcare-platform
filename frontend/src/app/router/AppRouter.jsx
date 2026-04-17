@@ -15,33 +15,38 @@ import ResetPasswordPage from "../../pages/public/ResetPasswordPage";
 
 import DashboardPage from "../../pages/patient/DashboardPage";
 import ProfilePage from "../../pages/patient/ProfilePage";
+import DoctorListPage from "../../pages/patient/DoctorListPage";
 import MedicalHistoryPage from "../../pages/patient/MedicalHistoryPage";
 import ReportsPage from "../../pages/patient/ReportsPage";
 import PrescriptionsPage from "../../pages/patient/PrescriptionsPage";
-import MyAppointmentsPage from "../../pages/patient/MyAppointmentsPage";
+import AppointmentsPage from "../../pages/patient/AppointmentsPage";
 import AppointmentHistoryPage from "../../pages/patient/AppointmentHistoryPage";
 import NotificationsPage from "../../pages/patient/NotificationsPage";
 import SymptomCheckerPage from "../../pages/patient/SymptomCheckerPage";
+import VideoConsultationPage from "../../pages/patient/VideoConsultationPage";
+import PaymentsPage from "../../pages/patient/PaymentsPage";
 
 import DoctorDashboardPage from "../../pages/doctor/DashboardPage";
 import DoctorProfilePage from "../../pages/doctor/ProfilePage";
 import AvailabilityPage from "../../pages/doctor/AvailabilityPage";
 import DoctorAppointmentsPage from "../../pages/doctor/AppointmentsPage";
 import ReportsReviewPage from "../../pages/doctor/ReportsReviewPage";
+import UpdateReportPage from "../../pages/doctor/UpdateReportPage";
 import PrescriptionPage from "../../pages/doctor/PrescriptionPage";
+import IssuePrescriptionPage from "../../pages/doctor/IssuePrescriptionPage";
+import VideoSessionPage from "../../pages/doctor/VideoSessionPage";
 
 import AdminDashboardPage from "../../pages/admin/DashboardPage";
-import VerifyDoctorsPage from "../../pages/admin/VerifyDoctorsPage";
 import ManageUsersPage from "../../pages/admin/ManageUsersPage";
 import ManageDoctorsPage from "../../pages/admin/ManageDoctorsPage";
 import TransactionsPage from "../../pages/admin/TransactionsPage";
+import AppointmentVerificationPage from "../../pages/admin/AppointmentVerificationPage";
 
-import DoctorListPage from "../../pages/shared/DoctorListPage";
 import DoctorDetailsPage from "../../pages/shared/DoctorDetailsPage";
 import BookAppointmentPage from "../../pages/shared/BookAppointmentPage";
 import PaymentPage from "../../pages/shared/PaymentPage";
-import ConsultationPage from "../../pages/shared/ConsultationPage";
-import SymptomCheckerPage from "../../pages/shared/SymptomCheckerPage";
+import VideoRoomPage from "../../pages/shared/VideoRoomPage";
+import SharedSymptomCheckerPage from "../../pages/shared/SymptomCheckerPage";
 
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 
@@ -60,23 +65,31 @@ function AppRouter() {
 
           <Route path="/doctors" element={<DoctorListPage />} />
           <Route path="/doctors/:id" element={<DoctorDetailsPage />} />
-          <Route path="/symptoms" element={<SymptomCheckerPage />} />
+          <Route path="/symptoms" element={<SharedSymptomCheckerPage />} />
           <Route path="/book-appointment" element={<BookAppointmentPage />} />
           <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/payment/:appointmentId" element={<PaymentPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
           <Route path="/patient" element={<PatientLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="doctors" element={<DoctorListPage />} />
             <Route path="medical-history" element={<MedicalHistoryPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="prescriptions" element={<PrescriptionsPage />} />
-            <Route path="appointments" element={<MyAppointmentsPage />} />
+            <Route path="appointments" element={<AppointmentsPage />} />
             <Route path="appointment-history" element={<AppointmentHistoryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="symptom-checker" element={<SymptomCheckerPage />} />
+            <Route path="consultation" element={<VideoConsultationPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
           </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
+          <Route path="/patient/video-consultation/:appointmentId" element={<VideoRoomPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
@@ -85,9 +98,11 @@ function AppRouter() {
             <Route path="profile" element={<DoctorProfilePage />} />
             <Route path="availability" element={<AvailabilityPage />} />
             <Route path="appointments" element={<DoctorAppointmentsPage />} />
+            <Route path="consultations" element={<VideoSessionPage />} />
             <Route path="reports" element={<ReportsReviewPage />} />
+            <Route path="reports/:patientId" element={<UpdateReportPage />} />
             <Route path="prescriptions" element={<PrescriptionPage />} />
-            <Route path="consultation" element={<ConsultationPage />} />
+            <Route path="prescriptions/:patientId" element={<IssuePrescriptionPage />} />
           </Route>
         </Route>
 
@@ -95,10 +110,12 @@ function AppRouter() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
-            <Route path="verify-doctors" element={<VerifyDoctorsPage />} />
+            <Route path="verify-doctors" element={<ManageDoctorsPage />} />
             <Route path="manage-doctors" element={<ManageDoctorsPage />} />
             <Route path="manage-users" element={<ManageUsersPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="payment-approvals" element={<TransactionsPage />} />
+            <Route path="appointments" element={<AppointmentVerificationPage />} />
           </Route>
         </Route>
       </Routes>

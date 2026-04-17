@@ -43,13 +43,13 @@ function PaymentReturnPage() {
   }, [navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-cyan-50 to-sky-50">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <div className="text-center">
           {status === 'checking' || status === 'pending' ? (
             <>
               <div className="mb-4 flex justify-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-teal-600"></div>
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-cyan-600"></div>
               </div>
               <h1 className="text-xl font-bold text-slate-800 mb-2">Processing Payment</h1>
               <p className="text-slate-600">{message}</p>
@@ -68,7 +68,7 @@ function PaymentReturnPage() {
               <p className="text-slate-600 mb-6">{message}</p>
               <button
                 onClick={() => navigate('/patient/payments')}
-                className="rounded-xl bg-teal-600 px-6 py-2 text-white font-medium hover:bg-teal-500 transition"
+                className="rounded-xl bg-cyan-600 px-6 py-2 text-white font-medium hover:bg-cyan-700 transition"
               >
                 Back to Payments
               </button>

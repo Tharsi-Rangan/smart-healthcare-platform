@@ -108,6 +108,47 @@ export const createAppointment = async (payload, patientId) => {
     appointmentTime: normalizeAppointmentTime(payload.appointmentTime),
   };
 
+  // Use doctorAuthUserId from payload if provided, otherwise try to fetch it
+  let doctorAuthUserId = payload.doctorAuthUserId || null;
+  let consultationFee = payload.consultationFee || 500; // Default fee
+  
+  // Only fetch from doctor service if doctorAuthUserId is not provided
+  if (!doctorAuthUserId) {
+    try {
+      const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
+      const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${payload.doctorId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const doctor = data?.data?.doctor || data?.doctor;
+        if (doctor?.authUserId) {
+          doctorAuthUserId = doctor.authUserId;
+        }
+        if (doctor?.consultationFee) {
+          consultationFee = doctor.consultationFee;
+        }
+      }
+    } catch (error) {
+      console.error("Could not fetch doctor authUserId or fee:", error.message);
+    }
+  }
+
+  // Update payload with fetched/provided values
+  if (doctorAuthUserId) {
+    appointmentPayload.doctorAuthUserId = doctorAuthUserId;
+  }
+  if (consultationFee) {
+    appointmentPayload.consultationFee = consultationFee;
+  }
+
+  // Ensure doctorAuthUserId is set
+  if (!appointmentPayload.doctorAuthUserId) {
+    throw new AppError("Unable to link appointment to doctor. Doctor profile may not exist.", 400);
+  }
+
   try {
     return await Appointment.create(appointmentPayload);
   } catch (error) {
@@ -119,8 +160,45 @@ export const createAppointment = async (payload, patientId) => {
   }
 };
 
-export const getMyAppointments = async (patientId) => {
-  return Appointment.find({ patientId }).sort({ appointmentDate: 1, appointmentTime: 1 });
+export const getMyAppointments = async (userId, role) => {
+  // For patients: filter by patientId
+  // For doctors: filter by doctorId
+  const query = role === 'doctor' ? { doctorId: userId } : { patientId: userId };
+  const appointments = await Appointment.find(query).sort({ appointmentDate: 1, appointmentTime: 1 });
+  
+  // Fetch doctor information for each appointment to populate doctorName and specialization
+  const appointmentsWithDoctorInfo = await Promise.all(
+    appointments.map(async (appointment) => {
+      const aptData = appointment.toObject ? appointment.toObject() : appointment;
+      
+      try {
+        const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
+        const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${appointment.doctorId}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const doctor = data?.data?.doctor || data?.doctor;
+          if (doctor) {
+            // Populate doctor information
+            aptData.doctorName = doctor.fullName || doctor.name || 'Doctor';
+            aptData.specialization = doctor.specialty || doctor.specialization || aptData.specialty || 'General';
+          }
+        }
+      } catch (error) {
+        console.error(`Could not fetch doctor info for doctorId ${appointment.doctorId}:`, error.message);
+        // Use fallback values
+        aptData.doctorName = 'Doctor';
+        aptData.specialization = aptData.specialty || 'General';
+      }
+      
+      return aptData;
+    })
+  );
+  
+  return appointmentsWithDoctorInfo;
 };
 
 export const getAppointmentById = async (appointmentId) => {
@@ -192,18 +270,52 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
   }
 };
 
-export const getDoctorAppointments = async (doctorId) => {
-  return Appointment.find({ doctorId }).sort({ appointmentDate: 1, appointmentTime: 1 });
+export const getDoctorAppointments = async (authUserId) => {
+  const appointments = await Appointment.find({ doctorAuthUserId: authUserId }).sort({ appointmentDate: 1, appointmentTime: 1 });
+  
+  // Fetch doctor information for each appointment to populate doctorName and specialization
+  const appointmentsWithDoctorInfo = await Promise.all(
+    appointments.map(async (appointment) => {
+      const aptData = appointment.toObject ? appointment.toObject() : appointment;
+      
+      try {
+        const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
+        const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${appointment.doctorId}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const doctor = data?.data?.doctor || data?.doctor;
+          if (doctor) {
+            // Populate doctor information
+            aptData.doctorName = doctor.fullName || doctor.name || 'Doctor';
+            aptData.specialization = doctor.specialty || doctor.specialization || aptData.specialty || 'General';
+          }
+        }
+      } catch (error) {
+        console.error(`Could not fetch doctor info for doctorId ${appointment.doctorId}:`, error.message);
+        // Use fallback values
+        aptData.doctorName = 'Doctor';
+        aptData.specialization = aptData.specialty || 'General';
+      }
+      
+      return aptData;
+    })
+  );
+  
+  return appointmentsWithDoctorInfo;
 };
 
-export const updateAppointmentStatus = async (appointmentId, doctorId, status) => {
+export const updateAppointmentStatus = async (appointmentId, doctorAuthUserId, status) => {
   const appointment = await Appointment.findById(appointmentId);
 
   if (!appointment) {
     throw new AppError("Appointment not found", 404);
   }
 
-  if (String(appointment.doctorId) !== String(doctorId)) {
+  if (appointment.doctorAuthUserId && String(appointment.doctorAuthUserId) !== String(doctorAuthUserId)) {
     throw new AppError("Unauthorized access to this appointment", 403);
   }
 
@@ -212,5 +324,6 @@ export const updateAppointmentStatus = async (appointmentId, doctorId, status) =
   }
 
   appointment.status = status;
+  appointment.doctorAuthUserId = doctorAuthUserId;
   return appointment.save();
 };

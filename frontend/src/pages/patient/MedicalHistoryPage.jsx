@@ -25,11 +25,11 @@ function MedicalHistoryPage() {
   } = useMedicalHistory();
 
   return (
-    <AnimatedContainer className="space-y-8 pb-10">
+    <AnimatedContainer className="space-y-4 pb-10">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Medical History</h1>
-        <p className="text-lg font-medium text-slate-500">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Medical History</h1>
+        <p className="text-base font-medium text-slate-500">
           Track and manage your diagnosed conditions and medications.
         </p>
       </div>
@@ -42,7 +42,7 @@ function MedicalHistoryPage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm"
+            className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800 shadow-sm"
           >
             <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
             <span className="font-semibold">{successMessage}</span>
@@ -54,7 +54,7 @@ function MedicalHistoryPage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm"
+            className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-800 shadow-sm"
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
             <span className="font-semibold">{errorMessage}</span>
@@ -80,12 +80,12 @@ function MedicalHistoryPage() {
       </motion.div>
 
       {/* Records list */}
-      <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
-        <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">
             Personal Medical Records
           </h2>
-          <span className="rounded-xl bg-sky-50 px-4 py-1.5 text-sm font-bold text-sky-700">
+          <span className="rounded-lg bg-cyan-50 px-2 py-1 text-xs font-bold text-cyan-700">
             {records.length} {records.length === 1 ? "Record" : "Records"}
           </span>
         </div>
@@ -106,7 +106,7 @@ function MedicalHistoryPage() {
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="space-y-6"
+            className="space-y-3"
           >
             {records.map((record) => (
               <motion.div key={record._id} variants={itemVariants}>

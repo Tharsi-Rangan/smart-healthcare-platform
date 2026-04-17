@@ -11,12 +11,12 @@ import AnimatedContainer from "../../components/common/AnimatedContainer";
 import { alertVariants } from "../../features/patient/patientAnimations";
 
 const inputClass =
-  "w-full rounded-2xl border border-slate-200 px-5 py-4 text-base outline-none focus:border-sky-500 disabled:bg-slate-50 disabled:text-slate-600 transition-all";
+  "w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100 disabled:bg-cyan-50 disabled:text-cyan-600 transition-all";
 
 function FormField({ label, children }) {
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-bold uppercase tracking-wider text-slate-500 ml-1">
+    <div className="space-y-1">
+      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-0.5">
         {label}
       </label>
       {children}
@@ -49,17 +49,17 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-10">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-3">
-             <div className="h-10 w-64 animate-pulse rounded-xl bg-slate-200" />
-             <div className="h-6 w-96 animate-pulse rounded-xl bg-slate-100" />
+      <div className="space-y-5">
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-2">
+             <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
+             <div className="h-5 w-72 animate-pulse rounded-lg bg-slate-100" />
           </div>
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[320px_1fr]">
+        <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
           <ProfilePreviewSkeleton />
-          <div className="space-y-8">
+          <div className="space-y-4">
             <CardSectionSkeleton />
             <CardSectionSkeleton />
             <CardSectionSkeleton />
@@ -70,31 +70,31 @@ function ProfilePage() {
   }
 
   return (
-    <AnimatedContainer className="space-y-8 pb-10">
+    <AnimatedContainer className="space-y-3 pb-5">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">My Profile</h1>
-          <p className="text-lg font-medium text-slate-500">
+          <h1 className="text-lg font-extrabold tracking-tight text-slate-900">My Profile</h1>
+          <p className="text-sm font-medium text-slate-500">
             Manage your personal identity, contact info, and medical basics.
           </p>
         </div>
-        <div className="flex gap-3 print:hidden">
+        <div className="flex gap-2 print:hidden">
           <button 
             type="button"
             onClick={handleDownloadPassport}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-slate-800 active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2 py-1 text-xs font-bold text-white shadow-lg transition-all hover:bg-slate-800 active:scale-95"
           >
-            <FileText className="h-5 w-5" />
+            <FileText className="h-4 w-4" />
             Medical Passport
           </button>
           {!isEditing && (
             <button
               type="button"
               onClick={handleEditClick}
-              className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1 text-xs font-bold text-white shadow-lg shadow-sky-100 transition-all hover:bg-sky-700 hover:shadow-xl active:scale-95"
             >
-              <Pencil className="h-5 w-5" />
+              <Pencil className="h-4 w-4" />
               Edit Profile
             </button>
           )}
@@ -109,10 +109,10 @@ function ProfilePage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm"
+            className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-800 shadow-sm"
           >
-            <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
-            <span className="font-semibold">{successMessage}</span>
+            <CheckCircle className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span className="font-semibold text-sm">{successMessage}</span>
           </motion.div>
         )}
         {errorMessage && (
@@ -121,18 +121,18 @@ function ProfilePage() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm"
+            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-red-800 shadow-sm"
           >
-            <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
-            <span className="font-semibold">{errorMessage}</span>
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+            <span className="font-semibold text-sm">{errorMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Avatar + Personal Info */}
-        <div className="grid gap-8 xl:grid-cols-[320px_1fr]">
-          <div className="space-y-4">
+        <div className="grid gap-3 xl:grid-cols-[280px_1fr]">
+          <div className="space-y-1">
             <PatientAvatarCard
               name={formData.fullName}
               phone={formData.phone}
@@ -141,15 +141,15 @@ function ProfilePage() {
               onAvatarUpload={handleAvatarUpload}
             />
             {isEditing && (
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                <p className="text-xs font-bold text-amber-800 leading-relaxed uppercase tracking-wider mb-2">Notice</p>
-                <p className="text-sm font-medium text-amber-700 leading-relaxed">You are currently in editing mode. Changes will not be saved until you click "Save Changes".</p>
+              <div className="rounded-md border border-amber-100 bg-amber-50 p-1.5">
+                <p className="text-xs font-bold text-amber-800 leading-tight uppercase tracking-wider mb-0.5">Notice</p>
+                <p className="text-xs font-medium text-amber-700 leading-tight">You are currently in editing mode. Changes will not be saved until you click "Save Changes".</p>
               </div>
             )}
           </div>
 
           <ProfileSectionCard title="Personal Information">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-2 md:grid-cols-2">
               <FormField label="Full Name">
                 <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} disabled={!isEditing} className={inputClass} />
               </FormField>
@@ -184,7 +184,7 @@ function ProfilePage() {
 
         {/* Emergency Contact */}
         <ProfileSectionCard title="Emergency Contact Details">
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-2 md:grid-cols-3">
             <FormField label="Contact Person">
               <input type="text" name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} disabled={!isEditing} className={inputClass} />
             </FormField>
@@ -199,7 +199,7 @@ function ProfilePage() {
 
         {/* Medical Information */}
         <ProfileSectionCard title="Permanent Medical Baseline">
-          <div className="space-y-6">
+          <div className="space-y-2">
             <FormField label="Allergies (Brief Summary)">
               <textarea name="allergiesSummary" value={formData.allergiesSummary} onChange={handleChange} rows="3" disabled={!isEditing} className={inputClass} />
             </FormField>
@@ -216,23 +216,23 @@ function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="flex flex-wrap gap-4 pt-4"
+              className="flex flex-wrap gap-2 pt-2"
             >
               <button 
                 type="submit" 
                 disabled={submitting} 
-                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-10 py-4 text-lg font-bold text-white shadow-lg shadow-emerald-100 transition-all hover:bg-emerald-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70 active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-sm font-bold text-white shadow-lg shadow-emerald-100 transition-all hover:bg-emerald-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70 active:scale-95"
               >
-                <Save className="h-5 w-5" />
+                <Save className="h-4 w-4" />
                 {submitting ? "Saving..." : "Save Changes"}
               </button>
               <button 
                 type="button" 
                 onClick={handleCancel} 
                 disabled={submitting} 
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-10 py-4 text-lg font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-white px-3 py-1 text-sm font-bold text-cyan-700 transition-all hover:bg-cyan-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
                 Cancel
               </button>
             </motion.div>

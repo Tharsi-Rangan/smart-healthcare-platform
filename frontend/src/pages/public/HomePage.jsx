@@ -91,39 +91,39 @@ function HomePage() {
     <div className="relative bg-slate-50">
       <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-80 rounded-b-3xl bg-linear-to-b from-cyan-100/45 via-cyan-50/20 to-transparent" />
 
-      <section className="relative z-10 mx-auto grid min-h-[84vh] max-w-360 items-center gap-12 px-6 py-14 md:grid-cols-2 lg:px-10">
+      <section className="relative z-10 mx-auto grid min-h-[84vh] max-w-360 items-center gap-6 px-6 py-7 md:grid-cols-2 lg:px-10">
         <div className="max-w-xl">
           <span className="inline-flex rounded-full bg-cyan-100 px-4 py-1 text-sm font-medium text-cyan-700 shadow-sm">
             Smart Healthcare, Made Simple
           </span>
 
-          <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight text-slate-900 md:text-3xl lg:text-4xl">
             Your Health Journey,
             <span className="block text-cyan-600">Clear, Secure, and Fast</span>
           </h1>
 
-          <p className="mt-6 text-base leading-8 text-slate-600 md:text-lg">
+          <p className="mt-3 text-sm leading-6 text-slate-600 md:text-base">
             Connect with trusted doctors, book appointments in minutes, attend
             online consultations, and manage health records from one platform.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Link
               to="/doctors"
-              className="inline-flex items-center justify-center rounded-xl bg-cyan-700 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-cyan-200 transition duration-300 hover:-translate-y-0.5 hover:bg-cyan-600"
+              className="inline-flex items-center justify-center rounded-xl bg-cyan-700 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-200 transition duration-300 hover:-translate-y-0.5 hover:bg-cyan-600"
             >
               Find Doctors
             </Link>
 
             <Link
               to="/register"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-50"
             >
               Create Account
             </Link>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {trustIndicators.map((indicator) => (
               <span
                 key={indicator.label}
@@ -135,14 +135,14 @@ function HomePage() {
             ))}
           </div>
 
-          <div className="mt-10 grid gap-3">
+          <div className="mt-5 grid gap-2">
             {highlights.map((item) => (
               <div
                 key={item}
-                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 px-4 py-3"
+                className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white/80 px-3 py-2"
               >
                 <span className="mt-0.5 text-cyan-600">✔</span>
-                <p className="text-sm text-slate-600 md:text-base">{item}</p>
+                <p className="text-xs text-slate-600 md:text-sm">{item}</p>
               </div>
             ))}
           </div>
@@ -177,34 +177,34 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-360 px-6 py-10 lg:px-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6 flex items-center justify-between gap-4">
+      <section className="mx-auto max-w-360 px-6 py-5 lg:px-10">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Core Features</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="text-lg font-bold text-slate-900">Core Features</h2>
+              <p className="mt-1 text-xs text-slate-500">
                 Everything you need for a smooth healthcare experience.
               </p>
             </div>
             <Link
               to="/about"
-              className="hidden rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 md:inline-flex"
+              className="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 md:inline-flex"
             >
               Learn More
             </Link>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-2xl border border-slate-100 bg-slate-50 p-6 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                className="rounded-xl border border-slate-100 bg-slate-50 p-3 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
-                <div className="mb-4 text-3xl">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-slate-900">
+                <div className="mb-2 text-2xl">{feature.icon}</div>
+                <h3 className="text-base font-semibold text-slate-900">
                   {feature.title}
                 </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
+                <p className="mt-2 text-xs leading-6 text-slate-600">
                   {feature.description}
                 </p>
               </div>
@@ -213,24 +213,24 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-360 px-6 py-10 lg:px-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">Built for Everyone</h2>
-            <p className="mt-1 text-sm text-slate-500">
+      <section className="mx-auto max-w-360 px-6 py-5 lg:px-10">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3">
+            <h2 className="text-lg font-bold text-slate-900">Built for Everyone</h2>
+            <p className="mt-1 text-xs text-slate-500">
               A simple healthcare experience designed for modern patient care.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             {audienceCards.map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-slate-100 bg-slate-50 p-6 transition duration-300 hover:-translate-y-1 hover:shadow-md"
+                className="rounded-xl border border-slate-100 bg-slate-50 p-3 transition duration-300 hover:-translate-y-1 hover:shadow-md"
               >
-                <div className="mb-4 text-3xl">{item.icon}</div>
-                <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
+                <div className="mb-2 text-2xl">{item.icon}</div>
+                <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
+                <p className="mt-2 text-xs leading-6 text-slate-600">
                   {item.description}
                 </p>
               </div>
@@ -239,14 +239,14 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-360 px-6 py-10 lg:px-10">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-slate-900">How It Works</h2>
-          <p className="mt-2 text-sm text-slate-500">
+      <section className="mx-auto max-w-360 px-6 py-5 lg:px-10">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">How It Works</h2>
+          <p className="mt-1 text-xs text-slate-500">
             Follow this simple path from discovery to appointment management.
           </p>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             {journey.map((item) => (
               <div
                 key={item.title}

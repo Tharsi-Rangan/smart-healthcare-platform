@@ -12,6 +12,11 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    doctorAuthUserId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     specialty: {
       type: String,
       required: true,
@@ -33,6 +38,12 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       enum: ["online", "offline"],
       default: "offline",
+    },
+    consultationFee: {
+      type: Number,
+      default: 500,
+      min: 0,
+      description: "Doctor's consultation fee at time of booking",
     },
     reason: {
       type: String,
@@ -72,6 +83,10 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "failed"],
       default: "pending",
+    },
+    adminConfirmed: {
+      type: Boolean,
+      default: false,
     },
   },
   {

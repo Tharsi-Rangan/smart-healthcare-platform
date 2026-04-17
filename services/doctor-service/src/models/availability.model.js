@@ -6,6 +6,12 @@ const availabilitySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Doctor",
       required: true,
+      index: true,
+    },
+    doctorAuthUserId: {
+      type: String,
+      required: true,
+      index: true,
     },
     day: {
       type: String,

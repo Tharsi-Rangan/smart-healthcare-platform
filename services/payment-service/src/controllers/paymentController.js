@@ -4,6 +4,20 @@ import { sendEmail, paymentConfirmationEmail } from '../utils/emailService.js';
 import { sendSMS, sendWhatsApp } from '../utils/smsService.js';
 import { validatePayhereSignature, getPayhereStatusMessage } from '../utils/payhereUtils.js';
 import crypto from 'crypto';
+import axios from 'axios';
+
+// Helper function to fetch doctor details from doctor service
+const fetchDoctorDetails = async (doctorId) => {
+  try {
+    const response = await axios.get(`http://localhost:5006/api/doctors/public/${doctorId}`, {
+      timeout: 5000,
+    });
+    return response.data?.data?.doctor || null;
+  } catch (error) {
+    console.error('Error fetching doctor details:', error.message);
+    return null;
+  }
+};
 
 // POST /api/payments/initiate — patient initiates payment
 export const initiatePayment = async (req, res) => {
@@ -12,6 +26,14 @@ export const initiatePayment = async (req, res) => {
       appointmentId, doctorId, doctorName, amount, currency,
       paymentMethod, patientName, patientEmail, patientPhone,
     } = req.body;
+
+    // Validate required fields
+    if (!appointmentId || !doctorId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: appointmentId, doctorId' 
+      });
+    }
 
     // Check for existing completed payment for same appointment
     const existingCompleted = await Payment.findOne({ appointmentId, status: 'completed' });
@@ -22,15 +44,23 @@ export const initiatePayment = async (req, res) => {
     // Delete any pending/failed payments for fresh attempt
     await Payment.deleteMany({ appointmentId, status: { $in: ['pending', 'failed'] } });
 
+    // Fetch doctor details to get consultation fee and specialization
+    const doctorDetails = await fetchDoctorDetails(doctorId);
+    const consultationFee = doctorDetails?.consultationFee || amount || 500;
+    const specialization = doctorDetails?.specialization || '';
+    const finalDoctorName = doctorDetails?.doctorName || doctorName || 'Doctor';
+
     const payment = await Payment.create({
       appointmentId,
       patientId:   req.user.userId,
       patientName: patientName || req.user.name || 'Patient',
-      patientEmail: patientEmail || '',
+      patientEmail: patientEmail || req.user.email || '',
       patientPhone: patientPhone || '',
       doctorId,
-      doctorName,
-      amount,
+      doctorName: finalDoctorName,
+      specialization,
+      consultationFee,
+      amount: consultationFee,
       currency:      currency || 'LKR',
       paymentMethod: paymentMethod || 'payhere',
       status: 'pending',
@@ -47,12 +77,12 @@ export const initiatePayment = async (req, res) => {
       cancel_url:    'http://localhost:5173/patient/payments',
       notify_url:    `http://localhost:5006/api/payments/notify`,
       order_id:      payment._id.toString(),
-      items:         `Consultation with ${doctorName}`,
+      items:         `Consultation with ${finalDoctorName}`,
       currency:      currency || 'LKR',
-      amount:        amount.toFixed(2),
-      first_name:    patientName?.split(' ')[0] || 'Patient',
-      last_name:     patientName?.split(' ').slice(1).join(' ') || '',
-      email:         patientEmail || '',
+      amount:        consultationFee.toFixed(2),
+      first_name:    (patientName?.split(' ')[0] || req.user.name?.split(' ')[0] || 'Patient'),
+      last_name:     (patientName?.split(' ').slice(1).join(' ') || req.user.name?.split(' ').slice(1).join(' ') || ''),
+      email:         patientEmail || req.user.email || '',
       phone:         patientPhone || '0771234567',
       address:       'Colombo',
       city:          'Colombo',
@@ -72,6 +102,7 @@ export const initiatePayment = async (req, res) => {
       data: { payment, payhereData },
     });
   } catch (error) {
+    console.error('Error initiating payment:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -272,6 +303,162 @@ export const getPaymentStats = async (req, res) => {
     res.status(200).json({
       success: true,
       data: { stats: { total, completed, pending, failed, revenue: revenue[0]?.total || 0 } },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PUT /api/payments/:id/approve — Admin approves payment
+export const approvePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const payment = await Payment.findById(id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found.' });
+    }
+
+    // Allow approval for both 'completed' and 'pending' payments
+    // If pending, we confirm it as part of approval (admin verified payment externally)
+    if (payment.status !== 'completed' && payment.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot approve ${payment.status} payments. Payment must be pending or completed.` 
+      });
+    }
+
+    // If payment is pending, confirm it as part of approval
+    if (payment.status === 'pending') {
+      payment.status = 'completed';
+      payment.paidAt = new Date();
+      console.log(`[Admin] Confirming pending payment ${id} as part of approval`);
+    }
+
+    payment.adminStatus = 'approved';
+    payment.adminApprovedAt = new Date();
+    payment.approvedBy = req.user.userId || 'admin';
+    await payment.save();
+
+    // Create notification for patient
+    await Notification.create({
+      userId: payment.patientId,
+      role: 'patient',
+      title: '✓ Payment Approved',
+      message: `Your payment for consultation with ${payment.doctorName} has been approved. You can now start the video consultation.`,
+      type: 'payment_approved',
+      relatedId: payment._id.toString(),
+    });
+
+    // Send email notification
+    if (payment.patientEmail) {
+      try {
+        await sendEmail({
+          to: payment.patientEmail,
+          subject: 'MediConnect — Payment Approved',
+          html: `<p>Hi ${payment.patientName},</p><p>Your payment of LKR ${payment.amount} has been approved. You can now start the video consultation with ${payment.doctorName}.</p>`,
+        });
+      } catch (err) {
+        console.error('Email error:', err.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment approved successfully.',
+      data: { payment },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PUT /api/payments/:id/reject — Admin rejects payment
+export const rejectPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const payment = await Payment.findById(id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found.' });
+    }
+
+    // Allow rejection for both 'completed' and 'pending' payments
+    if (payment.status !== 'completed' && payment.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot reject ${payment.status} payments. Payment must be pending or completed.` 
+      });
+    }
+
+    payment.adminStatus = 'rejected';
+    payment.rejectionReason = reason || 'Rejected by admin';
+    payment.status = 'refunded';
+    await payment.save();
+
+    // Create notification for patient
+    await Notification.create({
+      userId: payment.patientId,
+      role: 'patient',
+      title: '✗ Payment Rejected',
+      message: `Your payment has been rejected. Reason: ${reason || 'Not specified'}. Your refund will be processed shortly.`,
+      type: 'payment_rejected',
+      relatedId: payment._id.toString(),
+    });
+
+    // Send email notification
+    if (payment.patientEmail) {
+      try {
+        await sendEmail({
+          to: payment.patientEmail,
+          subject: 'MediConnect — Payment Rejected',
+          html: `<p>Hi ${payment.patientName},</p><p>Your payment of LKR ${payment.amount} has been rejected. Reason: ${reason || 'Not specified'}. Your refund will be processed shortly.</p>`,
+        });
+      } catch (err) {
+        console.error('Email error:', err.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment rejected successfully.',
+      data: { payment },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/payments/:id/status — Check payment status (by payment ID or appointmentId)
+export const getPaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Try to find by payment ID first, then by appointmentId
+    let payment = await Payment.findById(id);
+    if (!payment) {
+      payment = await Payment.findOne({ appointmentId: id });
+    }
+    
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        paymentId: payment._id,
+        appointmentId: payment.appointmentId,
+        status: payment.status,
+        adminStatus: payment.adminStatus,
+        amount: payment.amount,
+        currency: payment.currency,
+        paidAt: payment.paidAt,
+        adminApprovedAt: payment.adminApprovedAt,
+        consultationAvailable: payment.status === 'completed' && payment.adminStatus === 'approved',
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

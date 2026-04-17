@@ -104,6 +104,62 @@ export const notifyAppointmentConfirmed = async (req, res) => {
   }
 };
 
+// POST /api/notifications/consultation-started — doctor notifies patient
+export const notifyConsultationStarted = async (req, res) => {
+  try {
+    const { patientId, doctorName, appointmentId, appointmentTime, message } = req.body;
+
+    if (!patientId || !appointmentId) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: patientId, appointmentId.' });
+    }
+
+    const body =
+      message ||
+      `Dr. ${doctorName || 'Your doctor'} has started the video consultation. Please join now.`;
+
+    const notification = await Notification.create({
+      userId: patientId,
+      role: 'patient',
+      title: 'Consultation Started',
+      message: body,
+      type: 'consultation',
+      relatedId: appointmentId,
+    });
+
+    res.status(200).json({ success: true, message: 'Consultation start notification sent.', data: { notification } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/notifications/patient-joined-session — patient notifies doctor
+export const notifyPatientJoinedSession = async (req, res) => {
+  try {
+    const { doctorId, patientName, appointmentId, appointmentTime, message } = req.body;
+
+    if (!doctorId || !appointmentId) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: doctorId, appointmentId.' });
+    }
+
+    const body =
+      message ||
+      `${patientName || 'Patient'} has joined the video consultation. Please join now.`;
+
+    const notification = await Notification.create({
+      userId: doctorId,
+      role: 'doctor',
+      title: 'Patient Joined Session',
+      message: body,
+      type: 'consultation',
+      relatedId: appointmentId,
+    });
+
+    res.status(200).json({ success: true, message: 'Patient joined notification sent.', data: { notification } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // GET /api/notifications — user's notifications
 export const getMyNotifications = async (req, res) => {
   try {
@@ -131,6 +187,38 @@ export const markAllAsRead = async (req, res) => {
   try {
     await Notification.updateMany({ userId: req.user.userId, isRead: false }, { isRead: true });
     res.status(200).json({ success: true, message: 'All notifications marked as read.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// DELETE /api/notifications/:id — delete single notification
+export const deleteNotification = async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId,
+    });
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
+    }
+
+    res.status(200).json({ success: true, message: 'Notification deleted.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// DELETE /api/notifications/delete-all — delete all notifications for current user
+export const deleteAllNotifications = async (req, res) => {
+  try {
+    const result = await Notification.deleteMany({ userId: req.user.userId });
+    res.status(200).json({
+      success: true,
+      message: 'All notifications deleted.',
+      data: { deletedCount: result.deletedCount || 0 },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

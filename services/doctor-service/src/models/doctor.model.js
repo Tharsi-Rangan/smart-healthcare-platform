@@ -38,6 +38,12 @@ const doctorSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    consultationFee: {
+      type: Number,
+      default: 500,
+      min: 0,
+      description: "Consultation fee in LKR",
+    },
     approvalStatus: {
       type: String,
       enum: ["pending", "approved", "rejected"],
