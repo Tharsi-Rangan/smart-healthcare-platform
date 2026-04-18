@@ -12,7 +12,21 @@ export const getAdminDashboardSummary = async () => {
     approvalStatus: "pending",
   });
 
-  const totalAvailabilitySlots = await Availability.countDocuments({
+  const rejectedDoctors = await Doctor.countDocuments({
+    approvalStatus: "rejected",
+  });
+
+  const activeDoctors = await Doctor.countDocuments({
+    isActive: true,
+  });
+
+  const inactiveDoctors = await Doctor.countDocuments({
+    isActive: false,
+  });
+
+  const totalAvailabilitySlots = await Availability.countDocuments();
+
+  const activeAvailabilitySlots = await Availability.countDocuments({
     isActive: true,
   });
 
@@ -20,6 +34,10 @@ export const getAdminDashboardSummary = async () => {
     totalDoctors,
     approvedDoctors,
     pendingDoctors,
+    rejectedDoctors,
+    activeDoctors,
+    inactiveDoctors,
     totalAvailabilitySlots,
+    activeAvailabilitySlots,
   };
 };

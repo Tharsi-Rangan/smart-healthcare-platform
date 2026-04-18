@@ -42,7 +42,6 @@ const doctorSchema = new mongoose.Schema(
       type: Number,
       default: 500,
       min: 0,
-      description: "Consultation fee in LKR",
     },
     approvalStatus: {
       type: String,

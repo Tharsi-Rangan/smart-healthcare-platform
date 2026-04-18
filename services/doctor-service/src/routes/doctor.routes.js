@@ -51,9 +51,8 @@ import {
 
 const router = express.Router();
 
-/* Public endpoint for getting approved doctors (no authentication required) */
+/* Public doctor listing */
 router.get("/public/list", getPublicDoctorsController);
-
 router.get("/public/:id", getDoctorByIdController);
 
 /* Doctor profile */
@@ -159,15 +158,10 @@ router.get(
 
 /* Admin doctor management */
 router.get("/pending", protect, authorize("admin"), getPendingDoctorsController);
-
 router.get("/", protect, authorize("admin"), getAllDoctorsController);
-
 router.get("/:id", protect, authorize("admin"), getDoctorByIdController);
-
 router.patch("/:id/approve", protect, authorize("admin"), approveDoctorController);
-
 router.patch("/:id/reject", protect, authorize("admin"), rejectDoctorController);
-
 router.patch(
   "/:id/toggle-active",
   protect,

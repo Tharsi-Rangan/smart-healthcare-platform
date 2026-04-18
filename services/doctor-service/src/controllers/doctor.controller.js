@@ -58,7 +58,7 @@ export const updateConsultationFeeController = asyncHandler(async (req, res) => 
   }
 
   const { Doctor } = await import("../models/doctor.model.js");
-  
+
   const doctor = await Doctor.findOneAndUpdate(
     { authUserId: req.user.userId },
     { consultationFee },

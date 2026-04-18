@@ -22,17 +22,19 @@ export const createOrUpdateDoctorProfile = async (authUserId, payload, file) => 
 
   let doctor = await Doctor.findOne({ authUserId });
 
-  const profilePhotoUrl = file ? `/uploads/doctors/${file.filename}` : undefined;
+  const profilePhotoUrl = file
+    ? `/uploads/doctors/${file.filename}`
+    : doctor?.profilePhotoUrl || "";
 
   if (!doctor) {
     doctor = await Doctor.create({
       authUserId,
-      doctorName,
-      specialization,
-      licenseNumber,
-      hospital,
-      experience,
-      profilePhotoUrl: profilePhotoUrl || "",
+      doctorName: doctorName?.trim(),
+      specialization: specialization?.trim(),
+      licenseNumber: licenseNumber?.trim(),
+      hospital: hospital?.trim() || "",
+      experience: Number(experience) || 0,
+      profilePhotoUrl,
     });
 
     return {
@@ -41,15 +43,16 @@ export const createOrUpdateDoctorProfile = async (authUserId, payload, file) => 
     };
   }
 
-  doctor.doctorName = doctorName ?? doctor.doctorName;
-  doctor.specialization = specialization ?? doctor.specialization;
-  doctor.licenseNumber = licenseNumber ?? doctor.licenseNumber;
-  doctor.hospital = hospital ?? doctor.hospital;
-  doctor.experience = experience ?? doctor.experience;
+  doctor.doctorName = doctorName?.trim() ?? doctor.doctorName;
+  doctor.specialization = specialization?.trim() ?? doctor.specialization;
+  doctor.licenseNumber = licenseNumber?.trim() ?? doctor.licenseNumber;
+  doctor.hospital = hospital?.trim() ?? doctor.hospital;
+  doctor.experience =
+    experience !== undefined && experience !== null && experience !== ""
+      ? Number(experience)
+      : doctor.experience;
 
-  if (profilePhotoUrl) {
-    doctor.profilePhotoUrl = profilePhotoUrl;
-  }
+  doctor.profilePhotoUrl = profilePhotoUrl;
 
   await doctor.save();
 
