@@ -1,346 +1,323 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getDoctorAppointments,
-  confirmAppointment,
-  cancelAppointment,
-  completeAppointment,
-} from "../../services/appointmentApi";
+  updateDoctorAppointmentStatus,
+} from "../../api/doctorApi";
 
-const FILTERS = ["All", "Pending", "Confirmed", "Completed", "Cancelled"];
-
-const statusConfig = {
-  pending: "bg-amber-100 text-amber-700",
-  confirmed: "bg-emerald-100 text-emerald-700",
-  completed: "bg-blue-100 text-blue-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
-function DoctorAppointmentsPage() {
+function AppointmentsPage() {
   const [appointments, setAppointments] = useState([]);
+  const [activeTab, setActiveTab] = useState("All");
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setFilter] = useState("All");
-  const [actionId, setActionId] = useState(null);
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
-  const load = useCallback(async () => {
+  const tabs = ["All", "Pending", "Confirmed", "Completed", "Cancelled"];
+
+  const loadAppointments = useCallback(async () => {
     try {
-      setLoading(true);
-      const res = await getDoctorAppointments();
-      setAppointments(res?.data?.appointments || []);
-    } catch {
-      setAppointments([]);
+      setError("");
+      const response = await getDoctorAppointments();
+      setAppointments(response?.data?.appointments || []);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to load appointments");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadAppointments();
+  }, [loadAppointments]);
 
-  const msg = (type, text) => {
-    if (type === "ok") {
-      setSuccess(text);
+  const appointmentStats = useMemo(() => {
+    const stats = {
+      total: appointments.length,
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    appointments.forEach((item) => {
+      const status = item.status?.toLowerCase();
+      if (status === "pending") stats.pending += 1;
+      if (status === "confirmed") stats.confirmed += 1;
+      if (status === "completed") stats.completed += 1;
+      if (status === "cancelled") stats.cancelled += 1;
+    });
+
+    return stats;
+  }, [appointments]);
+
+  const filteredAppointments = useMemo(() => {
+    if (activeTab === "All") return appointments;
+    return appointments.filter(
+      (item) => item.status?.toLowerCase() === activeTab.toLowerCase()
+    );
+  }, [appointments, activeTab]);
+
+  const handleStatusUpdate = async (appointmentId, status) => {
+    try {
+      setMessage("");
       setError("");
-    } else {
-      setError(text);
-      setSuccess("");
-    }
-    setTimeout(() => {
-      setSuccess("");
-      setError("");
-    }, 4000);
-  };
-
-  const handleConfirm = async (id) => {
-    setActionId(id + "confirm");
-    try {
-      await confirmAppointment(id);
-      msg("ok", "Appointment confirmed.");
-      load();
+      const response = await updateDoctorAppointmentStatus(appointmentId, status);
+      setMessage(response.message || "Appointment status updated");
+      await loadAppointments();
     } catch (err) {
-      msg("err", err.response?.data?.message || "Failed to confirm.");
-    } finally {
-      setActionId(null);
+      setError(err?.response?.data?.message || "Failed to update appointment");
     }
   };
 
-  const handleDecline = async (id) => {
-    if (!window.confirm("Decline this appointment?")) return;
-    setActionId(id + "cancel");
-    try {
-      await cancelAppointment(id, "Declined by doctor");
-      msg("ok", "Appointment declined.");
-      load();
-    } catch (err) {
-      msg("err", err.response?.data?.message || "Failed to decline.");
-    } finally {
-      setActionId(null);
+  const getStatusBadgeClasses = (status) => {
+    switch ((status || "").toLowerCase()) {
+      case "pending":
+        return "border border-amber-200 bg-amber-50 text-amber-700";
+      case "confirmed":
+        return "border border-cyan-200 bg-cyan-50 text-cyan-700";
+      case "completed":
+        return "border border-emerald-200 bg-emerald-50 text-emerald-700";
+      case "cancelled":
+        return "border border-rose-200 bg-rose-50 text-rose-700";
+      default:
+        return "border border-slate-200 bg-slate-100 text-slate-700";
     }
   };
 
-  const handleComplete = async (id) => {
-    setActionId(id + "complete");
-    try {
-      await completeAppointment(id, "Consultation completed.");
-      msg("ok", "Marked as completed.");
-      load();
-    } catch (err) {
-      msg("err", err.response?.data?.message || "Failed.");
-    } finally {
-      setActionId(null);
-    }
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
-  const filtered = appointments.filter((a) =>
-    activeFilter === "All" ? true : a.status === activeFilter.toLowerCase()
-  );
+  const renderActions = (appointment) => {
+    const status = appointment.status?.toLowerCase();
 
-  const stats = {
-    total: appointments.length,
-    pending: appointments.filter((a) => a.status === "pending").length,
-    confirmed: appointments.filter((a) => a.status === "confirmed").length,
-    completed: appointments.filter((a) => a.status === "completed").length,
+    if (status === "pending") {
+      return (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "confirmed")}
+            className="rounded-xl bg-cyan-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-cyan-800"
+          >
+            Accept
+          </button>
+
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "cancelled")}
+            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-100"
+          >
+            Reject
+          </button>
+        </div>
+      );
+    }
+
+    if (status === "confirmed") {
+      return (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "completed")}
+            className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Complete
+          </button>
+
+          <button
+            onClick={() => handleStatusUpdate(appointment._id, "cancelled")}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <span
+        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusBadgeClasses(
+          appointment.status
+        )}`}
+      >
+        {appointment.status || "unknown"}
+      </span>
+    );
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Appointment Requests</h1>
-        <p className="text-sm text-slate-500">
-          Review and manage patient appointment requests
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: "Total", value: stats.total, color: "text-cyan-600", bg: "bg-cyan-50" },
-          {
-            label: "Pending",
-            value: stats.pending,
-            color: "text-amber-600",
-            bg: "bg-amber-50",
-          },
-          {
-            label: "Confirmed",
-            value: stats.confirmed,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
-          },
-          {
-            label: "Completed",
-            value: stats.completed,
-            color: "text-blue-600",
-            bg: "bg-sky-50",
-          },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className={`rounded-2xl border border-slate-200 ${s.bg} p-4`}
-          >
-            <p className={`text-2xl font-bold ${s.color}`}>
-              {loading ? "..." : s.value}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
+              Appointment Management
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              Appointments
+            </h1>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              Review consultation requests and keep appointment updates organized.
+            </p>
           </div>
-        ))}
-      </div>
 
-      {success && (
-        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
-          {success}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Total Appointments
+            </p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">
+              {appointmentStats.total}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {message && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {message}
         </div>
       )}
+
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
           {error}
         </div>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-              activeFilter === f
-                ? "bg-cyan-600 text-white"
-                : "border border-cyan-200 bg-white text-cyan-600 hover:bg-cyan-50"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <section className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">All</p>
+          <p className="mt-3 text-3xl font-bold text-slate-900">{appointmentStats.total}</p>
+        </div>
 
-      {/* Appointment Cards */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="animate-pulse h-36 rounded-2xl border bg-white"
-            />
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Pending</p>
+          <p className="mt-3 text-3xl font-bold text-amber-600">{appointmentStats.pending}</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Confirmed</p>
+          <p className="mt-3 text-3xl font-bold text-cyan-700">{appointmentStats.confirmed}</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Completed</p>
+          <p className="mt-3 text-3xl font-bold text-emerald-600">{appointmentStats.completed}</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Cancelled</p>
+          <p className="mt-3 text-3xl font-bold text-rose-600">{appointmentStats.cancelled}</p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === tab
+                  ? "bg-cyan-700 text-white"
+                  : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                }`}
+            >
+              {tab}
+            </button>
           ))}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <p className="font-medium text-slate-700">
-            No {activeFilter.toLowerCase()} appointments
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((appt) => (
+      </section>
+
+      <section className="space-y-3">
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500 shadow-sm">
+            Loading appointments...
+          </div>
+        ) : filteredAppointments.length > 0 ? (
+          filteredAppointments.map((item) => (
             <div
-              key={appt._id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              key={item._id}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-200 hover:shadow-sm"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-sm font-bold text-cyan-700">
-                    {appt.patientName?.charAt(0) || "P"}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        {item.patientName ||
+                          `Patient #${item.patientId?.substring(0, 8) || "Unknown"}`}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {item.patientEmail ||
+                          `ID: ${item.patientId?.substring(0, 8) || "Not provided"}`}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusBadgeClasses(
+                        item.status
+                      )}`}
+                    >
+                      {item.status || "unknown"}
+                    </span>
                   </div>
-                  <div>
-                    <p className="font-semibold text-slate-800">
-                      {appt.patientName || `Patient #${appt.patientId?.substring(0, 8) || "N/A"}`}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {appt.patientEmail || appt.patientId || "N/A"}
-                    </p>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                      <p className="text-xs font-medium text-slate-400">Date</p>
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        {formatDate(item.appointmentDate)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                      <p className="text-xs font-medium text-slate-400">Time</p>
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        {item.appointmentTime || "-"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                      <p className="text-xs font-medium text-slate-400">Type</p>
+                      <p className="mt-1 text-sm font-medium capitalize text-slate-800">
+                        {item.consultationType || "-"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                      <p className="text-xs font-medium text-slate-400">Payment</p>
+                      <p className="mt-1 text-sm font-medium capitalize text-slate-800">
+                        {item.paymentStatus || "pending"}
+                      </p>
+                    </div>
                   </div>
+
+                  {item.reason && (
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-xs font-medium text-slate-400">Reason</p>
+                      <p className="mt-1 text-sm text-slate-700">{item.reason}</p>
+                    </div>
+                  )}
                 </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
-                    statusConfig[appt.status] || "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {appt.status || "unknown"}
-                </span>
-              </div>
 
-              <div className="flex flex-wrap gap-4 text-xs text-slate-500 mb-3">
-                <span>
-                  📅{" "}
-                  {new Date(appt.appointmentDate).toLocaleDateString("en-LK", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-                <span>🕐 {appt.appointmentTime || appt.timeSlot || "-"}</span>
-                <span className="capitalize">
-                  📱 {appt.consultationType || appt.type || "-"}
-                </span>
-              </div>
-
-              <div className="rounded-xl bg-cyan-50 px-3 py-2 mb-3 border border-cyan-200">
-                <p className="text-xs text-slate-400">Reason</p>
-                <p className="text-sm text-slate-700">
-                  {appt.reason || "No reason provided"}
-                </p>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-2 flex-wrap">
-                {appt.status === "pending" && (
-                  <>
-                    <button
-                      onClick={() => handleConfirm(appt._id)}
-                      disabled={!!actionId}
-                      className="flex items-center gap-1 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 disabled:opacity-60"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      {actionId === appt._id + "confirm"
-                        ? "Confirming..."
-                        : "Accept"}
-                    </button>
-                    <button
-                      onClick={() => handleDecline(appt._id)}
-                      disabled={!!actionId}
-                      className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:opacity-60"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                      {actionId === appt._id + "cancel" ? "Declining..." : "Decline"}
-                    </button>
-                  </>
-                )}
-
-                {appt.status === "confirmed" && (
-                  <>
-                    {(appt.consultationType || appt.type) === "video" && (
-                      <button
-                        onClick={() => navigate("/doctor/video")}
-                        className="flex items-center gap-1 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
-                      >
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                          />
-                        </svg>
-                        Start Consultation
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleComplete(appt._id)}
-                      disabled={!!actionId}
-                      className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-600 hover:bg-cyan-100 disabled:opacity-60"
-                    >
-                      {actionId === appt._id + "complete" ? "..." : "Mark Complete"}
-                    </button>
-                    <button
-                      onClick={() => handleDecline(appt._id)}
-                      disabled={!!actionId}
-                      className="rounded-xl border border-cyan-200 px-4 py-2 text-sm font-medium text-cyan-600 hover:bg-cyan-50 disabled:opacity-60"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
+                <div className="lg:min-w-[170px]">{renderActions(item)}</div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
+            <p className="text-base font-semibold text-slate-800">No appointments found</p>
+            <p className="mt-1 text-sm text-slate-500">
+              There are no appointments in the selected filter.
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
-export default DoctorAppointmentsPage;
+export default AppointmentsPage;

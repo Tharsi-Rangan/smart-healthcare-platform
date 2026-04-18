@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { getDoctorAvailability, getDoctorProfile } from "../../api/doctorApi";
 
 function DashboardPage() {
@@ -10,36 +9,42 @@ function DashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadDashboard = async () => {
       try {
         const [profileRes, availabilityRes] = await Promise.all([
           getDoctorProfile(),
           getDoctorAvailability(),
         ]);
 
-        setProfile(profileRes.data?.doctor || null);
-setAvailability(availabilityRes.data?.availability || []);
+        setProfile(profileRes?.data?.doctor || null);
+        setAvailability(availabilityRes?.data?.availability || []);
       } catch (err) {
         setError(
-          err.response?.data?.message || "Failed to load doctor dashboard"
+          err?.response?.data?.message || "Failed to load doctor dashboard"
         );
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    loadDashboard();
   }, []);
 
   const doctorName = profile?.doctorName || "Doctor";
-  const approvalStatus = profile?.approvalStatus || "pending";
-  const specialization = profile?.specialization || "Not added";
-  const experience = profile?.experience || 0;
-  const hospital = profile?.hospital || "Not added";
+  const specialization = profile?.specialization || "Specialization not added";
+  const hospital = profile?.hospital || "Hospital not added";
   const licenseNumber = profile?.licenseNumber || "Not added";
-  const profilePhotoUrl = profile?.profilePhotoUrl
-    ? `http://localhost:5006${profile?.profilePhotoUrl}`
-    : "";
+  const experience = profile?.experience || 0;
+  const consultationFee = profile?.consultationFee || 500;
+  const approvalStatus = profile?.approvalStatus || "pending";
+  const profilePhotoUrl = profile?.profilePhotoUrl || "";
+
+  const doctorImage =
+    profilePhotoUrl && profilePhotoUrl.startsWith("http")
+      ? profilePhotoUrl
+      : profilePhotoUrl
+        ? `http://localhost:5006${profilePhotoUrl}`
+        : "";
 
   const activeAvailabilityCount = useMemo(() => {
     return availability.filter((slot) => slot.isActive !== false).length;
@@ -53,7 +58,11 @@ setAvailability(availabilityRes.data?.availability || []);
     if (profile?.specialization) completed += 1;
     if (profile?.licenseNumber) completed += 1;
     if (profile?.hospital) completed += 1;
-    if (profile?.experience !== undefined && Number(profile?.experience) >= 0) {
+    if (
+      profile?.experience !== undefined &&
+      profile?.experience !== null &&
+      profile?.experience !== ""
+    ) {
       completed += 1;
     }
     if (profile?.profilePhotoUrl) completed += 1;
@@ -67,12 +76,16 @@ setAvailability(availabilityRes.data?.availability || []);
     if (!profile?.doctorName) items.push("Add doctor name");
     if (!profile?.specialization) items.push("Add specialization");
     if (!profile?.licenseNumber) items.push("Add license number");
-    if (!profile?.hospital) items.push("Add hospital or clinic");
-    if (profile?.experience === undefined || profile?.experience === null || profile?.experience === "") {
-      items.push("Add years of experience");
+    if (!profile?.hospital) items.push("Add hospital");
+    if (
+      profile?.experience === undefined ||
+      profile?.experience === null ||
+      profile?.experience === ""
+    ) {
+      items.push("Add experience");
     }
-    if (!profile?.profilePhotoUrl) items.push("Upload profile photo");
-    if (availability.length === 0) items.push("Add availability schedule");
+    if (!profile?.profilePhotoUrl) items.push("Upload profile image");
+    if (availability.length === 0) items.push("Add availability slots");
 
     return items;
   }, [profile, availability]);
@@ -80,453 +93,379 @@ setAvailability(availabilityRes.data?.availability || []);
   const getStatusClasses = (status) => {
     switch ((status || "").toLowerCase()) {
       case "approved":
-        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+        return "border border-emerald-200 bg-emerald-50 text-emerald-700";
       case "rejected":
-        return "bg-rose-50 text-rose-700 border border-rose-200";
+        return "border border-rose-200 bg-rose-50 text-rose-700";
       default:
-        return "bg-amber-50 text-amber-700 border border-amber-200";
+        return "border border-amber-200 bg-amber-50 text-amber-700";
     }
   };
 
-  const welcomeText =
+  const welcomeMessage =
     approvalStatus === "approved"
       ? "Your account is approved and ready for appointment handling."
-      : approvalStatus === "rejected"
-      ? "Your profile needs updates before approval."
-      : "Your profile is under review by admin.";
+      : approvalStatus === "pending"
+        ? "Your profile is currently under admin review."
+        : "Your profile needs updates before approval.";
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-4xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-base text-slate-500">Loading doctor dashboard...</p>
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <p className="text-base text-slate-500">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-  };
-
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-8"
-    >
-      {/* Hero */}
-      <motion.section
-        variants={itemVariants}
-        className="relative overflow-hidden rounded-[34px] border border-cyan-200/30 bg-gradient-to-br from-cyan-600 via-sky-700 to-cyan-700 text-white shadow-xl shadow-cyan-500/20"
-      >
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-cyan-600/20 blur-3xl" />
-        <div className="absolute bottom-0 left-20 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
-
-        <div className="relative grid gap-8 p-8 lg:grid-cols-[1.2fr,0.8fr] lg:p-10">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-100">
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
               Doctor Workspace
             </p>
 
-            <h1 className="mt-3 text-4xl font-bold md:text-5xl">
-              Welcome, {doctorName}
-            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+                Welcome, {doctorName}
+              </h1>
 
-            <p className="mt-4 max-w-2xl text-base text-cyan-50 md:text-lg">
-              Manage your doctor profile, working availability, appointment
-              requests, patient reports, and digital prescriptions from one
-              dashboard.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
               <span
-                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${getStatusClasses(
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusClasses(
                   approvalStatus
                 )}`}
               >
                 {approvalStatus}
               </span>
+            </div>
 
-              <span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white">
+            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-500">
+              Manage your profile, working availability, appointment requests,
+              patient reports, and prescriptions from one clean workspace.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
                 {specialization}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+                {hospital}
               </span>
             </div>
 
-            <p className="mt-5 text-sm text-cyan-100">{welcomeText}</p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                to="/doctor/profile"
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-              >
-                Update Profile
-              </Link>
-
-              <Link
-                to="/doctor/availability"
-                className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
-              >
-                Manage Availability
-              </Link>
-            </div>
+            <p className="mt-5 text-sm text-slate-500">{welcomeMessage}</p>
           </div>
 
-          <div className="flex flex-col justify-between rounded-[28px] border border-white/10 bg-white/10 p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              {profilePhotoUrl ? (
-                <img
-                  src={profilePhotoUrl}
-                  alt="Doctor profile"
-                  className="h-20 w-20 rounded-full border-4 border-white/20 object-cover"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white/20 bg-white/10 text-2xl font-bold text-white">
-                  DR
-                </div>
-              )}
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/doctor/profile"
+              className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-800"
+            >
+              Update Profile
+            </Link>
 
-              <div>
-                <p className="text-sm text-cyan-100">Doctor</p>
-                <h2 className="text-2xl font-bold text-white">
-                  {doctorName}
-                </h2>
-                <p className="text-sm text-cyan-100">
-                  {specialization}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-cyan-100">Profile Completion</p>
-                <p className="text-sm font-semibold text-white">
-                  {profileCompletion}%
-                </p>
-              </div>
-
-              <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/20">
-                <div
-                  className="h-full rounded-full bg-white"
-                  style={{ width: `${profileCompletion}%` }}
-                />
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs uppercase tracking-wide text-cyan-100">
-                    Experience
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-white">
-                    {experience}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-white/10 p-4">
-                  <p className="text-xs uppercase tracking-wide text-cyan-100">
-                    Active Slots
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-white">
-                    {activeAvailabilityCount}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Link
+              to="/doctor/availability"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Manage Availability
+            </Link>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-4 text-base text-red-600">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-600">
           {error}
         </div>
       )}
 
-      {/* Stats */}
-      <motion.section variants={itemVariants} className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
-            Approval Status
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Profile Completion
           </p>
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <h3 className="text-2xl font-bold capitalize text-slate-900">
-              {approvalStatus}
-            </h3>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusClasses(
-                approvalStatus
-              )}`}
-            >
-              {approvalStatus}
-            </span>
-          </div>
-          <p className="mt-3 text-sm text-slate-500">
-            Current verification status from admin review.
-          </p>
-        </div>
-
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
-            Specialization
-          </p>
-          <h3 className="mt-4 text-2xl font-bold text-slate-900">
-            {specialization}
+          <h3 className="mt-3 text-3xl font-bold text-slate-900">
+            {profileCompletion}%
           </h3>
-          <p className="mt-3 text-sm text-slate-500">
-            Your listed professional area.
+          <p className="mt-2 text-sm text-slate-500">
+            Professional details completed.
           </p>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Experience
           </p>
-          <h3 className="mt-4 text-2xl font-bold text-slate-900">
-            {experience} {experience === 1 ? "Year" : "Years"}
+          <h3 className="mt-3 text-3xl font-bold text-slate-900">
+            {experience}
           </h3>
-          <p className="mt-3 text-sm text-slate-500">
-            Total years saved in your profile.
-          </p>
+          <p className="mt-2 text-sm text-slate-500">Years of practice.</p>
         </div>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
-            Availability Slots
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Active Slots
           </p>
-          <h3 className="mt-4 text-2xl font-bold text-slate-900">
+          <h3 className="mt-3 text-3xl font-bold text-slate-900">
             {activeAvailabilityCount}
           </h3>
-          <p className="mt-3 text-sm text-slate-500">
-            Active consultation schedule slots.
-          </p>
-        </div>
-      </motion.section>
-
-      {/* Quick actions */}
-      <motion.section
-        variants={itemVariants}
-        className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl"
-      >
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-bold text-slate-900">Quick Actions</h2>
-          <p className="text-slate-500">
-            Open the main doctor-side pages in one click.
+          <p className="mt-2 text-sm text-slate-500">
+            Slots available to patients.
           </p>
         </div>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-          <Link
-            to="/doctor/profile"
-            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
-          >
-            <p className="text-lg font-semibold text-slate-900">My Profile</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Manage doctor name, photo, hospital, and license details.
-            </p>
-          </Link>
-
-          <Link
-            to="/doctor/availability"
-            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
-          >
-            <p className="text-lg font-semibold text-slate-900">Availability</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Set weekly schedule and active consultation slots.
-            </p>
-          </Link>
-
-          <Link
-            to="/doctor/appointments"
-            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
-          >
-            <p className="text-lg font-semibold text-slate-900">Appointments</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Review and manage appointment requests.
-            </p>
-          </Link>
-
-          <Link
-            to="/doctor/reports"
-            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
-          >
-            <p className="text-lg font-semibold text-slate-900">Patient Reports</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Review patient records and uploaded report details.
-            </p>
-          </Link>
-
-          <Link
-            to="/doctor/prescriptions"
-            className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
-          >
-            <p className="text-lg font-semibold text-slate-900">Prescriptions</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Create and manage digital prescriptions.
-            </p>
-          </Link>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Consultation Fee
+          </p>
+          <h3 className="mt-3 text-3xl font-bold text-cyan-700">
+            {consultationFee}
+          </h3>
+          <p className="mt-2 text-sm text-slate-500">Fee per booking in LKR.</p>
         </div>
-      </motion.section>
+      </section>
 
-      <motion.section variants={itemVariants} className="grid gap-8 xl:grid-cols-[1.1fr,0.9fr]">
-        {/* Profile summary */}
-        <div className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">
-                Professional Summary
-              </h2>
-              <p className="mt-2 text-slate-500">
-                Main doctor profile details shown across the platform.
-              </p>
+      <section className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-cyan-700 text-2xl font-bold text-white shadow-sm">
+              {doctorImage ? (
+                <img
+                  src={doctorImage}
+                  alt="Doctor profile"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                "DR"
+              )}
             </div>
 
-            <Link
-              to="/doctor/profile"
-              className="rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
-            >
-              Edit Profile
-            </Link>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Doctor Profile
+              </p>
+              <h2 className="mt-1 truncate text-2xl font-bold text-slate-900">
+                {doctorName}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">{specialization}</p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusClasses(
+                    approvalStatus
+                  )}`}
+                >
+                  {approvalStatus}
+                </span>
+
+                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                  {hospital}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl bg-cyan-50 border border-cyan-200 p-5">
-              <p className="text-sm text-cyan-600">Doctor Name</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {doctorName}
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-700">
+                Profile Completion
               </p>
+              <span className="text-sm font-semibold text-slate-900">
+                {profileCompletion}%
+              </span>
             </div>
 
-            <div className="rounded-2xl bg-sky-50 border border-sky-200 p-5">
-              <p className="text-sm text-sky-600">License Number</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-cyan-700 transition-all"
+                style={{ width: `${profileCompletion}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                License Number
+              </p>
+              <p className="mt-2 text-base font-semibold text-slate-900">
                 {licenseNumber}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 p-5">
-              <p className="text-sm text-slate-500">Hospital / Clinic</p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Hospital / Clinic
+              </p>
+              <p className="mt-2 break-words text-base font-semibold text-slate-900">
+                {hospital}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Account Note
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {approvalStatus === "approved"
+                ? "Your profile is verified and ready to handle patient appointments."
+                : approvalStatus === "pending"
+                  ? "Your profile is awaiting admin approval."
+                  : "Your profile needs corrections before approval."}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Missing Items
+            </p>
+            {missingItems.length === 0 ? (
+              <p className="mt-3 text-sm font-medium text-emerald-700">
+                Your profile is complete and ready.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {missingItems.map((item) => (
+                  <li key={item} className="text-sm text-slate-600">
+                    • {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Workspace Status
+            </p>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-400">Specialization</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {specialization}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-400">Consultation Fee</p>
+                <p className="mt-1 text-sm font-semibold text-cyan-700">
+                  LKR {consultationFee}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Move between key doctor tasks without leaving the dashboard.
+          </p>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <Link
+              to="/doctor/appointments"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-white hover:shadow-sm"
+            >
+              <p className="text-sm font-semibold text-slate-900">
+                Manage Appointments
+              </p>
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                Review and update appointment requests.
+              </p>
+            </Link>
+
+            <Link
+              to="/doctor/profile"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-white hover:shadow-sm"
+            >
+              <p className="text-sm font-semibold text-slate-900">
+                Update Profile
+              </p>
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                Maintain professional and hospital details.
+              </p>
+            </Link>
+
+            <Link
+              to="/doctor/availability"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-white hover:shadow-sm"
+            >
+              <p className="text-sm font-semibold text-slate-900">
+                Edit Availability
+              </p>
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                Control visible patient booking slots.
+              </p>
+            </Link>
+
+            <Link
+              to="/doctor/prescriptions"
+              className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-cyan-200 hover:bg-white hover:shadow-sm"
+            >
+              <p className="text-sm font-semibold text-slate-900">
+                Issue Prescriptions
+              </p>
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                Create and manage digital prescriptions.
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900">Profile Summary</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Important information from your current doctor profile.
+          </p>
+
+          <div className="mt-5 space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Name
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {doctorName}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Specialization
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {specialization}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Hospital
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900 break-words">
                 {hospital}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 p-5">
-              <p className="text-sm text-slate-500">Approval State</p>
-              <p className="mt-2 text-lg font-semibold capitalize text-slate-900">
-                {approvalStatus}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                License Number
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {licenseNumber}
               </p>
             </div>
           </div>
         </div>
-
-        {/* Checklist */}
-        <div className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl">
-          <h2 className="text-2xl font-bold text-slate-900">Setup Checklist</h2>
-          <p className="mt-2 text-slate-500">
-            Complete these items to make your doctor account presentation-ready.
-          </p>
-
-          <div className="mt-6 space-y-4">
-            {missingItems.length > 0 ? (
-              missingItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4"
-                >
-                  <div className="mt-1 h-2.5 w-2.5 rounded-full bg-amber-500" />
-                  <p className="text-slate-800">{item}</p>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5 text-emerald-700">
-                All major doctor profile and availability details are completed.
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Availability preview */}
-      <motion.section
-        variants={itemVariants}
-        className="rounded-[34px] border border-slate-200/50 bg-white/60 p-8 shadow-sm backdrop-blur-xl"
-      >
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">
-              Recent Availability
-            </h2>
-            <p className="mt-2 text-slate-500">
-              Preview of your current weekly consultation schedule.
-            </p>
-          </div>
-
-          <Link
-            to="/doctor/availability"
-            className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-200"
-          >
-            Manage Schedule
-          </Link>
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {availability.length > 0 ? (
-            availability.slice(0, 6).map((slot) => (
-              <div
-                key={slot._id}
-                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-lg font-semibold text-slate-900">
-                    {slot.day}
-                  </p>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      slot.isActive === false
-                        ? "bg-slate-200 text-slate-700"
-                        : "bg-emerald-100 text-emerald-700"
-                    }`}
-                  >
-                    {slot.isActive === false ? "Inactive" : "Active"}
-                  </span>
-                </div>
-
-                <p className="mt-3 text-slate-600">
-                  {slot.startTime} - {slot.endTime}
-                </p>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  Slot duration: {slot.slotDuration || 30} mins
-                </p>
-              </div>
-            ))
-          ) : (
-            <div className="md:col-span-2 xl:col-span-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-              <p className="text-lg font-medium text-slate-700">
-                No availability added yet
-              </p>
-              <p className="mt-2 text-slate-500">
-                Add your weekly consultation schedule to start managing patient
-                appointments.
-              </p>
-              <Link
-                to="/doctor/availability"
-                className="mt-5 inline-flex rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
-              >
-                Add Availability
-              </Link>
-            </div>
-          )}
-        </div>
-      </motion.section>
-    </motion.div>
+      </section>
+    </div>
   );
 }
 

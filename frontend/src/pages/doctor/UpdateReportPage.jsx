@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import {
   createPatientReport,
-  getPatientReportById,
   getPatientReports,
 } from "../../api/doctorApi";
 import apiClient from "../../services/apiClient";
@@ -38,19 +37,13 @@ function UpdateReportPage() {
     medicalHistory: [{ condition: "", description: "", diagnosedYear: "" }],
   });
 
-  // Load patient and report data
   useEffect(() => {
     const loadPatientData = async () => {
       try {
-        // Get patient from appointments
-        const appointmentsResponse = await apiClient.get(
-          "/api/appointments/doctor/my"
-        );
+        const appointmentsResponse = await apiClient.get("/api/appointments/doctor/my");
         const appointments = appointmentsResponse.data?.data?.appointments || [];
 
-        const patient = appointments.find(
-          (apt) => apt.patientId === patientId
-        );
+        const patient = appointments.find((apt) => apt.patientId === patientId);
 
         if (patient) {
           const patientData = {
@@ -60,13 +53,11 @@ function UpdateReportPage() {
           };
           setPatientInfo(patientData);
 
-          // Load all reports
           try {
             const reportsResponse = await getPatientReports();
             const allReports = reportsResponse.data?.reports || [];
             setReports(allReports);
 
-            // Find existing report for this patient
             const existingReport = allReports.find(
               (report) =>
                 report.patientName?.toLowerCase() ===
@@ -93,34 +84,24 @@ function UpdateReportPage() {
                 patientAge: "",
                 bloodType: "",
                 allergies: "",
-                reports: [
-                  { title: "", type: "", fileUrl: "", reportDate: "", size: "" },
-                ],
-                medicalHistory: [
-                  { condition: "", description: "", diagnosedYear: "" },
-                ],
+                reports: [{ title: "", type: "", fileUrl: "", reportDate: "", size: "" }],
+                medicalHistory: [{ condition: "", description: "", diagnosedYear: "" }],
               });
             }
-          } catch (err) {
-            console.error("Error loading reports:", err);
+          } catch {
             setFormData({
               patientName: patientData.patientName,
               patientAge: "",
               bloodType: "",
               allergies: "",
-              reports: [
-                { title: "", type: "", fileUrl: "", reportDate: "", size: "" },
-              ],
-              medicalHistory: [
-                { condition: "", description: "", diagnosedYear: "" },
-              ],
+              reports: [{ title: "", type: "", fileUrl: "", reportDate: "", size: "" }],
+              medicalHistory: [{ condition: "", description: "", diagnosedYear: "" }],
             });
           }
         } else {
           setError("Patient not found");
         }
-      } catch (err) {
-        console.error("Error loading patient data:", err);
+      } catch {
         setError("Failed to load patient information");
       } finally {
         setLoading(false);
@@ -203,9 +184,7 @@ function UpdateReportPage() {
     setError("");
 
     try {
-      const cleanedReports = formData.reports.filter(
-        (item) => item.title.trim()
-      );
+      const cleanedReports = formData.reports.filter((item) => item.title.trim());
       const cleanedHistory = formData.medicalHistory.filter((item) =>
         item.condition.trim()
       );
@@ -222,7 +201,6 @@ function UpdateReportPage() {
       const response = await createPatientReport(payload);
       setMessage(response.message || "Patient report saved successfully");
 
-      // Reload reports
       try {
         const reportsResponse = await getPatientReports();
         const allReports = reportsResponse.data?.reports || [];
@@ -237,8 +215,8 @@ function UpdateReportPage() {
         if (updatedReport) {
           setSelectedReport(updatedReport);
         }
-      } catch (err) {
-        console.error("Error reloading reports:", err);
+      } catch {
+        // ignore reload failure
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save patient report");
@@ -249,470 +227,392 @@ function UpdateReportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-slate-300 border-t-cyan-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Loading patient information...</p>
-        </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+        <p className="text-slate-500">Loading patient information...</p>
       </div>
     );
   }
 
   if (!patientInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-slate-100 p-6">
-        <div className="max-w-6xl mx-auto">
-          <button
-            onClick={() => navigate("/doctor/reports")}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6"
-          >
-            <ArrowLeft size={20} />
-            Back to Reports
-          </button>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-            <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-            <h2 className="text-xl font-bold text-slate-900 mb-2">
-              Patient Not Found
-            </h2>
-            <p className="text-slate-600 mb-6">
-              Unable to load patient information
-            </p>
-            <button
-              onClick={() => navigate("/doctor/reports")}
-              className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
-            >
-              Return to Reports
-            </button>
-          </div>
+      <div className="space-y-6">
+        <button
+          onClick={() => navigate("/doctor/reports")}
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          <ArrowLeft size={18} />
+          Back to Reports
+        </button>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <AlertCircle size={44} className="mx-auto mb-4 text-rose-500" />
+          <h2 className="text-xl font-bold text-slate-900">Patient Not Found</h2>
+          <p className="mt-2 text-slate-500">Unable to load patient information.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate("/doctor/reports")}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 font-medium"
-          >
-            <ArrowLeft size={20} />
-            Back to Reports
-          </button>
+    <div className="space-y-6">
+      <button
+        onClick={() => navigate("/doctor/reports")}
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+      >
+        <ArrowLeft size={18} />
+        Back to Reports
+      </button>
 
-          <div className="bg-gradient-to-r from-cyan-600 to-sky-700 rounded-2xl p-6 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Patient Medical Report</h1>
-                <p className="text-cyan-100">
-                  Create and manage medical records for {patientInfo.patientName}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold">{patientInfo.patientName.split(" ")[0]}</div>
-                <div className="text-cyan-100 text-sm">
-                  📞 {patientInfo.phone}
-                </div>
-              </div>
-            </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
+              Patient Medical Record
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              {patientInfo.patientName}
+            </h1>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              Create and manage medical records for this patient.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Contact
+            </p>
+            <p className="mt-2 text-sm font-medium text-slate-900">
+              {patientInfo.phone}
+            </p>
           </div>
         </div>
+      </section>
 
-        {message && (
-          <div className="mb-6 rounded-xl bg-emerald-50 border border-emerald-200 px-6 py-4 flex items-center gap-3">
-            <CheckCircle size={20} className="text-emerald-600 flex-shrink-0" />
-            <span className="text-emerald-700">{message}</span>
+      {message && (
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <CheckCircle size={18} />
+          <span>{message}</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <User size={20} className="text-cyan-700" />
+              Patient Medical Records
+            </h2>
           </div>
-        )}
 
-        {error && (
-          <div className="mb-6 rounded-xl bg-red-50 border border-red-200 px-6 py-4 flex items-center gap-3">
-            <AlertCircle size={20} className="text-red-600 flex-shrink-0" />
-            <span className="text-red-700">{error}</span>
-          </div>
-        )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <h3 className="mb-4 border-b border-slate-200 pb-3 text-sm font-bold uppercase text-slate-900">
+                Basic Information
+              </h3>
 
-        {/* Main Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Form Section - 2 columns */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-200 px-8 py-6">
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <User size={24} className="text-cyan-600" />
-                Patient Medical Records
-              </h2>
+              <div className="grid gap-4 md:grid-cols-3">
+                <input
+                  type="number"
+                  name="patientAge"
+                  value={formData.patientAge}
+                  onChange={handleChange}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  placeholder="Patient age"
+                />
+                <input
+                  type="text"
+                  name="bloodType"
+                  value={formData.bloodType}
+                  onChange={handleChange}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  placeholder="Blood type"
+                />
+                <input
+                  type="text"
+                  name="allergies"
+                  value={formData.allergies}
+                  onChange={handleChange}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  placeholder="Allergies"
+                />
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase mb-4 pb-3 border-b border-slate-200">
-                  Basic Information
+            <div>
+              <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 className="text-sm font-bold uppercase text-slate-900">
+                  Medical Reports
                 </h3>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Patient Age
-                    </label>
-                    <input
-                      type="number"
-                      name="patientAge"
-                      value={formData.patientAge}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-                      placeholder="35"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Blood Type
-                    </label>
-                    <input
-                      type="text"
-                      name="bloodType"
-                      value={formData.bloodType}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-                      placeholder="O+"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Allergies
-                    </label>
-                    <input
-                      type="text"
-                      name="allergies"
-                      value={formData.allergies}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-                      placeholder="e.g., Penicillin, Nuts"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Medical Reports Section */}
-              <div>
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase">
-                    Medical Reports
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={addReportRow}
-                    className="flex items-center gap-1 px-4 py-2 bg-cyan-100 text-cyan-700 rounded-lg hover:bg-cyan-200 transition font-medium text-sm"
-                  >
-                    <Plus size={16} />
-                    Add Report
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {formData.reports.map((item, index) => (
-                    <div
-                      key={index}
-                      className="border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition"
-                    >
-                      <div className="grid gap-4 mb-4">
-                        <input
-                          type="text"
-                          value={item.title}
-                          onChange={(e) =>
-                            handleReportFieldChange(index, "title", e.target.value)
-                          }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                          placeholder="Report title (e.g., ECG Report)"
-                        />
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <input
-                            type="text"
-                            value={item.type}
-                            onChange={(e) =>
-                              handleReportFieldChange(index, "type", e.target.value)
-                            }
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                            placeholder="Type (e.g., Diagnostic)"
-                          />
-                          <input
-                            type="text"
-                            value={item.reportDate}
-                            onChange={(e) =>
-                              handleReportFieldChange(index, "reportDate", e.target.value)
-                            }
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                            placeholder="Date (e.g., 2026-03-28)"
-                          />
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <input
-                            type="text"
-                            value={item.size}
-                            onChange={(e) =>
-                              handleReportFieldChange(index, "size", e.target.value)
-                            }
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                            placeholder="Size (e.g., 180 KB)"
-                          />
-                          <input
-                            type="text"
-                            value={item.fileUrl}
-                            onChange={(e) =>
-                              handleReportFieldChange(index, "fileUrl", e.target.value)
-                            }
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                            placeholder="File URL (optional)"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => removeReportRow(index)}
-                        className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
-                      >
-                        <Trash2 size={16} />
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Medical History Section */}
-              <div>
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase">
-                    Medical History
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={addHistoryRow}
-                    className="flex items-center gap-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
-                  >
-                    <Plus size={16} />
-                    Add History
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {formData.medicalHistory.map((item, index) => (
-                    <div
-                      key={index}
-                      className="border border-slate-200 rounded-xl p-4 bg-slate-50 hover:bg-slate-100 transition"
-                    >
-                      <div className="grid gap-4 mb-4">
-                        <input
-                          type="text"
-                          value={item.condition}
-                          onChange={(e) =>
-                            handleHistoryFieldChange(
-                              index,
-                              "condition",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                          placeholder="Condition (e.g., Hypertension)"
-                        />
-
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) =>
-                            handleHistoryFieldChange(
-                              index,
-                              "description",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                          placeholder="Description (e.g., Currently on medication)"
-                        />
-
-                        <input
-                          type="text"
-                          value={item.diagnosedYear}
-                          onChange={(e) =>
-                            handleHistoryFieldChange(
-                              index,
-                              "diagnosedYear",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                          placeholder="Year diagnosed (e.g., 2020)"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => removeHistoryRow(index)}
-                        className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
-                      >
-                        <Trash2 size={16} />
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex gap-4 pt-6 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={() => navigate("/doctor/reports")}
-                  className="flex-1 py-3 px-6 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-semibold"
+                  onClick={addReportRow}
+                  className="inline-flex items-center gap-1 rounded-xl bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 transition hover:bg-cyan-100"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 py-3 px-6 bg-gradient-to-r from-cyan-600 to-sky-700 text-white rounded-lg hover:from-cyan-700 hover:to-sky-800 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold"
-                >
-                  {saving ? "Saving..." : "Save Medical Records"}
+                  <Plus size={16} />
+                  Add Report
                 </button>
               </div>
-            </form>
-          </div>
 
-          {/* Report Display - 1 column */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-200 px-6 py-6">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Calendar size={20} className="text-cyan-600" />
-                Current Records
-              </h2>
+              <div className="space-y-4">
+                {formData.reports.map((item, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="grid gap-4">
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) =>
+                          handleReportFieldChange(index, "title", e.target.value)
+                        }
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                        placeholder="Report title"
+                      />
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <input
+                          type="text"
+                          value={item.type}
+                          onChange={(e) =>
+                            handleReportFieldChange(index, "type", e.target.value)
+                          }
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                          placeholder="Type"
+                        />
+                        <input
+                          type="text"
+                          value={item.reportDate}
+                          onChange={(e) =>
+                            handleReportFieldChange(index, "reportDate", e.target.value)
+                          }
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                          placeholder="Report date"
+                        />
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <input
+                          type="text"
+                          value={item.size}
+                          onChange={(e) =>
+                            handleReportFieldChange(index, "size", e.target.value)
+                          }
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                          placeholder="Size"
+                        />
+                        <input
+                          type="text"
+                          value={item.fileUrl}
+                          onChange={(e) =>
+                            handleReportFieldChange(index, "fileUrl", e.target.value)
+                          }
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                          placeholder="File URL"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeReportRow(index)}
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-rose-600 transition hover:text-rose-700"
+                    >
+                      <Trash2 size={16} />
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="p-6">
-              {selectedReport ? (
-                <div className="space-y-6">
-                  {/* Patient Info Card */}
-                  <div className="rounded-xl bg-cyan-50 border border-cyan-200 p-4">
-                    <p className="text-xs font-bold text-cyan-900 uppercase mb-3">
-                      Patient Info
+            <div>
+              <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 className="text-sm font-bold uppercase text-slate-900">
+                  Medical History
+                </h3>
+                <button
+                  type="button"
+                  onClick={addHistoryRow}
+                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
+                >
+                  <Plus size={16} />
+                  Add History
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {formData.medicalHistory.map((item, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="grid gap-4">
+                      <input
+                        type="text"
+                        value={item.condition}
+                        onChange={(e) =>
+                          handleHistoryFieldChange(index, "condition", e.target.value)
+                        }
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                        placeholder="Condition"
+                      />
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) =>
+                          handleHistoryFieldChange(index, "description", e.target.value)
+                        }
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                        placeholder="Description"
+                      />
+                      <input
+                        type="text"
+                        value={item.diagnosedYear}
+                        onChange={(e) =>
+                          handleHistoryFieldChange(index, "diagnosedYear", e.target.value)
+                        }
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                        placeholder="Diagnosed year"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeHistoryRow(index)}
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-rose-600 transition hover:text-rose-700"
+                    >
+                      <Trash2 size={16} />
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-200 pt-6">
+              <button
+                type="button"
+                onClick={() => navigate("/doctor/reports")}
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 rounded-xl bg-cyan-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save Medical Records"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+            <Calendar size={20} className="text-cyan-700" />
+            Current Records
+          </h2>
+
+          <div className="mt-6">
+            {selectedReport ? (
+              <div className="space-y-6">
+                <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                  <p className="text-xs font-bold uppercase text-cyan-900">
+                    Patient Info
+                  </p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <p><span className="font-semibold text-slate-700">Name:</span> <span className="text-slate-900">{selectedReport.patientName}</span></p>
+                    <p><span className="font-semibold text-slate-700">Age:</span> <span className="text-slate-900">{selectedReport.patientAge || "N/A"}</span></p>
+                    <p><span className="font-semibold text-slate-700">Blood Type:</span> <span className="text-slate-900">{selectedReport.bloodType || "N/A"}</span></p>
+                    <p><span className="font-semibold text-slate-700">Allergies:</span> <span className="text-slate-900">{selectedReport.allergies || "None"}</span></p>
+                  </div>
+                </div>
+
+                {selectedReport.reports && selectedReport.reports.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-xs font-bold uppercase text-slate-900">
+                      Medical Reports
                     </p>
-                    <div className="space-y-2 text-sm">
-                      <p>
-                        <span className="font-semibold text-slate-700">Name:</span>{" "}
-                        <span className="text-slate-900">
-                          {selectedReport.patientName}
-                        </span>
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-700">Age:</span>{" "}
-                        <span className="text-slate-900">
-                          {selectedReport.patientAge || "N/A"}
-                        </span>
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-700">
-                          Blood Type:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {selectedReport.bloodType || "N/A"}
-                        </span>
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-700">
-                          Allergies:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {selectedReport.allergies || "None"}
-                        </span>
-                      </p>
+                    <div className="space-y-2">
+                      {selectedReport.reports.map((report, idx) => (
+                        <div
+                          key={idx}
+                          className="rounded-xl border border-blue-200 bg-blue-50 p-3"
+                        >
+                          <p className="text-sm font-semibold text-slate-900">
+                            {report.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-600">
+                            <span className="font-medium">Type:</span> {report.type} |{" "}
+                            <span className="font-medium">Date:</span> {report.reportDate}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            <span className="font-medium">Size:</span> {report.size}
+                          </p>
+                          {report.fileUrl && (
+                            <a
+                              href={report.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 block text-xs font-medium text-cyan-700 underline"
+                            >
+                              View File
+                            </a>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Reports */}
-                  {selectedReport.reports && selectedReport.reports.length > 0 && (
+                {selectedReport.medicalHistory &&
+                  selectedReport.medicalHistory.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold text-slate-900 uppercase mb-3">
-                        Medical Reports
+                      <p className="mb-3 text-xs font-bold uppercase text-slate-900">
+                        Medical History
                       </p>
                       <div className="space-y-2">
-                        {selectedReport.reports.map((report, idx) => (
+                        {selectedReport.medicalHistory.map((history, idx) => (
                           <div
                             key={idx}
-                            className="rounded-lg bg-blue-50 border border-blue-200 p-3"
+                            className="rounded-xl border border-amber-200 bg-amber-50 p-3"
                           >
                             <p className="text-sm font-semibold text-slate-900">
-                              {report.title}
+                              {history.condition}
                             </p>
-                            <p className="text-xs text-slate-600 mt-1">
-                              <span className="font-medium">Type:</span> {report.type} |{" "}
-                              <span className="font-medium">Date:</span>{" "}
-                              {report.reportDate}
+                            <p className="mt-1 text-xs text-slate-600">
+                              {history.description}
                             </p>
                             <p className="text-xs text-slate-600">
-                              <span className="font-medium">Size:</span> {report.size}
+                              <span className="font-medium">Diagnosed:</span>{" "}
+                              {history.diagnosedYear}
                             </p>
-                            {report.fileUrl && (
-                              <a
-                                href={report.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-cyan-600 hover:text-cyan-700 underline mt-2 block font-medium"
-                              >
-                                View File
-                              </a>
-                            )}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-
-                  {/* Medical History */}
-                  {selectedReport.medicalHistory &&
-                    selectedReport.medicalHistory.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 uppercase mb-3">
-                          Medical History
-                        </p>
-                        <div className="space-y-2">
-                          {selectedReport.medicalHistory.map((history, idx) => (
-                            <div
-                              key={idx}
-                              className="rounded-lg bg-amber-50 border border-amber-200 p-3"
-                            >
-                              <p className="text-sm font-semibold text-slate-900">
-                                {history.condition}
-                              </p>
-                              <p className="text-xs text-slate-600 mt-1">
-                                {history.description}
-                              </p>
-                              <p className="text-xs text-slate-600">
-                                <span className="font-medium">Diagnosed:</span>{" "}
-                                {history.diagnosedYear}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Pill size={48} className="mx-auto text-slate-300 mb-3" />
-                  <p className="text-slate-600 font-medium">
-                    No records created yet
-                  </p>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Fill in the form to create medical records
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center">
+                <Pill size={44} className="mx-auto mb-3 text-slate-300" />
+                <p className="font-medium text-slate-700">No records created yet</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Fill in the form to create medical records.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

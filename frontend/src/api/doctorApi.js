@@ -4,7 +4,7 @@ const DOCTOR_BASE = "/api/doctors";
 
 /* Public doctor routes */
 export const getPublicDoctors = async () => {
-  const response = await apiClient.get(`${DOCTOR_BASE}/public`);
+  const response = await apiClient.get(`${DOCTOR_BASE}/public/list`);
   return response.data;
 };
 

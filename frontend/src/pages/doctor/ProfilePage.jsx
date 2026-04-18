@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { getDoctorProfile, updateDoctorProfile, updateConsultationFee } from "../../api/doctorApi";
+import {
+  getDoctorProfile,
+  updateDoctorProfile,
+  updateConsultationFee,
+} from "../../api/doctorApi";
 import { motion } from "framer-motion";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const DOCTOR_SERVICE_BASE_URL = "http://localhost:5006";
 
 function ProfilePage() {
   const [formData, setFormData] = useState({
@@ -19,6 +24,7 @@ function ProfilePage() {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const [existingPhotoUrl, setExistingPhotoUrl] = useState("");
+  const [imageError, setImageError] = useState(false);
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(true);
@@ -48,6 +54,7 @@ function ProfilePage() {
           setApprovalStatus(doctor.approvalStatus || "pending");
           setExistingPhotoUrl(doctor.profilePhotoUrl || "");
           setPhotoPreview(doctor.profilePhotoUrl || "");
+          setImageError(false);
         }
       } catch (err) {
         if (err.response?.status !== 404) {
@@ -79,11 +86,11 @@ function ProfilePage() {
   const getStatusClasses = (status) => {
     switch ((status || "").toLowerCase()) {
       case "approved":
-        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+        return "border border-emerald-200 bg-emerald-50 text-emerald-700";
       case "rejected":
-        return "bg-rose-50 text-rose-700 border border-rose-200";
+        return "border border-rose-200 bg-rose-50 text-rose-700";
       default:
-        return "bg-amber-50 text-amber-700 border border-amber-200";
+        return "border border-amber-200 bg-amber-50 text-amber-700";
     }
   };
 
@@ -189,6 +196,7 @@ function ProfilePage() {
     const previewUrl = URL.createObjectURL(file);
     setProfilePhoto(file);
     setPhotoPreview(previewUrl);
+    setImageError(false);
 
     setFieldErrors((prev) => ({
       ...prev,
@@ -200,6 +208,8 @@ function ProfilePage() {
     setProfilePhoto(null);
     setPhotoPreview("");
     setExistingPhotoUrl("");
+    setImageError(false);
+
     setFieldErrors((prev) => ({
       ...prev,
       profilePhoto: "",
@@ -235,23 +245,21 @@ function ProfilePage() {
       const doctor = response.data?.doctor;
 
       setApprovalStatus(doctor?.approvalStatus || "pending");
-      setExistingPhotoUrl(doctor?.profilePhotoUrl || photoPreview || "");
-      setPhotoPreview(doctor?.profilePhotoUrl || photoPreview || "");
-      
-      // Update consultation fee if it changed
+      setExistingPhotoUrl(doctor?.profilePhotoUrl || "");
+      setPhotoPreview(doctor?.profilePhotoUrl || "");
+      setImageError(false);
+
       if (formData.consultationFee) {
         try {
           await updateConsultationFee(Number(formData.consultationFee));
-          console.log("Consultation fee updated successfully");
-        } catch (feeErr) {
-          console.error("Error updating consultation fee:", feeErr);
-          // Continue with success message even if fee update fails
+        } catch {
+          // ignore fee update failure
         }
       }
-      
+
       setMessage(response.message || "Profile and consultation fee saved successfully");
+      setProfilePhoto(null);
     } catch (err) {
-      console.error("Profile save error:", err.response?.data || err.message);
       setError(err.response?.data?.message || "Failed to save profile");
     } finally {
       setSaving(false);
@@ -269,12 +277,25 @@ function ProfilePage() {
     });
     setProfilePhoto(null);
     setPhotoPreview(existingPhotoUrl || "");
+    setImageError(false);
     setFieldErrors({});
   };
 
+  const resolvedImageUrl = useMemo(() => {
+    if (!photoPreview) return "";
+
+    if (photoPreview.startsWith("blob:")) return photoPreview;
+    if (photoPreview.startsWith("http")) return photoPreview;
+    if (photoPreview.startsWith("/")) {
+      return `${DOCTOR_SERVICE_BASE_URL}${photoPreview}`;
+    }
+
+    return `${DOCTOR_SERVICE_BASE_URL}/${photoPreview}`;
+  }, [photoPreview]);
+
   if (loading) {
     return (
-      <div className="rounded-2xl bg-white border border-slate-100 p-8 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex items-center justify-center gap-3">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent"></div>
           <p className="text-sm text-slate-500">Loading doctor profile...</p>
@@ -283,249 +304,210 @@ function ProfilePage() {
     );
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-  };
-
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-5"
-    >
-      {/* Header Banner */}
-      <motion.div
-        variants={itemVariants}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-600 via-cyan-700 to-sky-700 p-6 text-white shadow-lg"
-      >
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-40 w-40 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-100">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
               Doctor Profile Management
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">My Profile</h1>
-            <p className="mt-1 max-w-2xl text-sm text-cyan-50">
-              Manage your professional details, identity, and verification information.
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              My Profile
+            </h1>
+            <p className="mt-2 text-sm leading-7 text-slate-500">
+              Manage your professional details, identity, and consultation settings.
             </p>
           </div>
 
-          <div className="rounded-xl bg-white/15 px-4 py-2.5 backdrop-blur-sm border border-white/20">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-cyan-100">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Profile Completion
             </p>
-            <p className="mt-0.5 text-2xl font-bold">{profileCompletion}%</p>
-            <div className="mt-1.5 h-1 w-20 overflow-hidden rounded-full bg-white/30">
-              <div 
-                className="h-full rounded-full bg-white transition-all duration-500"
-                style={{ width: `${profileCompletion}%` }}
-              />
-            </div>
+            <p className="mt-2 text-3xl font-bold text-slate-900">
+              {profileCompletion}%
+            </p>
           </div>
         </div>
-      </motion.div>
+      </section>
 
-      {/* Messages */}
       {message && (
-        <motion.div variants={itemVariants} className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-emerald-700">{message}</p>
-          </div>
-        </motion.div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {message}
+        </div>
       )}
 
       {error && (
-        <motion.div variants={itemVariants} className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-rose-600">{error}</p>
-          </div>
-        </motion.div>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          {error}
+        </div>
       )}
 
-      {/* Stats Cards */}
-      <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Approval Status
-            </p>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-              </svg>
-            </div>
-          </div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Approval Status
+          </p>
           <div className="mt-3">
-            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${getStatusClasses(approvalStatus)}`}>
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusClasses(
+                approvalStatus
+              )}`}
+            >
               {approvalStatus}
             </span>
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Doctor Name
-            </p>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50">
-              <svg className="w-4 h-4 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-          </div>
-          <p className="mt-3 text-base font-semibold text-slate-900 truncate">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Doctor Name
+          </p>
+          <p className="mt-3 truncate text-base font-semibold text-slate-900">
             {formData.doctorName || "Not added"}
           </p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Specialization
-            </p>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50">
-              <svg className="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-              </svg>
-            </div>
-          </div>
-          <p className="mt-3 text-base font-semibold text-slate-900 truncate">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Specialization
+          </p>
+          <p className="mt-3 truncate text-base font-semibold text-slate-900">
             {formData.specialization || "Not added"}
           </p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Experience
-            </p>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Experience
+          </p>
           <p className="mt-3 text-base font-semibold text-slate-900">
             {formData.experience || 0} years
           </p>
         </div>
-      </motion.div>
+      </section>
 
-      {/* Main Content Grid */}
-      <motion.div variants={itemVariants} className="grid gap-5 lg:grid-cols-[320px,1fr]">
-        {/* Profile Summary Card */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col items-center text-center">
-            <div className="relative">
-              {photoPreview ? (
-                <img
-                  src={
-                    photoPreview.startsWith("/")
-                      ? `http://localhost:5006${photoPreview}`
-                      : photoPreview
-                  }
-                  alt="Doctor profile"
-                  className="h-24 w-24 rounded-full border-3 border-white shadow-lg object-cover"
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-cyan-600 to-sky-700 text-2xl font-bold text-white shadow-lg">
-                  {formData.doctorName?.[0]?.toUpperCase() || "DR"}
-                </div>
-              )}
-              <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white"></div>
-            </div>
+            {resolvedImageUrl && !imageError ? (
+              <img
+                src={resolvedImageUrl}
+                alt="Doctor profile"
+                onError={() => setImageError(true)}
+                className="h-36 w-36 rounded-full border-4 border-slate-100 object-cover shadow-md"
+              />
+            ) : (
+              <div className="flex h-36 w-36 items-center justify-center rounded-full bg-cyan-700 text-4xl font-bold text-white shadow-md">
+                {formData.doctorName?.[0]?.toUpperCase() || "DR"}
+              </div>
+            )}
 
-            <h2 className="mt-4 text-lg font-bold text-slate-900">
+            <h2 className="mt-5 text-2xl font-bold text-slate-900">
               {formData.doctorName || "Doctor Name"}
             </h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500">
               {formData.specialization || "Specialization not set"}
             </p>
-            <span className={`mt-3 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${getStatusClasses(approvalStatus)}`}>
+
+            <span
+              className={`mt-4 inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusClasses(
+                approvalStatus
+              )}`}
+            >
               {approvalStatus}
             </span>
           </div>
 
-          <div className="my-5 border-t border-slate-100" />
+          <div className="my-6 border-t border-slate-100" />
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <p className="text-xs font-medium text-slate-500">License Number</p>
-              <p className="text-sm font-medium text-slate-800">{formData.licenseNumber || "-"}</p>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                License Number
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-800">
+                {formData.licenseNumber || "-"}
+              </p>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <p className="text-xs font-medium text-slate-500">Hospital</p>
-              <p className="text-sm font-medium text-slate-800 truncate max-w-[160px]">{formData.hospital || "-"}</p>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Hospital / Clinic
+              </p>
+              <p className="mt-2 break-words text-sm font-medium text-slate-800">
+                {formData.hospital || "-"}
+              </p>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <p className="text-xs font-medium text-slate-500">Experience</p>
-              <p className="text-sm font-medium text-slate-800">{formData.experience || 0} years</p>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <p className="text-xs font-medium text-slate-500">Consultation Fee</p>
-              <p className="text-sm font-bold text-cyan-700">LKR {formData.consultationFee || 500}</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Experience
+                </p>
+                <p className="mt-2 text-sm font-medium text-slate-800">
+                  {formData.experience || 0} years
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Fee
+                </p>
+                <p className="mt-2 text-sm font-bold text-cyan-700">
+                  LKR {formData.consultationFee || 500}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Edit Form Card */}
-        <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-slate-900">Professional Details</h2>
+            <h2 className="text-xl font-bold text-slate-900">Professional Details</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Keep your information accurate so admins can review and verify your doctor account.
+              Keep your information accurate so admins can verify your account and patients can view a professional profile.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Profile Photo */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
                 Profile Photo
               </label>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handlePhotoChange}
-                  className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-cyan-700 hover:file:bg-cyan-100"
-                />
-                {photoPreview && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    className="rounded-lg bg-slate-100 px-4 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
-                  >
-                    Remove
-                  </button>
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePhotoChange}
+                    className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-cyan-700 hover:file:bg-cyan-100"
+                  />
+                  {photoPreview && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-300"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-3 text-xs text-slate-400">
+                  Allowed: JPG, PNG, WEBP. Max size: 2MB.
+                </p>
+
+                {fieldErrors.profilePhoto && (
+                  <p className="mt-2 text-xs text-amber-600">{fieldErrors.profilePhoto}</p>
                 )}
               </div>
-              <p className="mt-1.5 text-xs text-slate-400">
-                Allowed: JPG, PNG, WEBP. Max size: 2MB.
-              </p>
-              {fieldErrors.profilePhoto && (
-                <p className="mt-1.5 text-xs text-amber-600">{fieldErrors.profilePhoto}</p>
-              )}
             </div>
 
-            {/* Form Fields Grid */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Doctor Name *
                 </label>
                 <input
@@ -533,7 +515,7 @@ function ProfilePage() {
                   name="doctorName"
                   value={formData.doctorName}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   placeholder="Dr. John Doe"
                 />
                 {fieldErrors.doctorName && (
@@ -542,7 +524,7 @@ function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Specialization *
                 </label>
                 <input
@@ -550,7 +532,7 @@ function ProfilePage() {
                   name="specialization"
                   value={formData.specialization}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   placeholder="Cardiology"
                 />
                 {fieldErrors.specialization && (
@@ -559,7 +541,7 @@ function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   License Number *
                 </label>
                 <input
@@ -567,7 +549,7 @@ function ProfilePage() {
                   name="licenseNumber"
                   value={formData.licenseNumber}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   placeholder="LIC-2026-001"
                 />
                 {fieldErrors.licenseNumber && (
@@ -576,7 +558,7 @@ function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Hospital / Clinic *
                 </label>
                 <input
@@ -584,7 +566,7 @@ function ProfilePage() {
                   name="hospital"
                   value={formData.hospital}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   placeholder="City Medical Center"
                 />
                 {fieldErrors.hospital && (
@@ -593,7 +575,7 @@ function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Experience (Years) *
                 </label>
                 <input
@@ -602,7 +584,7 @@ function ProfilePage() {
                   value={formData.experience}
                   onChange={handleChange}
                   min="0"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   placeholder="5"
                 />
                 {fieldErrors.experience && (
@@ -611,7 +593,7 @@ function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-medium text-slate-700">
                   Consultation Fee (LKR)
                 </label>
                 <input
@@ -621,7 +603,7 @@ function ProfilePage() {
                   onChange={handleChange}
                   min="0"
                   step="50"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   placeholder="500"
                 />
                 <p className="mt-1 text-xs text-slate-400">
@@ -630,32 +612,26 @@ function ProfilePage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:from-cyan-700 hover:to-sky-800 disabled:opacity-50 shadow-sm"
+                className="rounded-xl bg-cyan-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:opacity-50"
               >
-                {saving && (
-                  <svg className="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                )}
                 {saving ? "Saving..." : "Save Profile"}
               </button>
 
               <button
                 type="button"
                 onClick={handleReset}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 Reset Form
               </button>
             </div>
           </form>
-        </div>
-      </motion.div>
+        </section>
+      </div>
     </motion.div>
   );
 }

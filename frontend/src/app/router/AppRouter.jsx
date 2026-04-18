@@ -83,13 +83,16 @@ function AppRouter() {
             <Route path="appointment-history" element={<AppointmentHistoryPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="symptom-checker" element={<SymptomCheckerPage />} />
-            <Route path="consultation" element={<VideoConsultationPage />} />
+            <Route path="consultation" element={<VideoSessionPage />} />
             <Route path="payments" element={<PaymentsPage />} />
           </Route>
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["patient"]} />}>
-          <Route path="/patient/video-consultation/:appointmentId" element={<VideoRoomPage />} />
+          <Route
+            path="/patient/video-consultation/:appointmentId"
+            element={<VideoRoomPage />}
+          />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
@@ -102,7 +105,10 @@ function AppRouter() {
             <Route path="reports" element={<ReportsReviewPage />} />
             <Route path="reports/:patientId" element={<UpdateReportPage />} />
             <Route path="prescriptions" element={<PrescriptionPage />} />
-            <Route path="prescriptions/:patientId" element={<IssuePrescriptionPage />} />
+            <Route
+              path="prescriptions/:patientId"
+              element={<IssuePrescriptionPage />}
+            />
           </Route>
         </Route>
 

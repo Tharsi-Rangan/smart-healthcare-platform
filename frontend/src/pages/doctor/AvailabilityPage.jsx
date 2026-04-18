@@ -54,7 +54,7 @@ function AvailabilityPage() {
       } catch (err) {
         const errorMsg = err.response?.data?.message || "Failed to load availability";
         console.error("Error loading availability:", errorMsg);
-        
+
         // Check if error is because doctor profile doesn't exist
         if (err.response?.status === 404 && errorMsg.includes("Doctor profile not found")) {
           setProfileMissing(true);
@@ -77,9 +77,9 @@ function AvailabilityPage() {
     const avgDuration =
       total > 0
         ? Math.round(
-            slots.reduce((sum, slot) => sum + (Number(slot.slotDuration) || 0), 0) /
-              total
-          )
+          slots.reduce((sum, slot) => sum + (Number(slot.slotDuration) || 0), 0) /
+          total
+        )
         : 0;
 
     return { total, active, inactive, avgDuration };
@@ -90,9 +90,9 @@ function AvailabilityPage() {
       prev.map((slot, i) =>
         i === index
           ? {
-              ...slot,
-              [field]: field === "slotDuration" ? Number(value) : value,
-            }
+            ...slot,
+            [field]: field === "slotDuration" ? Number(value) : value,
+          }
           : slot
       )
     );
@@ -151,7 +151,7 @@ function AvailabilityPage() {
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to save availability";
       console.error("Error saving availability:", errorMsg);
-      
+
       // Check if error is because doctor profile doesn't exist
       if (err.response?.status === 404 && errorMsg.includes("Doctor profile not found")) {
         setProfileMissing(true);
@@ -331,11 +331,10 @@ function AvailabilityPage() {
                       <button
                         type="button"
                         onClick={() => toggleActive(index)}
-                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                          slot.isActive
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${slot.isActive
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : "bg-slate-100 text-slate-700 border border-slate-200"
-                        }`}
+                          }`}
                       >
                         {slot.isActive ? "Active" : "Inactive"}
                       </button>
