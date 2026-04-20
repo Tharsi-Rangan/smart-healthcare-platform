@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getMyAppointments, getAppointmentById, cancelAppointment, rescheduleAppointment } from '../../services/appointmentApi';
 import { getToken } from '../../features/auth/authStorage';
@@ -16,6 +17,12 @@ function AppointmentsPage() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [filterType, setFilterType]     = useState('all'); // all, online, offline
   const [filterStatus, setFilterStatus] = useState('all'); // all, confirmed, pending
+  const [viewMode, setViewMode] = useState('list'); // list | calendar
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState('');
   
   // Detail view modal state
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -43,6 +50,29 @@ function AppointmentsPage() {
   // Doctor availability state
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const detailModalContentRef = useRef(null);
+
+  const anyModalOpen = detailModalOpen || rescheduleModalOpen || cancelModalOpen;
+
+  useEffect(() => {
+    if (!anyModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [anyModalOpen]);
+
+  useEffect(() => {
+    if (!detailModalOpen) return;
+    requestAnimationFrame(() => {
+      if (detailModalContentRef.current) {
+        detailModalContentRef.current.scrollTop = 0;
+      }
+    });
+  }, [detailModalOpen, selectedAppointment]);
 
   useEffect(() => {
     fetchAppointments();
@@ -130,6 +160,67 @@ function AppointmentsPage() {
   };
 
   const filteredAppointments = getFilteredAppointments();
+
+  const toDateKey = (dateInput) => {
+    const d = new Date(dateInput);
+    if (Number.isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatShortDoctorName = (name) => {
+    const cleaned = (name || 'Doctor').replace(/^Doctor\s*/i, '').trim();
+    if (!cleaned) return 'Doctor';
+    const first = cleaned.split(' ')[0];
+    return first.length > 9 ? `${first.slice(0, 9)}…` : first;
+  };
+
+  const formatDisplayTime = (time) => {
+    if (!time) return '--:--';
+    return time.slice(0, 5);
+  };
+
+  const appointmentsByDate = filteredAppointments.reduce((acc, appt) => {
+    const key = toDateKey(appt.appointmentDate);
+    if (!key) return acc;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(appt);
+    return acc;
+  }, {});
+
+  const calendarYear = calendarMonth.getFullYear();
+  const calendarMonthIndex = calendarMonth.getMonth();
+  const firstWeekday = new Date(calendarYear, calendarMonthIndex, 1).getDay();
+  const calendarStartDate = new Date(calendarYear, calendarMonthIndex, 1 - firstWeekday);
+  const monthLabel = calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const calendarCells = Array.from({ length: 42 }, (_, idx) => {
+    const date = new Date(calendarStartDate);
+    date.setDate(calendarStartDate.getDate() + idx);
+    return {
+      date,
+      dateKey: toDateKey(date),
+      day: date.getDate(),
+      isCurrentMonth: date.getMonth() === calendarMonthIndex,
+      isToday: toDateKey(date) === toDateKey(new Date()),
+    };
+  });
+
+  const selectedDateKey = selectedCalendarDateKey || toDateKey(new Date(calendarYear, calendarMonthIndex, 1));
+  const selectedDayAppointments = (appointmentsByDate[selectedDateKey] || [])
+    .slice()
+    .sort((a, b) => (a.appointmentTime || '').localeCompare(b.appointmentTime || ''));
+
+  const selectedDateLabel = selectedDateKey
+    ? new Date(selectedDateKey).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : 'Selected date';
 
   // Check if current time is within 30 min before appointment time
   const isWithinSessionWindow = (appointmentDate, appointmentTime) => {
@@ -606,12 +697,12 @@ function AppointmentsPage() {
 
       {/* Pre-selected from appointments page */}
       {preSelected && (
-        <div className={`rounded-2xl border-2 p-5 shadow-lg transition transform hover:scale-102 ${
+        <div className={`rounded-2xl border-2 p-5 shadow-lg transition transform hover:scale-[1.02] ${
           preSelected.consultationType === 'online'
             ? 'border-cyan-300 bg-linear-to-br from-cyan-50 to-sky-50'
             : 'border-sky-300 bg-linear-to-br from-sky-50 to-sky-100'
         }`}>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <div className={`rounded-full p-2.5 ${
@@ -662,8 +753,8 @@ function AppointmentsPage() {
       )}
 
       {/* ============ APPOINTMENTS GRID ============ */}
-      <div className="rounded-3xl bg-white border border-slate-200 p-8 shadow-xl">
-        <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-slate-200">
+      <div className="rounded-3xl bg-white border border-slate-200 p-4 sm:p-6 lg:p-8 shadow-xl">
+        <div className="mb-6 flex flex-col gap-4 border-b-2 border-slate-200 pb-5 lg:mb-8 lg:flex-row lg:items-center lg:justify-between lg:pb-6">
           <h2 className="flex items-center gap-3 text-2xl md:text-3xl font-black text-slate-900">
             <span className="text-3xl">📋</span>
             Your Appointments
@@ -671,10 +762,68 @@ function AppointmentsPage() {
               {filteredAppointments.length}
             </span>
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:gap-3 lg:w-auto lg:justify-end">
+            <div className="inline-flex rounded-xl border border-cyan-200 bg-cyan-50 p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm font-bold transition ${
+                  viewMode === 'list'
+                    ? 'bg-cyan-600 text-white shadow'
+                    : 'text-cyan-700 hover:bg-cyan-100'
+                }`}
+              >
+                List
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm font-bold transition ${
+                  viewMode === 'calendar'
+                    ? 'bg-cyan-600 text-white shadow'
+                    : 'text-cyan-700 hover:bg-cyan-100'
+                }`}
+              >
+                Calendar
+              </button>
+            </div>
+
+            {viewMode === 'calendar' && (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-white px-2 py-1.5">
+                <button
+                  onClick={() => {
+                    const now = new Date();
+                    setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+                    setSelectedCalendarDateKey(toDateKey(now));
+                  }}
+                  className="rounded-md px-2 py-1 text-[11px] font-bold text-cyan-700 hover:bg-cyan-100 transition"
+                  title="Jump to current month"
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => setCalendarMonth(new Date(calendarYear, calendarMonthIndex - 1, 1))}
+                  className="rounded-md p-1 text-cyan-700 hover:bg-cyan-100 transition"
+                  title="Previous month"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="min-w-30 text-center text-xs sm:text-sm font-bold text-slate-700">{monthLabel}</span>
+                <button
+                  onClick={() => setCalendarMonth(new Date(calendarYear, calendarMonthIndex + 1, 1))}
+                  className="rounded-md p-1 text-cyan-700 hover:bg-cyan-100 transition"
+                  title="Next month"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
             <button 
               onClick={() => navigate('/patient/doctors')}
-              className="group flex items-center gap-2 rounded-xl bg-linear-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 px-5 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-500 to-cyan-500 px-4 py-2.5 text-xs font-bold text-white transition hover:from-emerald-600 hover:to-cyan-600 hover:shadow-xl sm:px-5 sm:text-sm"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -683,7 +832,7 @@ function AppointmentsPage() {
             </button>
             <button 
               onClick={fetchAppointments}
-              className="group flex items-center gap-2 rounded-xl bg-linear-to-r from-cyan-100 to-blue-100 hover:from-cyan-200 hover:to-blue-200 px-4 py-2.5 text-sm font-bold text-cyan-700 transition shadow-md hover:shadow-lg"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-cyan-100 to-blue-100 px-4 py-2.5 text-xs font-bold text-cyan-700 transition hover:from-cyan-200 hover:to-blue-200 hover:shadow-lg sm:text-sm"
             >
               <svg className="h-4 w-4 group-hover:rotate-180 transition duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -735,6 +884,135 @@ function AppointmentsPage() {
               Reset Filters
             </button>
           </div>
+        ) : viewMode === 'calendar' ? (
+          <div className="space-y-4">
+            <div className="overflow-x-auto rounded-2xl border border-cyan-200 bg-white">
+              <div className="min-w-190 p-4">
+                <div className="mb-3 grid grid-cols-7 gap-2">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <div key={day} className="rounded-lg bg-cyan-50 py-2 text-center text-xs font-black uppercase tracking-wide text-cyan-700">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-2">
+                  {calendarCells.map((cell) => {
+                    const dayAppointments = appointmentsByDate[cell.dateKey] || [];
+
+                    return (
+                      <div
+                        key={cell.dateKey}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedCalendarDateKey(cell.dateKey)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedCalendarDateKey(cell.dateKey);
+                          }
+                        }}
+                        className={`min-h-29 rounded-xl border p-2 transition cursor-pointer ${
+                          cell.isCurrentMonth
+                            ? 'border-slate-200 bg-white hover:border-cyan-300'
+                            : 'border-slate-100 bg-slate-50 text-slate-400'
+                        } ${cell.isToday ? 'ring-2 ring-cyan-300 border-cyan-300' : ''} ${selectedDateKey === cell.dateKey ? 'ring-2 ring-blue-300 border-blue-300' : ''}`}
+                        aria-label={`Select ${cell.dateKey}`}
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className={`text-xs font-black ${cell.isToday ? 'text-cyan-700' : 'text-slate-700'}`}>
+                            {cell.day}
+                          </span>
+                          {dayAppointments.length > 0 && (
+                            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-100 px-1 text-[10px] font-black text-cyan-700">
+                              {dayAppointments.length}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          {dayAppointments.slice(0, 2).map((appt) => {
+                            const isConfirmed = appt.status === 'confirmed';
+                            const aptId = appt._id || appt.id;
+
+                            return (
+                              <button
+                                type="button"
+                                key={aptId}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  viewAppointmentDetails(aptId);
+                                }}
+                                className={`w-full rounded-md px-1.5 py-1 text-left text-[10px] font-bold transition hover:brightness-95 ${
+                                  isConfirmed
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                }`}
+                                title="View appointment details"
+                              >
+                                <div className="truncate">
+                                  {formatDisplayTime(appt.appointmentTime)} • {formatShortDoctorName(appt.doctorName)}
+                                </div>
+                              </button>
+                            );
+                          })}
+
+                          {dayAppointments.length > 2 && (
+                            <div className="px-1 text-[10px] font-bold text-slate-500">
+                              +{dayAppointments.length - 2} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Tip: Use filters above to narrow appointments shown in calendar view.
+            </p>
+
+            <div className="rounded-2xl border border-cyan-200 bg-linear-to-r from-cyan-50 to-blue-50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h4 className="text-sm sm:text-base font-black text-slate-900">🗓️ {selectedDateLabel}</h4>
+                <span className="inline-flex items-center rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-bold text-cyan-700">
+                  {selectedDayAppointments.length} {selectedDayAppointments.length === 1 ? 'appointment' : 'appointments'}
+                </span>
+              </div>
+
+              {selectedDayAppointments.length === 0 ? (
+                <p className="text-sm text-slate-500">No appointments on this day.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {selectedDayAppointments.map((appt) => {
+                    const isConfirmed = appt.status === 'confirmed';
+                    const aptId = appt._id || appt.id;
+                    return (
+                      <button
+                        key={aptId}
+                        onClick={() => viewAppointmentDetails(aptId)}
+                        className="rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-cyan-300 hover:shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-bold text-slate-800 truncate">{appt.doctorName || 'Doctor'}</p>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            isConfirmed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {isConfirmed ? 'Confirmed' : 'Pending'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-600">
+                          {formatDisplayTime(appt.appointmentTime)} • {appt.consultationType === 'online' ? 'Video' : 'Clinic'}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {filteredAppointments.map((appt) => {
@@ -749,35 +1027,35 @@ function AppointmentsPage() {
               return (
                 <div
                   key={appt._id}
-                  className={`group relative overflow-hidden rounded-2xl border-2 transition transform hover:scale-102 hover:shadow-xl ${
+                  className={`group relative overflow-hidden rounded-2xl border-2 transition transform hover:scale-[1.02] hover:shadow-xl ${
                     isOnline 
                       ? 'border-cyan-300 bg-linear-to-br from-cyan-50 to-blue-50' 
                       : 'border-sky-300 bg-linear-to-br from-sky-50 to-emerald-50'
                   }`}
                 >
-                  {/* Status Badge */}
-                  <div className="absolute top-4 right-4 z-20 flex gap-2">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold shadow-md ${
-                      isOnline 
-                        ? 'bg-cyan-600 text-white' 
-                        : 'bg-sky-600 text-white'
-                    }`}>
-                      {isOnline ? '📹' : '🏥'} {isOnline ? 'Video' : 'Clinic'}
-                    </span>
-                    <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold shadow-md ${
-                      isConfirmed 
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-amber-600 text-white'
-                    }`}>
-                      {isConfirmed ? '✓ Confirmed' : '⏳ Pending'}
-                    </span>
-                  </div>
-
                   {/* Gradient background on hover */}
                   <div className="absolute inset-0 bg-linear-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 z-10"></div>
 
                   {/* Content */}
                   <div className="relative z-20 p-6">
+                    {/* Status badges */}
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold shadow-md ${
+                        isOnline 
+                          ? 'bg-cyan-600 text-white' 
+                          : 'bg-sky-600 text-white'
+                      }`}>
+                        {isOnline ? '📹' : '🏥'} {isOnline ? 'Video' : 'Clinic'}
+                      </span>
+                      <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold shadow-md ${
+                        isConfirmed 
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-amber-600 text-white'
+                      }`}>
+                        {isConfirmed ? '✓ Confirmed' : '⏳ Pending'}
+                      </span>
+                    </div>
+
                     {/* Doctor Info */}
                     <div className="flex items-start gap-4 mb-5">
                       <div className={`rounded-full p-4 ${
@@ -799,7 +1077,7 @@ function AppointmentsPage() {
                     </div>
 
                     {/* Date & Time Cards */}
-                    <div className="grid grid-cols-2 gap-3 mb-5">
+                    <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="rounded-xl bg-white/80 backdrop-blur p-3 border border-slate-200/50">
                         <p className="text-xs font-bold text-slate-500 uppercase">📅 Date</p>
                         <p className="text-sm font-black text-slate-900 mt-1">
@@ -837,12 +1115,12 @@ function AppointmentsPage() {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2">
+                    <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-4">
                       {isOnline && (
                         <button
                           onClick={() => joinSession(appt)}
                           disabled={!canJoinSession || joining === appt._id}
-                          className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2.5 font-bold text-sm transition ${
+                          className={`col-span-2 flex items-center justify-center gap-2 rounded-lg py-2.5 font-bold text-sm transition sm:col-span-1 ${
                             canJoinSession && joining !== appt._id
                               ? 'bg-cyan-600 text-white hover:bg-cyan-700 hover:shadow-lg transform hover:scale-105'
                               : 'bg-slate-300 text-slate-500 cursor-not-allowed'
@@ -857,7 +1135,7 @@ function AppointmentsPage() {
                       
                       <button
                         onClick={() => viewAppointmentDetails(appt._id)}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-200 hover:bg-slate-300 py-2.5 font-bold text-sm text-slate-700 transition"
+                        className={`flex items-center justify-center gap-2 rounded-lg bg-slate-200 hover:bg-slate-300 py-2.5 font-bold text-sm text-slate-700 transition ${isOnline ? 'col-span-2 sm:col-span-1' : 'col-span-2 sm:col-span-2'}`}
                       >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -875,7 +1153,7 @@ function AppointmentsPage() {
                               setRescheduleTime(appt.appointmentTime);
                               setRescheduleModalOpen(true);
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-amber-200 hover:bg-amber-300 py-2.5 font-bold text-sm text-amber-800 transition"
+                            className={`flex items-center justify-center gap-2 rounded-lg bg-amber-200 hover:bg-amber-300 py-2.5 font-bold text-sm text-amber-800 transition ${isOnline ? 'col-span-1' : 'col-span-1 sm:col-span-1'}`}
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -889,7 +1167,7 @@ function AppointmentsPage() {
                               setCancelReason('');
                               setCancelModalOpen(true);
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-200 hover:bg-red-300 py-2.5 font-bold text-sm text-red-800 transition"
+                            className={`flex items-center justify-center gap-2 rounded-lg bg-red-200 hover:bg-red-300 py-2.5 font-bold text-sm text-red-800 transition ${isOnline ? 'col-span-1' : 'col-span-1 sm:col-span-1'}`}
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -909,9 +1187,9 @@ function AppointmentsPage() {
       </div>
 
       {/* ============ DETAIL VIEW MODAL ============ */}
-      {detailModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto border border-slate-200">
+      {detailModalOpen && createPortal(
+        <div className="fixed inset-0 z-70 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-6 backdrop-blur-sm animate-in fade-in duration-200 sm:pt-8">
+          <div ref={detailModalContentRef} className="w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {detailLoading ? (
               <div className="space-y-4 p-8 animate-pulse">
                 <div className="h-10 bg-linear-to-r from-slate-200 to-slate-300 rounded-2xl"></div>
@@ -1059,11 +1337,19 @@ function AppointmentsPage() {
                   <p className="text-sm font-black text-cyan-900 uppercase tracking-wide mb-4 flex items-center gap-2">
                     <span>ℹ️</span> Important Instructions
                   </p>
-                  <p className="text-sm text-cyan-900 leading-relaxed bg-white rounded-xl p-4">
-                    {selectedAppointment.consultationType === 'online' 
-                      ? '📹 <strong>Video Consultation:</strong> Ensure your camera and microphone are working properly. You can join 30 minutes before the scheduled time. Check your internet connection beforehand. Use a quiet and well-lit room.'
-                      : '🏥 <strong>Clinic Visit:</strong> Please arrive 10-15 minutes early. Bring your ID and insurance card if applicable. Follow any pre-appointment instructions provided by the clinic. Have recent medical reports if available.'}
-                  </p>
+                  <div className="text-sm text-cyan-900 leading-relaxed bg-white rounded-xl p-4">
+                    {selectedAppointment.consultationType === 'online' ? (
+                      <>
+                        <span className="font-bold">📹 Video Consultation:</span>{' '}
+                        Ensure your camera and microphone are working properly. You can join 30 minutes before the scheduled time. Check your internet connection beforehand. Use a quiet and well-lit room.
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold">🏥 Clinic Visit:</span>{' '}
+                        Please arrive 10-15 minutes early. Bring your ID and insurance card if applicable. Follow any pre-appointment instructions provided by the clinic. Have recent medical reports if available.
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Close Button */}
@@ -1097,12 +1383,12 @@ function AppointmentsPage() {
             )}
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ============ RESCHEDULE MODAL ============ */}
-      {rescheduleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl p-8 max-h-[90vh] overflow-y-auto border border-slate-200">
+      {rescheduleModalOpen && createPortal(
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-slate-200">
               <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -1247,12 +1533,12 @@ function AppointmentsPage() {
             )}
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ============ CANCEL MODAL ============ */}
-      {cancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden border border-slate-200">
+      {cancelModalOpen && createPortal(
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
             {/* Header */}
             <div className="bg-linear-to-r from-red-600 to-red-700 p-8">
               <div className="flex items-center justify-between">
@@ -1330,7 +1616,7 @@ function AppointmentsPage() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
