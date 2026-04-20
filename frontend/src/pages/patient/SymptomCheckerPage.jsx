@@ -1,4 +1,5 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
+import lottie from "lottie-web";
 import doctorAnimation from "../../assets/animations/Doctor.json";
 import heartbeatAnalysisAnimation from "../../assets/animations/Heartbeat Lottie Animation.json";
 import {
@@ -144,54 +146,45 @@ class AnimationErrorBoundary extends Component {
 }
 
 function SafeLottieAnimation({ animationData, className, fallback, ariaLabel }) {
-  const [LottieComponent, setLottieComponent] = useState(null);
-  const [failedToLoad, setFailedToLoad] = useState(false);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!containerRef.current || !animationData) {
+      return undefined;
+    }
 
-    const loadLottie = async () => {
-      try {
-        const module = await import("lottie-react");
-        const candidate = module?.default || module?.Lottie;
+    let animationInstance;
 
-        if (!isMounted) {
-          return;
-        }
-
-        if (typeof candidate !== "function") {
-          setFailedToLoad(true);
-          return;
-        }
-
-        setLottieComponent(() => candidate);
-      } catch (error) {
-        if (isMounted) {
-          console.warn("Unable to load lottie-react. Falling back to static animation.", error);
-          setFailedToLoad(true);
-        }
-      }
-    };
-
-    loadLottie();
+    try {
+      animationInstance = lottie.loadAnimation({
+        container: containerRef.current,
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        animationData,
+      });
+    } catch (error) {
+      console.warn("Unable to render lottie animation. Falling back to static icon.", error);
+    }
 
     return () => {
-      isMounted = false;
+      if (animationInstance) {
+        animationInstance.destroy();
+      }
     };
-  }, []);
+  }, [animationData]);
 
-  if (failedToLoad || !LottieComponent) {
+  if (!animationData) {
     return fallback;
   }
 
   return (
     <AnimationErrorBoundary fallback={fallback}>
-      <LottieComponent
-        animationData={animationData}
-        loop
-        autoplay
+      <div
+        ref={containerRef}
         className={className}
         aria-label={ariaLabel}
+        role="img"
       />
     </AnimationErrorBoundary>
   );
@@ -219,7 +212,78 @@ function ConfirmModal({
     isLoading ||
     (requireText ? typedValue.trim() !== requireText.trim() : false);
 
-  return (
+  const modalContent = danger ? (
+    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="bg-linear-to-r from-red-600 to-red-700 p-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-white/20 p-3">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-black text-white">{title}</h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="rounded-full p-2 transition hover:bg-white/20 disabled:opacity-50"
+              aria-label="Close confirmation dialog"
+            >
+              <X size={24} className="text-white" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-8">
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-red-200 bg-red-50 p-5">
+            <span className="mt-0.5 shrink-0 text-2xl">💔</span>
+            <div>
+              <p className="text-sm font-bold text-red-900">This action cannot be undone</p>
+              <p className="mt-1 text-sm text-red-700">{message}</p>
+            </div>
+          </div>
+
+          {requireText ? (
+            <div>
+              <label className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900">
+                <span>💭</span>
+                To confirm, type {requireText}
+              </label>
+              <input
+                type="text"
+                value={typedValue}
+                onChange={(event) => onTypedValueChange?.(event.target.value)}
+                placeholder={`Type ${requireText}`}
+                className="w-full rounded-xl border-2 border-slate-300 bg-linear-to-b from-white to-slate-50 px-4 py-3.5 text-sm placeholder-slate-400 transition hover:border-red-400 focus:border-red-500 focus:outline-none"
+              />
+            </div>
+          ) : null}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 rounded-xl border-2 border-slate-300 px-4 py-3.5 font-bold text-slate-700 shadow-md transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              ✕ {cancelLabel}
+            </button>
+
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isConfirmDisabled}
+              className="flex-1 rounded-xl bg-linear-to-r from-red-600 to-red-700 px-4 py-3.5 font-bold text-white shadow-lg transition hover:scale-105 hover:from-red-700 hover:to-red-800 hover:shadow-xl disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:opacity-50"
+            >
+              {isLoading ? "⏳ Please wait..." : `✓ ${confirmLabel}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
     <AnimatePresence>
       <Motion.div
         initial={{ opacity: 0 }}
@@ -256,21 +320,6 @@ function ConfirmModal({
             </button>
           </div>
 
-          {requireText ? (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-sm font-medium text-amber-900">
-                To confirm, type <span className="font-bold">{requireText}</span> below.
-              </p>
-              <input
-                type="text"
-                value={typedValue}
-                onChange={(event) => onTypedValueChange?.(event.target.value)}
-                placeholder={`Type ${requireText}`}
-                className="mt-3 w-full rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
-              />
-            </div>
-          ) : null}
-
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <button
               type="button"
@@ -295,6 +344,10 @@ function ConfirmModal({
         </Motion.div>
       </Motion.div>
     </AnimatePresence>
+  );
+
+  return (
+    createPortal(modalContent, document.body)
   );
 }
 
@@ -325,6 +378,7 @@ function SymptomCheckerPage() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [analyzingMessageIndex, setAnalyzingMessageIndex] = useState(0);
+  const [analyzingAnimationIndex, setAnalyzingAnimationIndex] = useState(0);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechPaused, setIsSpeechPaused] = useState(false);
@@ -344,11 +398,13 @@ function SymptomCheckerPage() {
   useEffect(() => {
     if (!isAnalyzing) {
       setAnalyzingMessageIndex(0);
+      setAnalyzingAnimationIndex(0);
       return;
     }
 
     const interval = setInterval(() => {
       setAnalyzingMessageIndex((prev) => (prev + 1) % analyzingMessages.length);
+      setAnalyzingAnimationIndex((prev) => (prev + 1) % 2);
     }, 1600);
 
     return () => clearInterval(interval);
@@ -453,14 +509,13 @@ function SymptomCheckerPage() {
   }, [loadHistory]);
 
   const latestResult = useMemo(() => {
-    if (result) {
-      return result;
-    }
-
-    return history[0] || null;
-  }, [result, history]);
+    return result || null;
+  }, [result]);
 
   const symptomLength = formData.symptoms.trim().length;
+
+  const activeAnalyzingAnimation =
+    analyzingAnimationIndex === 0 ? heartbeatAnalysisAnimation : doctorAnimation;
 
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
@@ -672,13 +727,13 @@ function SymptomCheckerPage() {
       const updatedHistory = history.filter((item) => item._id !== record._id);
       setHistory(updatedHistory);
 
-      if (result?._id === record._id) {
-        setResult(null);
-      }
+      const nextSelectedRecord =
+        updatedHistory.find((item) => item._id === selectedHistoryId) ||
+        updatedHistory[0] ||
+        null;
 
-      if (selectedHistoryId === record._id) {
-        setSelectedHistoryId(updatedHistory[0]?._id || "");
-      }
+      setResult(nextSelectedRecord);
+      setSelectedHistoryId(nextSelectedRecord?._id || "");
 
       setInfoMessage("Symptom record deleted successfully.");
       closeConfirmModal();
@@ -950,7 +1005,7 @@ function SymptomCheckerPage() {
           <div className="rounded-2xl border border-cyan-100 bg-white p-6 text-center shadow-sm ring-1 ring-cyan-100/70">
             <div className="mx-auto mb-3 flex h-20 w-28 items-center justify-center">
               <SafeLottieAnimation
-                animationData={heartbeatAnalysisAnimation}
+                animationData={activeAnalyzingAnimation}
                 className="h-20 w-28"
                 ariaLabel="Analyzing symptoms animation"
                 fallback={
@@ -1272,13 +1327,13 @@ function SymptomCheckerPage() {
                             openDeleteRecordModal(item);
                           }}
                           disabled={deletingRecordId === item._id}
-                          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                           aria-label={`Delete symptom record from ${formatHistoryDateTime(
                             item.createdAt
                           )}`}
                           title="Delete this record"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={14} />
                           {deletingRecordId === item._id ? "Deleting..." : "Delete"}
                         </button>
                       </div>
