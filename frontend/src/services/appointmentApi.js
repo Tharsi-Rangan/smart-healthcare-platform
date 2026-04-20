@@ -117,3 +117,26 @@ export const getPendingAppointments = async (token) => {
   );
   return response.data;
 };
+
+// ======================== ADMIN ENDPOINTS (GET ALL) ========================
+
+export const getAllAppointmentsAdmin = async (params = {}) => {
+  const token = getToken();
+  const response = await appointmentClient.get(
+    "/api/appointments/admin/all",
+    {
+      ...getAuthConfig(token),
+      params,
+    }
+  );
+  return response.data;
+};
+
+export const getAppointmentStats = async () => {
+  const token = getToken();
+  const response = await appointmentClient.get(
+    "/api/appointments/admin/stats",
+    getAuthConfig(token)
+  );
+  return response.data;
+};

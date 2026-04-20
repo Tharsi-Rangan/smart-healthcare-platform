@@ -111,9 +111,10 @@ export const createAppointment = async (payload, patientId) => {
   // Use doctorAuthUserId from payload if provided, otherwise try to fetch it
   let doctorAuthUserId = payload.doctorAuthUserId || null;
   let consultationFee = payload.consultationFee || 500; // Default fee
+  let doctorName = payload.doctorName || null; // Extract doctor name if provided
   
   // Only fetch from doctor service if doctorAuthUserId is not provided
-  if (!doctorAuthUserId) {
+  if (!doctorAuthUserId || !doctorName) {
     try {
       const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
       const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${payload.doctorId}`, {
@@ -124,25 +125,36 @@ export const createAppointment = async (payload, patientId) => {
       if (response.ok) {
         const data = await response.json();
         const doctor = data?.data?.doctor || data?.doctor;
-        if (doctor?.authUserId) {
+        if (doctor?.authUserId && !doctorAuthUserId) {
           doctorAuthUserId = doctor.authUserId;
         }
-        if (doctor?.consultationFee) {
+        if (doctor?.doctorName && !doctorName) {
+          doctorName = doctor.doctorName;
+        }
+        if (doctor?.consultationFee && !consultationFee) {
           consultationFee = doctor.consultationFee;
         }
       }
     } catch (error) {
-      console.error("Could not fetch doctor authUserId or fee:", error.message);
+      console.error("Could not fetch doctor info:", error.message);
     }
   }
+
+  // Extract patient name from patientDetails
+  const patientName = payload.patientDetails?.fullName || payload.patientName || "Unknown Patient";
 
   // Update payload with fetched/provided values
   if (doctorAuthUserId) {
     appointmentPayload.doctorAuthUserId = doctorAuthUserId;
   }
+  if (doctorName) {
+    appointmentPayload.doctorName = doctorName;
+  }
   if (consultationFee) {
     appointmentPayload.consultationFee = consultationFee;
   }
+  // Always set patient name
+  appointmentPayload.patientName = patientName;
 
   // Ensure doctorAuthUserId is set
   if (!appointmentPayload.doctorAuthUserId) {

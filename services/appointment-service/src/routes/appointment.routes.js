@@ -9,6 +9,8 @@ import {
   updateAppointmentStatusController,
   getPendingAppointmentsController,
   confirmAppointmentController,
+  getAllAppointmentsController,
+  getAppointmentStatsController,
 } from "../controllers/appointment.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
@@ -83,6 +85,18 @@ router.get(
   "/admin/pending",
   requireRole("admin"),
   getPendingAppointmentsController
+);
+
+router.get(
+  "/admin/stats",
+  requireRole("admin"),
+  getAppointmentStatsController
+);
+
+router.get(
+  "/admin/all",
+  requireRole("admin"),
+  getAllAppointmentsController
 );
 
 router.put(

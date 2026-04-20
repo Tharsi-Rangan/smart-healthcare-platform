@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Search
 } from "lucide-react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
@@ -163,7 +164,7 @@ function DashboardPage() {
         <div className="flex gap-3 print:hidden">
           <button 
             onClick={handleDownloadPassport}
-            className="hidden items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-700 px-3 py-2 text-sm font-bold text-white transition-all hover:from-cyan-700 hover:to-sky-800 md:flex"
+            className="hidden items-center gap-2 rounded-xl bg-linear-to-r from-cyan-600 to-sky-700 px-3 py-2 text-sm font-bold text-white transition-all hover:from-cyan-700 hover:to-sky-800 md:flex"
           >
             <FileText className="h-4 w-4" />
             Medical Passport
@@ -221,7 +222,7 @@ function DashboardPage() {
             to={action.to}
             className="group flex items-center gap-4 rounded-xl bg-white p-2 shadow-sm border border-cyan-100 transition-all hover:shadow-md hover:border-cyan-200"
           >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white transition-transform group-hover:scale-110 ${action.color}`}>
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br text-white transition-transform group-hover:scale-110 ${action.color}`}>
               <action.icon className="h-4 w-4" />
             </div>
             <span className="font-bold text-slate-700 group-hover:text-cyan-700">{action.label}</span>
@@ -232,7 +233,7 @@ function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
         <div className="space-y-4">
            {/* Upcoming Appointments Section (Unified from Remote) */}
-           <div className="group rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50/30 p-4 shadow-sm transition-all hover:shadow-md">
+           <div className="group rounded-2xl border border-cyan-200 bg-linear-to-br from-white to-cyan-50/30 p-4 shadow-sm transition-all hover:shadow-md">
              <div className="mb-4 flex items-center justify-between">
                <div className="flex items-center gap-3">
                  <div className="rounded-xl bg-cyan-100 p-2 text-cyan-700">
@@ -251,9 +252,9 @@ function DashboardPage() {
              ) : (
                <div className="space-y-2">
                  {nextThreeDaysAppointments.slice(0, 3).map((apt) => (
-                   <div key={apt.id} className="flex items-center justify-between rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-2 transition-colors hover:from-sky-100 hover:to-cyan-100">
+                   <div key={apt.id} className="flex items-center justify-between rounded-xl border border-sky-200 bg-linear-to-r from-sky-50 to-cyan-50 p-2 transition-colors hover:from-sky-100 hover:to-cyan-100">
                      <div className="flex items-center gap-4">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-600 to-sky-700 shadow-sm font-bold text-white">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-600 to-sky-700 shadow-sm font-bold text-white">
                            {apt.doctorName[0]}
                         </div>
                         <div>
@@ -272,7 +273,7 @@ function DashboardPage() {
            </div>
 
            {/* Recent Activity (From Summary) */}
-           <div className="group rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-sky-50/30 p-4 shadow-sm transition-all hover:shadow-md">
+           <div className="group rounded-2xl border border-cyan-200 bg-linear-to-br from-white to-sky-50/30 p-4 shadow-sm transition-all hover:shadow-md">
              <div className="mb-4 flex items-center justify-between">
                <h2 className="text-lg font-bold text-slate-800 tracking-tight">Medical History</h2>
                <div className="rounded-xl bg-sky-100 p-2 text-sky-700">
@@ -311,14 +312,14 @@ function DashboardPage() {
           <HealthInsightCard />
           
           {/* Latest Uploaded Report Snapshot */}
-          <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50/40 p-4 shadow-sm">
+          <div className="rounded-2xl border border-cyan-200 bg-linear-to-br from-white to-cyan-50/40 p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
                <h2 className="text-base font-bold text-slate-800 tracking-tight">Latest Report</h2>
                <FileText className="h-4 w-4 text-cyan-600" />
             </div>
             {summary?.latestReport ? (
               <div className="space-y-2">
-                <div className="rounded-xl bg-gradient-to-br from-cyan-50 to-sky-50 p-2 border border-cyan-200">
+                <div className="rounded-xl bg-linear-to-br from-cyan-50 to-sky-50 p-2 border border-cyan-200">
                   <p className="text-sm font-bold text-slate-800 line-clamp-1">{summary.latestReport.title}</p>
                   <p className="mt-1 text-xs font-medium text-slate-500">{summary.latestReport.reportType || "General Report"}</p>
                 </div>
