@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDoctorAppointments, getMyAppointments, completeAppointment } from '../../services/appointmentApi';
+import { getDoctorAppointments, getMyAppointments, updateAppointmentStatus } from '../../services/appointmentApi';
 import { startConsultation, endConsultation, createPrescription } from '../../services/consultationApi';
 import { getToken } from '../../features/auth/authStorage';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -248,12 +248,13 @@ function VideoSessionPage() {
   const endSession = async () => {
     if (!window.confirm('End this consultation?')) return;
     try {
+      const token = getToken();
       if (consultation?._id) {
         console.log('Ending consultation:', consultation._id);
         await endConsultation(consultation._id, '');
       }
       console.log('Completing appointment:', activeSession._id);
-      await completeAppointment(activeSession._id);
+      await updateAppointmentStatus(activeSession._id, { status: 'completed' }, token);
       
       setActive(null);
       setConsultation(null);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getMyAppointments } from '../../services/appointmentApi';
+import { getMyAppointments, getAppointmentById, cancelAppointment, rescheduleAppointment } from '../../services/appointmentApi';
 import { getToken } from '../../features/auth/authStorage';
 import { useAuth } from '../../features/auth/AuthContext';
 import axios from 'axios';
@@ -16,6 +16,33 @@ function AppointmentsPage() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [filterType, setFilterType]     = useState('all'); // all, online, offline
   const [filterStatus, setFilterStatus] = useState('all'); // all, confirmed, pending
+  
+  // Detail view modal state
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  
+  // Reschedule modal state
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [reschedulingApptId, setReschedulingApptId] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [rescheduling, setRescheduling] = useState(false);
+  
+  // Cancel modal state
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelingApptId, setCancelingApptId] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [canceling, setCanceling] = useState(false);
+  
+  // Error message state
+  const [detailError, setDetailError] = useState('');
+  const [rescheduleError, setRescheduleError] = useState('');
+  const [rescheduleSuccess, setRescheduleSuccess] = useState('');
+  
+  // Doctor availability state
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
 
   useEffect(() => {
     fetchAppointments();
@@ -117,6 +144,145 @@ function AppointmentsPage() {
     
     return now >= windowStart && now <= windowEnd;
   };
+
+  // View appointment details
+  const viewAppointmentDetails = async (appointmentId) => {
+    try {
+      setDetailLoading(true);
+      setDetailError('');
+      const token = getToken();
+      const response = await getAppointmentById(appointmentId, token);
+      
+      if (!response || (!response.data && !response._id)) {
+        throw new Error('Invalid appointment data received');
+      }
+      
+      setSelectedAppointment(response?.data || response);
+      setDetailModalOpen(true);
+    } catch (err) {
+      console.error('Error fetching appointment details:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Could not load appointment details. Please try again.';
+      setDetailError(errorMsg);
+      setDetailModalOpen(true);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+  
+  // Check doctor availability for specific date
+  const checkDoctorAvailability = async () => {
+    try {
+      setCheckingAvailability(true);
+      // Default available time slots (9 AM to 5 PM, 1-hour intervals)
+      // In production, fetch from doctor's availability API
+      const timeSlots = [
+        '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'
+      ];
+      setAvailableSlots(timeSlots);
+    } catch (err) {
+      console.error('Error checking availability:', err);
+      setRescheduleError('Could not fetch available slots. Please try later.');
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  // Cancel appointment
+  const handleCancelAppointment = async () => {
+    try {
+      setCanceling(true);
+      const token = getToken();
+      await cancelAppointment(cancelingApptId, cancelReason, token);
+      alert('✅ Appointment cancelled successfully!');
+      setCancelModalOpen(false);
+      setCancelingApptId(null);
+      setCancelReason('');
+      fetchAppointments(); // Refresh the list
+    } catch (err) {
+      console.error('Error canceling appointment:', err);
+      alert('❌ Could not cancel appointment. ' + (err.response?.data?.message || err.message));
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  // Reschedule appointment with validation
+  const handleRescheduleAppointment = async () => {
+    setRescheduleError('');
+    setRescheduleSuccess('');
+    
+    // Validation checks
+    if (!rescheduleDate) {
+      setRescheduleError('❌ Please select a new date for rescheduling.');
+      return;
+    }
+    
+    if (!rescheduleTime) {
+      setRescheduleError('❌ Please select a new time slot for rescheduling.');
+      return;
+    }
+    
+    // Validate future date
+    const selectedDateTime = new Date(`${rescheduleDate}T${rescheduleTime}`);
+    if (selectedDateTime <= new Date()) {
+      setRescheduleError('❌ New appointment must be scheduled for a future date and time.');
+      return;
+    }
+    
+    // Validate minimum 24 hours in advance
+    const hoursAhead = (selectedDateTime - new Date()) / (1000 * 60 * 60);
+    if (hoursAhead < 24) {
+      setRescheduleError('⚠️ Appointments must be rescheduled at least 24 hours in advance.');
+      return;
+    }
+
+    try {
+      setRescheduling(true);
+      const token = getToken();
+      
+      await rescheduleAppointment(
+        reschedulingApptId,
+        { appointmentDate: rescheduleDate, appointmentTime: rescheduleTime },
+        token
+      );
+      
+      setRescheduleSuccess('✅ Appointment rescheduled successfully!');
+      
+      setTimeout(() => {
+        setRescheduleModalOpen(false);
+        setReschedulingApptId(null);
+        setRescheduleDate('');
+        setRescheduleTime('');
+        setRescheduleSuccess('');
+        fetchAppointments(); // Refresh the list
+      }, 1500);
+    } catch (err) {
+      console.error('Error rescheduling appointment:', err);
+      
+      // Handle specific error cases
+      let errorMsg = 'Could not reschedule appointment. ';
+      
+      if (err.response?.data?.message) {
+        errorMsg += err.response.data.message;
+      } else if (err.response?.status === 400) {
+        errorMsg += 'Invalid date or time. Please check the selected slot.';
+      } else if (err.response?.status === 409) {
+        errorMsg += 'This time slot is already booked. Please choose another time.';
+      } else if (err.response?.status === 403) {
+        errorMsg += 'You do not have permission to reschedule this appointment.';
+      } else if (err.response?.status === 404) {
+        errorMsg += 'Appointment not found. Please refresh and try again.';
+      } else {
+        errorMsg += err.message || 'Please try again later.';
+      }
+      
+      setRescheduleError(errorMsg);
+    } finally {
+      setRescheduling(false);
+    }
+  };
+  
+
 
   // Notify doctor that patient joined the session
   const notifyDoctorPatientJoined = async (appointmentId, doctorId, patientName, appointmentTime) => {
@@ -236,7 +402,7 @@ function AppointmentsPage() {
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-32 bg-gradient-to-r from-cyan-600 to-sky-700 rounded-2xl"></div>
+        <div className="h-32 bg-linear-to-r from-cyan-600 to-sky-700 rounded-2xl"></div>
         <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
           {[1,2,3,4].map(i => <div key={i} className="h-16 bg-slate-200 rounded-lg"></div>)}
         </div>
@@ -248,7 +414,7 @@ function AppointmentsPage() {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-700 p-6 text-white shadow-lg">
+      <div className="rounded-2xl bg-linear-to-r from-cyan-600 to-sky-700 p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">My Appointments</h1>
@@ -280,18 +446,18 @@ function AppointmentsPage() {
 
       {/* Info Banners */}
       <div className="grid gap-2 md:grid-cols-2">
-        <div className="rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 px-4 py-3 shadow-sm">
+        <div className="rounded-xl border border-cyan-200 bg-linear-to-br from-cyan-50 to-sky-50 px-4 py-3 shadow-sm">
           <div className="flex gap-3">
-            <div className="flex-shrink-0 text-xl">📹</div>
+            <div className="shrink-0 text-xl">📹</div>
             <div>
               <p className="font-semibold text-cyan-900">Video Consultations</p>
               <p className="text-xs text-cyan-700 mt-1">Ensure camera & microphone are working. Use stable internet connection.</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-sky-100 px-4 py-3 shadow-sm">
+        <div className="rounded-xl border border-sky-200 bg-linear-to-br from-sky-50 to-sky-100 px-4 py-3 shadow-sm">
           <div className="flex gap-3">
-            <div className="flex-shrink-0 text-xl">🏥</div>
+            <div className="shrink-0 text-xl">🏥</div>
             <div>
               <p className="font-semibold text-sky-900">Clinic Visits</p>
               <p className="text-xs text-sky-700 mt-1">Visit at the scheduled date and time. Bring required documents.</p>
@@ -382,8 +548,8 @@ function AppointmentsPage() {
       {preSelected && (
         <div className={`rounded-2xl border-2 p-5 shadow-lg transition transform hover:scale-102 ${
           preSelected.consultationType === 'online'
-            ? 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50'
-            : 'border-sky-300 bg-gradient-to-br from-sky-50 to-sky-100'
+            ? 'border-cyan-300 bg-linear-to-br from-cyan-50 to-sky-50'
+            : 'border-sky-300 bg-linear-to-br from-sky-50 to-sky-100'
         }`}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -436,7 +602,7 @@ function AppointmentsPage() {
       )}
 
       {/* All appointments */}
-        <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50/50 to-sky-50/50 p-6 shadow-md">
+        <div className="rounded-2xl border border-cyan-200 bg-linear-to-br from-cyan-50/50 to-sky-50/50 p-6 shadow-md">
         <div className="flex items-center justify-between mb-5">
           <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900">
             <span className="text-2xl">📋</span>
@@ -514,9 +680,9 @@ function AppointmentsPage() {
                   className={`rounded-2xl border-2 p-5 transition hover:shadow-lg ${
                     (isOnline && canJoinSession) || (!isOnline && isConfirmed)
                       ? isOnline 
-                        ? 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-md' 
-                        : 'border-sky-300 bg-gradient-to-br from-sky-50 to-sky-100 shadow-md'
-                      : 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50'
+                        ? 'border-cyan-300 bg-linear-to-br from-cyan-50 to-sky-50 shadow-md' 
+                        : 'border-sky-300 bg-linear-to-br from-sky-50 to-sky-100 shadow-md'
+                      : 'border-cyan-300 bg-linear-to-br from-cyan-50 to-sky-50'
                   }`}
                 >
                   {/* Top Row: Doctor Info */}
@@ -613,6 +779,53 @@ function AppointmentsPage() {
                         {joining === appt._id ? 'Joining...' : canJoinSession ? 'Join Now' : 'N/A'}
                       </button>
                     )}
+                    
+                    {/* View Details Button */}
+                    <button
+                      onClick={() => viewAppointmentDetails(appt._id)}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-slate-200 py-2 font-bold text-sm text-slate-700 hover:bg-slate-300 transition"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Details
+                    </button>
+                    
+                    {/* Reschedule Button (only if pending or future) */}
+                    {!isAppointmentDateToday(appt.appointmentDate) && (
+                      <button
+                        onClick={() => {
+                          setReschedulingApptId(appt._id);
+                          setRescheduleDate(appt.appointmentDate);
+                          setRescheduleTime(appt.appointmentTime);
+                          setRescheduleModalOpen(true);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-amber-200 py-2 font-bold text-sm text-amber-800 hover:bg-amber-300 transition"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reschedule
+                      </button>
+                    )}
+                    
+                    {/* Cancel Button (only if not already past appointment) */}
+                    {!isAppointmentDateToday(appt.appointmentDate) && (
+                      <button
+                        onClick={() => {
+                          setCancelingApptId(appt._id);
+                          setCancelReason('');
+                          setCancelModalOpen(true);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-200 py-2 font-bold text-sm text-red-800 hover:bg-red-300 transition"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -620,6 +833,332 @@ function AppointmentsPage() {
           </div>
         )}
       </div>
+
+      {/* ============ DETAIL VIEW MODAL ============ */}
+      {detailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-y-auto">
+            {detailLoading ? (
+              <div className="space-y-4 p-6 animate-pulse">
+                <div className="h-8 bg-slate-200 rounded"></div>
+                <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+                <div className="space-y-2 mt-4">
+                  {[1, 2, 3, 4].map(i => <div key={i} className="h-4 bg-slate-200 rounded"></div>)}
+                </div>
+              </div>
+            ) : selectedAppointment ? (
+              <div className="p-6 space-y-4">
+                {/* Error Display */}
+                {detailError && (
+                  <div className="rounded-lg bg-rose-50 p-4 border border-rose-200">
+                    <p className="text-sm text-rose-700 font-medium">{detailError}</p>
+                  </div>
+                )}
+                
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-slate-900">Appointment Details</h2>
+                  <button
+                    onClick={() => setDetailModalOpen(false)}
+                    className="rounded-lg p-2 hover:bg-slate-100 transition"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Doctor Info Card */}
+                <div className="rounded-xl bg-linear-to-br from-cyan-50 to-sky-50 p-5 border border-cyan-200">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">👨‍⚕️ {selectedAppointment.doctorName || 'Doctor'}</h3>
+                      <p className="text-sm text-slate-600 mt-2">🎓 Specialty: {selectedAppointment.specialization || 'Not specified'}</p>
+                      {selectedAppointment.doctorId && <p className="text-xs text-slate-500 mt-1">ID: {selectedAppointment.doctorId}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appointment Details Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase">📅 Date</p>
+                    <p className="text-base font-bold text-slate-900 mt-2">
+                      {new Date(selectedAppointment.appointmentDate).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase">🕐 Time</p>
+                    <p className="text-base font-bold text-slate-900 mt-2">{selectedAppointment.appointmentTime || 'TBA'}</p>
+                  </div>
+
+                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Type</p>
+                    <p className="text-base font-bold text-slate-900 mt-2">
+                      {selectedAppointment.consultationType === 'online' ? '📹 Video' : '🏥 Clinic'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase">Status</p>
+                    <p className={`text-base font-bold mt-2 ${selectedAppointment.status === 'confirmed' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {selectedAppointment.status === 'confirmed' ? '✓ Confirmed' : '⏳ Pending'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Reason for Visit */}
+                {selectedAppointment.reason && (
+                  <div className="rounded-lg bg-slate-50 p-4 border border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-2">💬 Reason for Visit</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{selectedAppointment.reason}</p>
+                  </div>
+                )}
+
+                {/* Patient Details */}
+                {selectedAppointment.patientDetails && (
+                  <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+                    <p className="text-xs font-semibold text-blue-600 uppercase mb-2">👤 Your Details</p>
+                    <div className="space-y-1 text-sm text-blue-900">
+                      <p><strong>Name:</strong> {selectedAppointment.patientDetails.fullName}</p>
+                      <p><strong>Phone:</strong> {selectedAppointment.patientDetails.phone}</p>
+                      <p><strong>Address:</strong> {selectedAppointment.patientDetails.address}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Consultation Fee */}
+                {selectedAppointment.consultationFee && (
+                  <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-200">
+                    <p className="text-xs font-semibold text-emerald-600 uppercase">💰 Consultation Fee</p>
+                    <p className="text-lg font-bold text-emerald-700 mt-1">Rs. {selectedAppointment.consultationFee}</p>
+                  </div>
+                )}
+
+                {/* Instructions */}
+                <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+                  <p className="text-xs font-semibold text-blue-600 uppercase mb-2">ℹ️ Instructions</p>
+                  <p className="text-sm text-blue-900 leading-relaxed">
+                    {selectedAppointment.consultationType === 'online' 
+                      ? '📹 Video Consultation: Ensure your camera and microphone are working properly. You can join 30 minutes before the scheduled time. Check your internet connection beforehand.'
+                      : '🏥 Clinic Visit: Please arrive 10-15 minutes early. Bring your ID and insurance card if applicable. Follow any pre-appointment instructions provided by the clinic.'}
+                  </p>
+                </div>
+
+                {/* Close Button */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => setDetailModalOpen(false)}
+                    className="w-full rounded-lg bg-cyan-600 px-4 py-2.5 font-bold text-white hover:bg-cyan-700 transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center">
+                {detailError ? (
+                  <div className="space-y-4">
+                    <div className="text-rose-600 font-semibold">{detailError}</div>
+                    <button
+                      onClick={() => setDetailModalOpen(false)}
+                      className="rounded-lg bg-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-300 transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-slate-600">Could not load appointment details</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ RESCHEDULE MODAL ============ */}
+      {rescheduleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl p-6 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-slate-900">📅 Reschedule Appointment</h3>
+              <button
+                onClick={() => setRescheduleModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+                disabled={rescheduling}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Success Message */}
+            {rescheduleSuccess && (
+              <div className="mb-4 rounded-lg bg-emerald-50 p-3 border border-emerald-200">
+                <p className="text-sm text-emerald-700 font-medium">{rescheduleSuccess}</p>
+              </div>
+            )}
+            
+            {/* Error Message */}
+            {rescheduleError && (
+              <div className="mb-4 rounded-lg bg-rose-50 p-3 border border-rose-200">
+                <p className="text-sm text-rose-700 font-medium">{rescheduleError}</p>
+              </div>
+            )}
+            
+            {!rescheduleSuccess && (
+              <div className="space-y-4">
+                {/* Current Appointment Info */}
+                <div className="rounded-lg bg-slate-50 p-3 border border-slate-200 text-sm">
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Current Appointment</p>
+                  <p className="text-slate-800 mt-1">
+                    {selectedAppointment?.doctorName} • {selectedAppointment?.appointmentTime}
+                  </p>
+                </div>
+
+                {/* New Date Input */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Select New Date *</label>
+                  <input
+                    type="date"
+                    value={rescheduleDate}
+                    onChange={(e) => {
+                      setRescheduleDate(e.target.value);
+                      if (e.target.value) {
+                        checkDoctorAvailability();
+                      }
+                    }}
+                    min={new Date(new Date().getTime() + 24*60*60*1000).toISOString().split('T')[0]}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-slate-100"
+                    disabled={rescheduling}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">⚠️ Must be at least 24 hours from now</p>
+                </div>
+
+                {/* Time Slot Selection */}
+                {rescheduleDate && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Select New Time *</label>
+                    {checkingAvailability ? (
+                      <p className="text-sm text-slate-600">Loading available slots...</p>
+                    ) : availableSlots.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {availableSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            onClick={() => setRescheduleTime(slot)}
+                            className={`py-2 px-2 rounded-lg text-sm font-medium transition ${
+                              rescheduleTime === slot
+                                ? 'bg-cyan-600 text-white'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                            disabled={rescheduling}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-amber-600">No available slots for this date. Please select another date.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Restrictions Info */}
+                <div className="rounded-lg bg-amber-50 p-3 border border-amber-200">
+                  <p className="text-xs text-amber-800">
+                    <strong>📋 Important:</strong> You can only reschedule to available slots. Appointments must be at least 24 hours in advance.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setRescheduleModalOpen(false)}
+                    className="flex-1 rounded-lg bg-slate-200 px-3 py-2.5 font-medium text-slate-700 hover:bg-slate-300 transition disabled:opacity-50"
+                    disabled={rescheduling}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRescheduleAppointment}
+                    disabled={rescheduling || !rescheduleDate || !rescheduleTime}
+                    className="flex-1 rounded-lg bg-cyan-600 px-3 py-2.5 font-medium text-white hover:bg-cyan-700 transition disabled:opacity-50 disabled:bg-slate-300"
+                  >
+                    {rescheduling ? '⏳ Rescheduling...' : '✓ Confirm'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ CANCEL MODAL ============ */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">Cancel Appointment</h2>
+                <button
+                  onClick={() => setCancelModalOpen(false)}
+                  className="rounded-lg p-2 hover:bg-slate-100 transition"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Warning Message */}
+              <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200">
+                <p className="text-sm text-red-900">
+                  <strong>⚠️ Warning:</strong> This action cannot be undone. Are you sure you want to cancel this appointment?
+                </p>
+              </div>
+
+              {/* Reason Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Reason for Cancellation (Optional)</label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Tell us why you're canceling..."
+                  rows="3"
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCancelModalOpen(false)}
+                  className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 font-bold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Keep Appointment
+                </button>
+                <button
+                  onClick={handleCancelAppointment}
+                  disabled={canceling}
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 font-bold text-white hover:bg-red-700 transition disabled:opacity-50"
+                >
+                  {canceling ? 'Canceling...' : 'Cancel Appointment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

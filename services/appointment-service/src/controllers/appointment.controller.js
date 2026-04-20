@@ -151,14 +151,18 @@ export const confirmAppointmentController = asyncHandler(async (req, res) => {
     throw new AppError("Payment must be verified before confirming appointment", 400);
   }
 
-  appointment.adminConfirmed = true;
-  await appointment.save();
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  const updatedAppointment = await Appointment.findByIdAndUpdate(
+    req.params.id,
+    { adminConfirmed: true },
+    { new: true, runValidators: false }
+  );
 
   res.status(200).json({
     success: true,
     message: "Appointment confirmed by admin successfully",
     data: {
-      appointment,
+      appointment: updatedAppointment,
     },
   });
 });

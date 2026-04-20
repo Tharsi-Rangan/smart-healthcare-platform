@@ -222,8 +222,12 @@ export const cancelAppointment = async (appointmentId, patientId) => {
     throw new AppError("Appointment is already cancelled", 400);
   }
 
-  appointment.status = "cancelled";
-  return appointment.save();
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  return await Appointment.findByIdAndUpdate(
+    appointmentId,
+    { status: "cancelled" },
+    { new: true, runValidators: false }
+  );
 };
 
 export const rescheduleAppointment = async (appointmentId, patientId, rescheduleData) => {
@@ -255,19 +259,16 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
     excludeId: appointment._id,
   });
 
-  appointment.appointmentDate = normalizeAppointmentDate(rescheduleData.appointmentDate);
-  appointment.appointmentTime = normalizeAppointmentTime(rescheduleData.appointmentTime);
-  appointment.status = "pending";
-
-  try {
-    return await appointment.save();
-  } catch (error) {
-    if (error.code === 11000) {
-      throw new AppError("Appointment slot already booked", 409);
-    }
-
-    throw error;
-  }
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  return await Appointment.findByIdAndUpdate(
+    appointmentId,
+    {
+      appointmentDate: normalizeAppointmentDate(rescheduleData.appointmentDate),
+      appointmentTime: normalizeAppointmentTime(rescheduleData.appointmentTime),
+      status: "pending",
+    },
+    { new: true, runValidators: false }
+  );
 };
 
 export const getDoctorAppointments = async (authUserId) => {
@@ -323,7 +324,13 @@ export const updateAppointmentStatus = async (appointmentId, doctorAuthUserId, s
     throw new AppError("Cannot update a cancelled appointment", 400);
   }
 
-  appointment.status = status;
-  appointment.doctorAuthUserId = doctorAuthUserId;
-  return appointment.save();
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  return await Appointment.findByIdAndUpdate(
+    appointmentId,
+    {
+      status,
+      doctorAuthUserId,
+    },
+    { new: true, runValidators: false }
+  );
 };
