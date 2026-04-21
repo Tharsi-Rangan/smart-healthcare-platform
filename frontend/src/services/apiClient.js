@@ -8,15 +8,23 @@ const apiClient = axios.create({
   },
 });
 
+const publicAuthPaths = [
+  "/api/auth/login",
+  "/api/auth/register/patient",
+  "/api/auth/register/doctor",
+  "/api/auth/verify-email-otp",
+  "/api/auth/resend-email-otp",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+];
+
 // Add a request interceptor to automatically add the token to headers
 apiClient.interceptors.request.use(
   (config) => {
     const token = getToken();
-    
-    // Debug log to ensure this runs
-    console.log("Adding Token to Request:", token ? "Yes" : "No");
+    const requestPath = new URL(config.url || "", config.baseURL).pathname;
 
-    if (token) {
+    if (token && !publicAuthPaths.includes(requestPath)) {
       // Modern Axios method to guarantee headers are set
       config.headers.set("Authorization", `Bearer ${token}`);
     }

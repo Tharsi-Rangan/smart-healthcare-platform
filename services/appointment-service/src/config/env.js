@@ -13,6 +13,6 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 export const env = {
   port: Number(process.env.PORT) || 5003,
   nodeEnv: process.env.NODE_ENV || "development",
-  mongoUri: process.env.MONGODB_URI || process.env.MONGO_URI,
+  mongoUri: process.env.MONGODB_URI || process.env.MONGODB_URI,
   jwtSecret: process.env.JWT_SECRET || "change-me-in-production",
 };
