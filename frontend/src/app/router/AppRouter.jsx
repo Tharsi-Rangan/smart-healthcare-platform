@@ -21,7 +21,6 @@ import ReportsPage from "../../pages/patient/ReportsPage";
 import PrescriptionsPage from "../../pages/patient/PrescriptionsPage";
 import AppointmentsPage from "../../pages/patient/AppointmentsPage";
 import AppointmentHistoryPage from "../../pages/patient/AppointmentHistoryPage";
-import NotificationsPage from "../../pages/patient/NotificationsPage";
 import SymptomCheckerPage from "../../pages/patient/SymptomCheckerPage";
 import VideoConsultationPage from "../../pages/patient/VideoConsultationPage";
 import PaymentsPage from "../../pages/patient/PaymentsPage";
@@ -47,6 +46,7 @@ import BookAppointmentPage from "../../pages/shared/BookAppointmentPage";
 import PaymentPage from "../../pages/shared/PaymentPage";
 import VideoRoomPage from "../../pages/shared/VideoRoomPage";
 import SharedSymptomCheckerPage from "../../pages/shared/SymptomCheckerPage";
+import SharedNotificationsPage from "../../pages/shared/NotificationsPage";
 
 import ProtectedRoute from "../../components/auth/ProtectedRoute";
 
@@ -81,7 +81,7 @@ function AppRouter() {
             <Route path="prescriptions" element={<PrescriptionsPage />} />
             <Route path="appointments" element={<AppointmentsPage />} />
             <Route path="appointment-history" element={<AppointmentHistoryPage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="notifications" element={<SharedNotificationsPage />} />
             <Route path="symptom-checker" element={<SymptomCheckerPage />} />
             <Route path="consultation" element={<VideoConsultationPage />} />
             <Route path="payments" element={<PaymentsPage />} />
@@ -99,6 +99,7 @@ function AppRouter() {
             <Route path="availability" element={<AvailabilityPage />} />
             <Route path="appointments" element={<DoctorAppointmentsPage />} />
             <Route path="consultations" element={<VideoSessionPage />} />
+            <Route path="notifications" element={<SharedNotificationsPage />} />
             <Route path="reports" element={<ReportsReviewPage />} />
             <Route path="reports/:patientId" element={<UpdateReportPage />} />
             <Route path="prescriptions" element={<PrescriptionPage />} />
@@ -116,6 +117,7 @@ function AppRouter() {
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="payment-approvals" element={<TransactionsPage />} />
             <Route path="appointments" element={<AppointmentVerificationPage />} />
+            <Route path="notifications" element={<SharedNotificationsPage />} />
           </Route>
         </Route>
       </Routes>

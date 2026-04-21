@@ -11,6 +11,8 @@ import { useAuth } from "../../features/auth/AuthContext";
 
 const normalizeType = (type = "") => {
   if (!type) return "system";
+  if (type.startsWith("doctor_")) return "verification";
+  if (type.startsWith("payment_")) return "payment";
   if (type.includes("_")) return type.split("_")[0];
   return type;
 };

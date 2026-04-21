@@ -12,7 +12,6 @@ import {
   resetPassword,
   getCurrentUser,
 } from "../services/auth.service.js";
-import { buildDoctorRegistrationNotification, sendNotificationViaService } from "/shared/utils/notificationHelper.js";
 
 const handleValidationErrors = (req) => {
   const errors = validationResult(req);
@@ -48,11 +47,20 @@ export const registerDoctorController = asyncHandler(async (req, res) => {
 
   const user = await registerDoctor(req.body);
 
-  // Send notification to admin about new doctor registration (async, non-blocking)
-  const notificationData = buildDoctorRegistrationNotification(user);
-  // Generate a temporary token for notification service call
-  const tempToken = Math.random().toString(36).substr(2, 9);
-  sendNotificationViaService(axios, '/notifications/send', notificationData, tempToken);
+  // Fire-and-forget admin notification for new doctor registration.
+  const gatewayUrl = process.env.API_GATEWAY_URL || "http://localhost:5000";
+  axios
+    .post(`${gatewayUrl}/api/notifications/send`, {
+      userId: "admin",
+      role: "admin",
+      title: "New Doctor Registration",
+      message: `${user.name} (${user.email}) registered and is waiting for verification.`,
+      type: "doctor_registration",
+      relatedId: user._id?.toString(),
+    })
+    .catch((error) => {
+      console.warn("Failed to publish doctor registration notification:", error.message);
+    });
 
   res.status(201).json({
     success: true,

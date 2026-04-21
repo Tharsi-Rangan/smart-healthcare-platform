@@ -26,7 +26,7 @@ router.put('/payments/:id/approve',   protect, authorize('admin'), approvePaymen
 router.put('/payments/:id/reject',    protect, authorize('admin'), rejectPayment);     // Admin rejects
 
 // Notification routes
-router.post('/notifications/send',                  protect, sendNotification);
+router.post('/notifications/send',                  sendNotification);
 router.post('/notifications/appointment-confirmed', protect, notifyAppointmentConfirmed);
 router.post('/notifications/appointment-booked',    protect, notifyAppointmentBooked);
 router.post('/notifications/payment-confirmed',     protect, notifyPaymentConfirmed);

@@ -254,7 +254,8 @@ const serviceMap = {
   'symptoms': process.env.SYMPTOM_CHECKER_URL || 'http://symptom-checker-service:5007',
   'consultations': process.env.CONSULTATION_SERVICE_URL || 'http://consultation-service:5004',
   'payments': process.env.PAYMENT_SERVICE_URL || 'http://payment-service:5005',
-  'notifications': process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:5008',
+  // Notifications API is implemented in payment-service routes (/api/notifications/*).
+  'notifications': process.env.PAYMENT_SERVICE_URL || 'http://payment-service:5005',
   'doctors': process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5006',
   'symptom-checker': process.env.SYMPTOM_CHECKER_URL || 'http://symptom-checker-service:5007',
 };

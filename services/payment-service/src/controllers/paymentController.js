@@ -6,6 +6,11 @@ import { validatePayhereSignature, getPayhereStatusMessage } from '../utils/payh
 import crypto from 'crypto';
 import axios from 'axios';
 
+const parseFeeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 // Helper function to fetch doctor details from doctor service
 const fetchDoctorDetails = async (doctorId) => {
   try {
@@ -90,9 +95,19 @@ export const initiatePayment = async (req, res) => {
 
     // Fetch doctor details to get consultation fee and specialization
     const doctorDetails = await fetchDoctorDetails(doctorId);
-    const consultationFee = doctorDetails?.consultationFee || amount || 500;
+    const consultationFee = parseFeeNumber(doctorDetails?.consultationFee ?? amount, 500);
     const specialization = doctorDetails?.specialization || '';
     const finalDoctorName = doctorDetails?.doctorName || doctorName || 'Doctor';
+
+    const platformFeePercent = parseFeeNumber(process.env.PLATFORM_FEE_PERCENT, 5);
+    const fixedServiceFee = parseFeeNumber(process.env.SERVICE_FEE_FIXED, 100);
+    const taxPercent = parseFeeNumber(process.env.PAYMENT_TAX_PERCENT, 0);
+
+    const platformFee = Math.round((consultationFee * platformFeePercent) / 100);
+    const serviceFee = Math.round(fixedServiceFee);
+    const subtotal = consultationFee + platformFee + serviceFee;
+    const taxAmount = Math.round((subtotal * taxPercent) / 100);
+    const totalAmount = subtotal + taxAmount;
 
     const payment = await Payment.create({
       appointmentId,
@@ -104,7 +119,10 @@ export const initiatePayment = async (req, res) => {
       doctorName: finalDoctorName,
       specialization,
       consultationFee,
-      amount: consultationFee,
+      platformFee,
+      serviceFee,
+      taxAmount,
+      amount: totalAmount,
       currency:      currency || 'LKR',
       paymentMethod: paymentMethod || 'payhere',
       status: 'pending',
@@ -123,7 +141,7 @@ export const initiatePayment = async (req, res) => {
       order_id:      payment._id.toString(),
       items:         `Consultation with ${finalDoctorName}`,
       currency:      currency || 'LKR',
-      amount:        consultationFee.toFixed(2),
+      amount:        totalAmount.toFixed(2),
       first_name:    (patientName?.split(' ')[0] || req.user.name?.split(' ')[0] || 'Patient'),
       last_name:     (patientName?.split(' ').slice(1).join(' ') || req.user.name?.split(' ').slice(1).join(' ') || ''),
       email:         patientEmail || req.user.email || '',
@@ -164,15 +182,32 @@ export const confirmPayment = async (req, res) => {
     payment.paidAt        = new Date();
     await payment.save();
 
-    // Create notification
-    await Notification.create({
-      userId:    payment.patientId,
-      role:      'patient',
-      title:     'Payment Successful',
-      message:   `Your payment of LKR ${payment.amount} for consultation with ${payment.doctorName} was successful.`,
-      type:      'payment',
-      relatedId: payment._id.toString(),
-    });
+    await Notification.create([
+      {
+        userId: String(payment.patientId),
+        role: 'patient',
+        title: 'Payment Successful',
+        message: `Your payment of LKR ${payment.amount} for consultation with ${payment.doctorName} was successful.`,
+        type: 'payment',
+        relatedId: payment._id.toString(),
+      },
+      {
+        userId: String(payment.doctorId),
+        role: 'doctor',
+        title: 'Payment Received',
+        message: `${payment.patientName || 'A patient'} completed payment of LKR ${payment.amount} for your appointment.`,
+        type: 'payment',
+        relatedId: payment._id.toString(),
+      },
+      {
+        userId: 'admin',
+        role: 'admin',
+        title: 'Payment Completed',
+        message: `Payment of LKR ${payment.amount} was completed for ${payment.patientName || 'a patient'} and Dr. ${payment.doctorName || 'doctor'}.`,
+        type: 'payment',
+        relatedId: payment._id.toString(),
+      },
+    ]);
 
     // Send email receipt
     if (patientEmail) {
@@ -256,14 +291,32 @@ export const payhereNotify = async (req, res) => {
     if (wasCompleted) {
       console.log('[PayHere] Payment completed, creating notification');
       
-      const notification = await Notification.create({
-        userId: payment.patientId,
-        role: 'patient',
-        title: '✓ Payment Successful',
-        message: `Your payment of LKR ${payment.amount} for consultation with ${payment.doctorName} was successful.`,
-        type: 'payment',
-        relatedId: payment._id.toString(),
-      });
+      await Notification.create([
+        {
+          userId: String(payment.patientId),
+          role: 'patient',
+          title: '✓ Payment Successful',
+          message: `Your payment of LKR ${payment.amount} for consultation with ${payment.doctorName} was successful.`,
+          type: 'payment',
+          relatedId: payment._id.toString(),
+        },
+        {
+          userId: String(payment.doctorId),
+          role: 'doctor',
+          title: '💰 Payment Received',
+          message: `${payment.patientName || 'A patient'} completed payment of LKR ${payment.amount} for your appointment.`,
+          type: 'payment',
+          relatedId: payment._id.toString(),
+        },
+        {
+          userId: 'admin',
+          role: 'admin',
+          title: 'Payment Completed',
+          message: `Payment of LKR ${payment.amount} was completed for ${payment.patientName || 'a patient'} and Dr. ${payment.doctorName || 'doctor'}.`,
+          type: 'payment',
+          relatedId: payment._id.toString(),
+        },
+      ]);
 
       // Send email receipt
       if (payment.patientEmail) {
@@ -391,7 +444,7 @@ export const approvePayment = async (req, res) => {
       role: 'patient',
       title: '✓ Payment Approved',
       message: `Your payment for consultation with ${payment.doctorName} has been approved. You can now start the video consultation.`,
-      type: 'payment_approved',
+      type: 'payment',
       relatedId: payment._id.toString(),
     });
 
@@ -448,7 +501,7 @@ export const rejectPayment = async (req, res) => {
       role: 'patient',
       title: '✗ Payment Rejected',
       message: `Your payment has been rejected. Reason: ${reason || 'Not specified'}. Your refund will be processed shortly.`,
-      type: 'payment_rejected',
+      type: 'payment',
       relatedId: payment._id.toString(),
     });
 
