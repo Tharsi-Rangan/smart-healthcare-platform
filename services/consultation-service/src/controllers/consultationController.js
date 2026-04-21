@@ -11,6 +11,32 @@ const getAppointmentById = async (appointmentId, token) => {
   return res?.data?.data?.appointment || res?.data?.data;
 };
 
+const getAppointmentDateTime = (appointment) => {
+  const dateText = String(appointment?.appointmentDate || '').slice(0, 10);
+  const [year, month, day] = dateText.split('-').map(Number);
+  const [hours, minutes] = String(appointment?.appointmentTime || '').split(':').map(Number);
+
+  if (!year || !month || !day || Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+};
+
+const isWithinVideoJoinWindow = (appointment) => {
+  const scheduledAt = getAppointmentDateTime(appointment);
+
+  if (!scheduledAt) {
+    return false;
+  }
+
+  const now = Date.now();
+  const startsAt = scheduledAt.getTime() - 30 * 60000;
+  const endsAt = scheduledAt.getTime() + 30 * 60000;
+
+  return now >= startsAt && now <= endsAt;
+};
+
 // POST /api/consultations/start — doctor starts session
 export const startConsultation = async (req, res) => {
   try {
@@ -159,46 +185,58 @@ export const getVideoToken = async (req, res) => {
       });
     }
 
+    const authHeader = req.headers.authorization || '';
+    const authToken = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : '';
+    if (!authToken) {
+      return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+    }
+
+    let appointment;
+    try {
+      appointment = await getAppointmentById(appointmentId, authToken);
+    } catch {
+      return res.status(404).json({ success: false, message: 'Appointment not found.' });
+    }
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found.' });
+    }
+
+    const doctorAuthUserId = String(appointment.doctorAuthUserId || appointment.doctorAuthId || appointment.doctorId);
+    const patientAuthUserId = String(appointment.patientAuthUserId || appointment.patientAuthId || appointment.patientId);
+    const currentUserId = String(req.user.userId);
+    const isParticipant = doctorAuthUserId === currentUserId || patientAuthUserId === currentUserId;
+
+    if (!isParticipant && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied to this consultation.' });
+    }
+
+    if (appointment.consultationType !== 'online') {
+      return res.status(400).json({ success: false, message: 'Only online appointments can use the video room.' });
+    }
+
+    if (appointment.status !== 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Consultation can only start for confirmed appointments.',
+      });
+    }
+
+    if (!isWithinVideoJoinWindow(appointment)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Video room opens 30 minutes before the consultation and closes 30 minutes after the scheduled time.',
+      });
+    }
+
     let consultation = await Consultation.findOne({ appointmentId });
     if (!consultation) {
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : '';
-      if (!token) {
-        return res.status(401).json({ success: false, message: 'Not authorized, no token' });
-      }
-
-      let appointment;
-      try {
-        appointment = await getAppointmentById(appointmentId, token);
-      } catch {
-        return res.status(404).json({ success: false, message: 'Appointment not found.' });
-      }
-
-      if (!appointment) {
-        return res.status(404).json({ success: false, message: 'Appointment not found.' });
-      }
-
-      const doctorAuthUserId = appointment.doctorAuthUserId || appointment.doctorAuthId || appointment.doctorId;
-      const patientAuthUserId = appointment.patientAuthUserId || appointment.patientAuthId || appointment.patientId;
-      const isParticipant = doctorAuthUserId === req.user.userId || patientAuthUserId === req.user.userId;
-
-      if (!isParticipant && req.user.role !== 'admin') {
-        return res.status(403).json({ success: false, message: 'Access denied to this consultation.' });
-      }
-
-      if (appointment.status !== 'confirmed') {
-        return res.status(400).json({
-          success: false,
-          message: 'Consultation can only start for confirmed appointments.',
-        });
-      }
-
       const resolvedRoomName = `mediconnect-${appointmentId}`;
       consultation = await Consultation.create({
         appointmentId,
-        patientId: String(patientAuthUserId),
+        patientId: patientAuthUserId,
         patientName: appointment.patientName || appointment.patientDetails?.fullName || 'Patient',
-        doctorId: String(doctorAuthUserId),
+        doctorId: doctorAuthUserId,
         doctorName: appointment.doctorName || 'Doctor',
         specialization: appointment.specialization || appointment.specialty,
         roomName: resolvedRoomName,
@@ -207,8 +245,10 @@ export const getVideoToken = async (req, res) => {
       });
     }
 
-    const isParticipant = consultation.patientId === req.user.userId || consultation.doctorId === req.user.userId;
-    if (!isParticipant) {
+    const isConsultationParticipant =
+      String(consultation.patientId) === currentUserId ||
+      String(consultation.doctorId) === currentUserId;
+    if (!isConsultationParticipant) {
       return res.status(403).json({ success: false, message: 'Access denied to this consultation.' });
     }
 

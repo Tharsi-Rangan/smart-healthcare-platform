@@ -49,7 +49,12 @@ export const getAppointmentController = asyncHandler(async (req, res) => {
     throw new AppError("Appointment not found", 404);
   }
 
-  if (String(appointment.patientId) !== String(req.user.id)) {
+  const isPatientOwner = String(appointment.patientId) === String(req.user.id);
+  const isAssignedDoctor =
+    req.user.role === "doctor" &&
+    String(appointment.doctorAuthUserId || appointment.doctorId) === String(req.user.id);
+
+  if (!isPatientOwner && !isAssignedDoctor) {
     throw new AppError("Unauthorized access to this appointment", 403);
   }
 

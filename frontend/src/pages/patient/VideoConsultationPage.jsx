@@ -1,33 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { endVideoSession } from "../../services/consultationApi";
+import { CalendarDays, Clock, FileText, Stethoscope, Video } from "lucide-react";
 import { getPatientAppointments } from "../../services/appointmentApi";
-import { Video, Mic, MicOff, Phone } from "lucide-react";
+import {
+  formatAppointmentDate,
+  formatAppointmentDateTime,
+  formatWindowText,
+  getAppointmentId,
+  getJoinState,
+  getParticipantName,
+} from "../../utils/videoConsultation";
 
 function VideoConsultationPage() {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sessionActive, setSessionActive] = useState(false);
-  const [error, setError] = useState(null);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [error, setError] = useState("");
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const loadAppointments = async () => {
       try {
         setLoading(true);
+        setError("");
+
         const response = await getPatientAppointments();
         const appointmentsList = response.data?.appointments || [];
-        const confirmedAppointments = appointmentsList.filter((apt) => apt.status === "confirmed");
-        setAppointments(confirmedAppointments);
-        if (confirmedAppointments.length > 0) {
-          setSelectedAppointment(confirmedAppointments[0]);
+        const videoAppointments = appointmentsList.filter(
+          (appointment) =>
+            appointment.consultationType === "online" &&
+            ["confirmed", "completed"].includes(appointment.status)
+        );
+
+        setAppointments(videoAppointments);
+
+        if (videoAppointments.length > 0) {
+          setSelectedAppointmentId(getAppointmentId(videoAppointments[0]));
         }
       } catch (err) {
-        setError("Failed to load appointments");
-        console.error(err);
+        setError(err?.response?.data?.message || "Failed to load video consultations");
       } finally {
         setLoading(false);
       }
@@ -36,112 +53,42 @@ function VideoConsultationPage() {
     loadAppointments();
   }, []);
 
-  const handleStartSession = async () => {
-    if (!selectedAppointment) {
-      setError("Please select an appointment");
+  const selectedAppointment = useMemo(
+    () =>
+      appointments.find(
+        (appointment) => getAppointmentId(appointment) === selectedAppointmentId
+      ) || null,
+    [appointments, selectedAppointmentId]
+  );
+
+  const joinState = getJoinState(selectedAppointment, now);
+
+  const handleJoinRoom = () => {
+    if (!selectedAppointment || !joinState.canJoin) {
       return;
     }
 
-    const appointmentId = selectedAppointment._id || selectedAppointment.id;
-    navigate(`/patient/video-consultation/${appointmentId}`);
+    navigate(`/patient/video-consultation/${getAppointmentId(selectedAppointment)}`);
   };
-
-  const handleEndSession = async () => {
-    try {
-      setLoading(true);
-      if (selectedAppointment) {
-        const appointmentId = selectedAppointment._id || selectedAppointment.id;
-        await endVideoSession(appointmentId);
-      }
-      setSessionActive(false);
-    } catch (err) {
-      setError("Failed to end session");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Active video session view
-  if (sessionActive) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Video Session Active</h1>
-          <p className="text-sm text-slate-500">You are connected with {selectedAppointment?.doctorName}</p>
-        </div>
-
-        {/* Video placeholder - In production, integrate Twilio Video here */}
-        <div className="rounded-2xl border-2 border-cyan-500 bg-black aspect-video flex items-center justify-center">
-          <div className="text-center">
-            <Video size={64} className="mx-auto mb-4 text-cyan-400" />
-            <p className="text-white text-lg font-semibold">Video Session</p>
-            <p className="text-slate-400 text-sm mt-2">Room active</p>
-            <p className="text-slate-500 text-xs mt-1">Integration with Twilio Video SDK</p>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-4 bg-slate-100 rounded-xl p-6">
-          <button
-            onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-            className={`p-3 rounded-full transition ${
-              isAudioEnabled
-                ? "bg-cyan-600 text-white hover:bg-cyan-700"
-                : "bg-red-600 text-white hover:bg-red-700"
-            }`}
-            title={isAudioEnabled ? "Mute" : "Unmute"}
-          >
-            {isAudioEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-          </button>
-
-          <button
-            onClick={() => setIsVideoEnabled(!isVideoEnabled)}
-            className={`p-3 rounded-full transition ${
-              isVideoEnabled
-                ? "bg-cyan-600 text-white hover:bg-cyan-700"
-                : "bg-red-600 text-white hover:bg-red-700"
-            }`}
-            title={isVideoEnabled ? "Stop Camera" : "Start Camera"}
-          >
-            <Video size={20} />
-          </button>
-
-          <button
-            onClick={handleEndSession}
-            disabled={loading}
-            className="p-3 rounded-full bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
-            title="End Call"
-          >
-            <Phone size={20} />
-          </button>
-        </div>
-
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700">
-          ℹ️ Your session is being recorded automatically. Duration: 30 minutes max.
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Video Consultation</h1>
         <p className="text-sm text-slate-500">
-          Connect with your doctor via secure video call
+          Select any online consultation, review the details, and join when the room opens.
         </p>
       </div>
 
-      {error && (
+      {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
           {error}
         </div>
-      )}
+      ) : null}
 
-      {loading && !sessionActive ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-cyan-600" />
         </div>
       ) : appointments.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
@@ -149,97 +96,163 @@ function VideoConsultationPage() {
             <Video size={32} className="text-slate-400" />
           </div>
           <h2 className="text-lg font-semibold text-slate-800">
-            No Confirmed Appointments
+            No Video Consultations
           </h2>
           <p className="mt-2 text-sm text-slate-500">
-            You need a confirmed appointment to start a video consultation.
+            Confirmed online appointments will appear here.
           </p>
           <button
+            type="button"
             onClick={() => navigate("/patient/appointments")}
-            className="mt-6 rounded-lg bg-cyan-600 px-6 py-2.5 font-semibold text-white hover:bg-cyan-700"
+            className="mt-6 rounded-lg bg-cyan-600 px-6 py-2.5 font-semibold text-white transition hover:bg-cyan-700"
           >
             View Appointments
           </button>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="md:col-span-1 space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6">
-              <h3 className="font-semibold text-slate-800 mb-4">
-                Confirmed Appointments
-              </h3>
-              <div className="space-y-2">
-                {appointments.map((apt) => (
+        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-800">Your Video Consultations</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Choose a consultation to preview its details.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {appointments.map((appointment) => {
+                const appointmentId = getAppointmentId(appointment);
+                const isSelected = appointmentId === selectedAppointmentId;
+                const state = getJoinState(appointment, now);
+
+                return (
                   <button
-                    key={apt._id || apt.id}
-                    onClick={() => setSelectedAppointment(apt)}
-                    className={`w-full rounded-lg p-3 text-left text-sm transition ${
-                      selectedAppointment?._id === apt._id ||
-                      selectedAppointment?.id === apt.id
-                        ? "bg-cyan-100 border border-cyan-300 text-cyan-900"
-                        : "bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100"
+                    key={appointmentId}
+                    type="button"
+                    onClick={() => setSelectedAppointmentId(appointmentId)}
+                    className={`w-full rounded-xl border p-4 text-left transition ${
+                      isSelected
+                        ? "border-cyan-300 bg-cyan-50 text-cyan-950"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-cyan-200 hover:bg-cyan-50/60"
                     }`}
                   >
-                    <p className="font-medium">{apt.doctorName}</p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {new Date(apt.appointmentDate).toLocaleDateString()}{" "}
-                      {apt.appointmentTime}
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">
+                          {getParticipantName(appointment, "patient")}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatAppointmentDateTime(appointment)}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-1 text-[11px] font-bold uppercase ${
+                          state.canJoin
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {state.canJoin ? "Open" : appointment.status}
+                      </span>
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            {selectedAppointment && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-cyan-50">
-                  <Video size={48} className="text-cyan-600\" />
+          {selectedAppointment ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-cyan-700">
+                    Consultation Details
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                    {getParticipantName(selectedAppointment, "patient")}
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {selectedAppointment.specialization ||
+                      selectedAppointment.specialty ||
+                      "General consultation"}
+                  </p>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800">
-                  Ready for your consultation?
-                </h2>
-                <p className="mt-3 text-slate-600">
-                  You are scheduled with{" "}
-                  <span className="font-semibold text-slate-800">
-                    {selectedAppointment.doctorName}
-                  </span>{" "}
-                  on{" "}
-                  <span className="font-semibold text-slate-800">
-                    {new Date(
-                      selectedAppointment.appointmentDate
-                    ).toLocaleDateString()}
-                  </span>{" "}
-                  at{" "}
-                  <span className="font-semibold text-slate-800">
-                    {selectedAppointment.appointmentTime}
-                  </span>
-                </p>
-
-                <div className="mt-6 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-                  ℹ️ Make sure your camera and microphone are working properly
-                  before joining.
-                </div>
-
-                <button
-                  onClick={handleStartSession}
-                  disabled={loading}
-                  className="mt-6 w-full flex items-center justify-center gap-2 rounded-xl bg-cyan-600 py-3 font-semibold text-white hover:bg-cyan-700 disabled:opacity-50 transition\"
-                >
-                  <Video size={20} />
-                  {loading ? "Connecting..." : "Start Video Session"}
-                </button>
-
-                <button
-                  onClick={() => navigate("/patient/appointments")}
-                  className="mt-3 w-full rounded-xl border border-slate-200 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
-                  View All Appointments
-                </button>
+                <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold uppercase text-cyan-700">
+                  {selectedAppointment.status}
+                </span>
               </div>
-            )}
-          </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <CalendarDays size={16} />
+                    Date
+                  </p>
+                  <p className="mt-2 text-slate-900">
+                    {formatAppointmentDate(selectedAppointment)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Clock size={16} />
+                    Time
+                  </p>
+                  <p className="mt-2 text-slate-900">
+                    {selectedAppointment.appointmentTime || "Unknown"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Stethoscope size={16} />
+                    Doctor
+                  </p>
+                  <p className="mt-2 text-slate-900">
+                    {selectedAppointment.doctorName || "Doctor"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                    <Video size={16} />
+                    Join Window
+                  </p>
+                  <p className="mt-2 text-slate-900">
+                    {formatWindowText(selectedAppointment)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <p className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <FileText size={16} />
+                  Reason
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                  {selectedAppointment.reason || "No reason provided."}
+                </p>
+              </div>
+
+              <div
+                className={`mt-6 rounded-xl border px-4 py-3 text-sm ${
+                  joinState.canJoin
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}
+              >
+                {joinState.message}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleJoinRoom}
+                disabled={!joinState.canJoin}
+                className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-700 px-5 py-3 font-semibold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+              >
+                <Video size={18} />
+                Join Video Room
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

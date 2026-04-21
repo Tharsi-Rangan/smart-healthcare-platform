@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthContext";
 import apiClient from "../../services/apiClient";
 import VideoConsultationRoom from "../../components/shared/VideoConsultationRoom";
+import { getJoinState } from "../../utils/videoConsultation";
 import "./VideoRoomPage.css";
 
 function VideoRoomPage() {
@@ -14,6 +15,8 @@ function VideoRoomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const backPath = user?.role === "doctor" ? "/doctor/consultations" : "/patient/consultation";
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -21,7 +24,7 @@ function VideoRoomPage() {
         
         // Fetch appointment details
         const appointmentRes = await apiClient.get(`/api/appointments/${appointmentId}`);
-        setAppointment(appointmentRes.data.data);
+        setAppointment(appointmentRes.data.data?.appointment || appointmentRes.data.data);
 
         // Fetch payment status to verify consultation access
         try {
@@ -52,8 +55,22 @@ function VideoRoomPage() {
       <div className="video-room-error">
         <h2>Error</h2>
         <p>{error}</p>
-        <button onClick={() => navigate("/patient/appointments")}>
-          Back to Appointments
+        <button onClick={() => navigate(backPath)}>
+          Back to Consultations
+        </button>
+      </div>
+    );
+  }
+
+  const joinState = getJoinState(appointment);
+
+  if (!joinState.canJoin) {
+    return (
+      <div className="video-room-blocked">
+        <h2>Video Room Not Available</h2>
+        <p>{joinState.message}</p>
+        <button onClick={() => navigate(backPath)}>
+          Back to Consultations
         </button>
       </div>
     );
@@ -73,8 +90,8 @@ function VideoRoomPage() {
           <br />
           <strong>Admin Status:</strong> {paymentStatus.adminStatus}
         </p>
-        <button onClick={() => navigate("/patient/appointments")}>
-          Back to Appointments
+        <button onClick={() => navigate(backPath)}>
+          Back to Consultations
         </button>
       </div>
     );

@@ -94,6 +94,10 @@ function AppRouter() {
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
+          <Route path="/doctor/video-consultation/:appointmentId" element={<VideoRoomPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["doctor"]} />}>
           <Route path="/doctor" element={<DoctorLayout />}>
             <Route path="dashboard" element={<DoctorDashboardPage />} />
             <Route path="profile" element={<DoctorProfilePage />} />
