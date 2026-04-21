@@ -246,28 +246,34 @@ function DashboardPage() {
         className="grid gap-3 md:grid-cols-3"
       >
         <motion.div variants={itemVariants}>
-          <StatCard 
-            title="Upcoming Appointments" 
-            value={appointmentCount} 
-            icon={CalendarDays} 
-            colorClass="healthBlue"
-          />
+          <Link to="/patient/appointments" className="block cursor-pointer">
+            <StatCard 
+              title="Upcoming Appointments" 
+              value={appointmentCount} 
+              icon={CalendarDays} 
+              colorClass="healthBlue"
+            />
+          </Link>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <StatCard 
-            title="Medical Reports" 
-            value={summary?.counts?.reports ?? 0} 
-            icon={FileText} 
-            colorClass="bg-cyan-50 text-cyan-600"
-          />
+          <Link to="/patient/reports" className="block cursor-pointer">
+            <StatCard 
+              title="Medical Reports" 
+              value={summary?.counts?.reports ?? 0} 
+              icon={FileText} 
+              colorClass="bg-cyan-50 text-cyan-600"
+            />
+          </Link>
         </motion.div>
         <motion.div variants={itemVariants}>
-          <StatCard 
-            title="Medical History" 
-            value={summary?.counts?.medicalHistory ?? 0} 
-            icon={Activity} 
-            colorClass="calmGreen"
-          />
+          <Link to="/patient/medical-history" className="block cursor-pointer">
+            <StatCard 
+              title="Medical History" 
+              value={summary?.counts?.medicalHistory ?? 0} 
+              icon={Activity} 
+              colorClass="calmGreen"
+            />
+          </Link>
         </motion.div>
       </motion.div>
 
@@ -415,11 +421,70 @@ function DashboardPage() {
                      </div>
                    );
                  })}
-               </div>
-             )}
+               <div className="space-y-2">
+                 {nextThreeDaysAppointments.slice(0, 3).map((apt) => (
+                   <Link 
+                     key={apt.id} 
+                     to="/patient/appointments"
+                     className="flex items-center justify-between rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 p-2 transition-all hover:from-sky-100 hover:to-cyan-100 hover:border-cyan-300 cursor-pointer group/apt"
+                   >
+                     <div className="flex items-center gap-4">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-600 to-sky-700 shadow-sm font-bold text-white transition-transform group-hover/apt:scale-110">
+                           {apt.doctorName[0]}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800 transition-colors group-hover/apt:text-cyan-700">{apt.doctorName}</p>
+                          <p className="text-sm text-slate-500 capitalize">{apt.consultationType} • {apt.appointmentTime}</p>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-sm font-bold text-slate-700">{apt.appointmentDate}</p>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">{apt.status}</span>
+                     </div>
+                   </Link>
+                 ))}
+              </div>
+              </div>
+            )}
 
            </div>
 
+           {/* Recent Activity (From Summary) */}
+           <Link 
+             to="/patient/medical-history"
+             className="group/history block rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-sky-50/30 p-4 shadow-sm transition-all hover:shadow-md hover:border-cyan-300 cursor-pointer"
+           >
+             <div className="mb-4 flex items-center justify-between">
+               <h2 className="text-lg font-bold text-slate-800 tracking-tight group-hover/history:text-cyan-700 transition-colors">Medical History</h2>
+               <div className="rounded-xl bg-sky-100 p-2 text-sky-700 transition-transform group-hover/history:scale-110">
+                  <Activity className="h-4 w-4" />
+               </div>
+             </div>
+             {summary?.latestMedicalHistory ? (
+               <div className="space-y-3">
+                 <div className="flex items-start gap-4">
+                   <div className="h-8 w-8 flex items-center justify-center rounded-full bg-sky-100 text-sky-700 mt-1"><Layers className="h-4 w-4" /></div>
+                   <div>
+                     <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Diagnosis</p>
+                     <p className="text-xl font-bold text-slate-800">{summary.latestMedicalHistory.conditionName}</p>
+                   </div>
+                 </div>
+                 <div className="flex items-center gap-4">
+                   <div className="h-8 w-8 flex items-center justify-center rounded-full bg-cyan-100 text-cyan-700"><Clock className="h-4 w-4" /></div>
+                   <div>
+                     <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Status</p>
+                     <span className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-sm font-bold text-sky-700 capitalize">
+                       {summary.latestMedicalHistory.status}
+                     </span>
+                   </div>
+                 </div>
+               </div>
+             ) : (
+               <div className="py-10 text-center">
+                 <p className="font-bold text-slate-400 text-lg">No medical history entries</p>
+               </div>
+             )}
+           </Link>
         </div>
 
         {/* Sidebar Insights */}
@@ -427,7 +492,10 @@ function DashboardPage() {
           <HealthInsightCard />
 
           {/* Latest Uploaded Report Snapshot */}
-          <div className="rounded-2xl border border-cyan-200 bg-linear-to-br from-white to-cyan-50/40 p-4 shadow-sm">
+          <Link 
+            to="/patient/reports"
+            className="block rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50/40 p-4 shadow-sm transition-all hover:shadow-md hover:border-cyan-300 cursor-pointer"
+          >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-bold tracking-tight text-slate-800">Latest Report</h2>
               <FileText className="h-4 w-4 text-cyan-600" />
@@ -447,7 +515,7 @@ function DashboardPage() {
             ) : (
               <p className="py-4 text-center text-sm font-medium text-slate-400">No reports uploaded.</p>
             )}
-          </div>
+          </Link>
         </div>
       </div>
     </AnimatedContainer>

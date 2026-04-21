@@ -11,7 +11,7 @@ RUN npm install
 # Copy application source
 COPY . .
 
-# Create uploads directory for file storage
+# Create uploads directory for doctor profile images
 RUN mkdir -p uploads
 
 # Expose port
