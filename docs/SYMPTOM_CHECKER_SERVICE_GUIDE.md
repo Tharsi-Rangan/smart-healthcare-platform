@@ -179,7 +179,7 @@ Output specialty is normalized to one of:
 Required:
 
 - PORT (default 5007)
-- MONGO_URI
+- MONGODB_URI
 - JWT_SECRET
 
 Optional (for AI):

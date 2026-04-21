@@ -49,7 +49,7 @@ router.get(
 
 router.put(
   "/:id/cancel",
-  requireRole("patient"),
+  requireRole("patient", "doctor"),
   appointmentIdValidation,
   validateRequest,
   cancelAppointmentController
@@ -57,7 +57,7 @@ router.put(
 
 router.put(
   "/:id/reschedule",
-  requireRole("patient"),
+  requireRole("patient", "doctor"),
   rescheduleAppointmentValidation,
   validateRequest,
   rescheduleAppointmentController

@@ -19,6 +19,23 @@ const fetchDoctorDetails = async (doctorId) => {
   }
 };
 
+const fetchAppointmentDetails = async (appointmentId, authorizationHeader) => {
+  try {
+    const appointmentServiceUrl = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5003';
+    const response = await axios.get(`${appointmentServiceUrl}/api/appointments/${appointmentId}`, {
+      timeout: 5000,
+      headers: authorizationHeader
+        ? { Authorization: authorizationHeader }
+        : undefined,
+    });
+
+    return response.data?.data || null;
+  } catch (error) {
+    console.error('Error fetching appointment details:', error.message);
+    return null;
+  }
+};
+
 // POST /api/payments/initiate — patient initiates payment
 export const initiatePayment = async (req, res) => {
   try {
@@ -32,6 +49,33 @@ export const initiatePayment = async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'Missing required fields: appointmentId, doctorId' 
+      });
+    }
+
+    // Patient can pay only after doctor approves the appointment (status = confirmed)
+    const appointment = await fetchAppointmentDetails(
+      appointmentId,
+      req.headers.authorization
+    );
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found or not accessible for payment.',
+      });
+    }
+
+    if (String(appointment.patientId) !== String(req.user.userId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to make payment for this appointment.',
+      });
+    }
+
+    if ((appointment.status || '').toLowerCase() !== 'confirmed') {
+      return res.status(403).json({
+        success: false,
+        message: 'Payment is available only after doctor approval of the appointment.',
       });
     }
 

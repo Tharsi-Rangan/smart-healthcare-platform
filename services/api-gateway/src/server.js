@@ -21,6 +21,35 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'API Gateway is running' });
 });
 
+// Gateway health endpoint (kept local to avoid proxying /api/health)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'API Gateway is healthy',
+    data: {
+      service: 'api-gateway',
+      status: 'ok'
+    }
+  });
+});
+
+// Friendly root response for manual browser checks.
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Smart Healthcare API Gateway',
+    data: {
+      health: '/health',
+      apiHealth: '/api/health'
+    }
+  });
+});
+
+// Avoid noisy 404 logs from browser probe requests.
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
+  res.status(204).end();
+});
+
 app.get('/api/public/doctors', async (req, res) => {
   try {
     const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
@@ -218,20 +247,21 @@ app.get('/api/doctors/public/:id', async (req, res) => {
 
 // Proxy Configuration
 const serviceMap = {
-  'auth': process.env.AUTH_SERVICE_URL || 'http://localhost:5001',
-  'patients': process.env.PATIENT_SERVICE_URL || 'http://localhost:5002',
-  'appointments': process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5003',
-  'symptoms': process.env.SYMPTOM_CHECKER_URL || 'http://localhost:5007',
-  'consultations': process.env.CONSULTATION_SERVICE_URL || 'http://localhost:5004',
-  'payments': process.env.PAYMENT_SERVICE_URL || 'http://localhost:5005',
-  'notifications': process.env.PAYMENT_SERVICE_URL || 'http://localhost:5005',  // Notifications are part of payment service
-  'doctors': process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006',
-  'symptom-checker': process.env.SYMPTOM_CHECKER_URL || 'http://localhost:5007',
+  'auth': process.env.AUTH_SERVICE_URL || 'http://auth-service:5001',
+  'admin': process.env.AUTH_SERVICE_URL || 'http://auth-service:5001',
+  'patients': process.env.PATIENT_SERVICE_URL || 'http://patient-service:5002',
+  'appointments': process.env.APPOINTMENT_SERVICE_URL || 'http://appointment-service:5003',
+  'symptoms': process.env.SYMPTOM_CHECKER_URL || 'http://symptom-checker-service:5007',
+  'consultations': process.env.CONSULTATION_SERVICE_URL || 'http://consultation-service:5004',
+  'payments': process.env.PAYMENT_SERVICE_URL || 'http://payment-service:5005',
+  'notifications': process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:5008',
+  'doctors': process.env.DOCTOR_SERVICE_URL || 'http://doctor-service:5006',
+  'symptom-checker': process.env.SYMPTOM_CHECKER_URL || 'http://symptom-checker-service:5007',
 };
 
 // Single Proxy Middleware for all /api routes
 app.use('/api', createProxyMiddleware({
-  target: 'http://localhost:5001', // Default fallback
+  target: process.env.AUTH_SERVICE_URL || 'http://auth-service:5001',
   router: (req) => {
     // Extract the service name from the path (e.g., /api/patients/summary -> patients)
     const segments = req.path.split('/');
@@ -239,6 +269,14 @@ app.use('/api', createProxyMiddleware({
     return serviceMap[serviceName];
   },
   changeOrigin: true,
+  timeout: 15000,
+  proxyTimeout: 15000,
+  onProxyReq: (proxyReq, req) => {
+    // Forward auth context explicitly for protected downstream endpoints
+    if (req.headers.authorization) {
+      proxyReq.setHeader('Authorization', req.headers.authorization);
+    }
+  },
   pathRewrite: (path) => `/api${path}`, // Prepend /api back because app.use('/api') strips it
   onProxyRes: (proxyRes, req, res) => {
     // Optional: Log successful proxying

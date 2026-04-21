@@ -1,7 +1,7 @@
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --production
+RUN npm install
 COPY . .
 EXPOSE 5006
-CMD ["node", "src/server.js"]
+CMD ["npm", "run", "dev"]

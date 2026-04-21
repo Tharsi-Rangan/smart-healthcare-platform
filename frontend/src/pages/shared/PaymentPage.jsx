@@ -82,6 +82,11 @@ const PaymentPage = () => {
       return;
     }
 
+    if ((appointment.status || "").toLowerCase() !== "confirmed") {
+      setError("Payment is available only after doctor approves your appointment.");
+      return;
+    }
+
     try {
       setPaymentProcessing(true);
       setError(null);
@@ -275,6 +280,7 @@ const PaymentPage = () => {
   const isAdminApproved = payment?.adminStatus === "approved";
   const isAdminRejected = payment?.adminStatus === "rejected";
   const isAwaitingApproval = payment?.status === "completed" && payment?.adminStatus === "pending";
+  const isDoctorApproved = (appointment?.status || "").toLowerCase() === "confirmed";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-8">
@@ -488,9 +494,17 @@ const PaymentPage = () => {
             </div>
 
             <div className="space-y-4">
-              <p className="text-slate-600">
-                Click the button below to proceed to PayHere payment gateway. You will be redirected to complete the payment securely.
-              </p>
+              {isDoctorApproved ? (
+                <p className="text-slate-600">
+                  Click the button below to proceed to PayHere payment gateway. You will be redirected to complete the payment securely.
+                </p>
+              ) : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-800">
+                    Payment is locked until your doctor approves this appointment.
+                  </p>
+                </div>
+              )}
 
               <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                 <p className="text-xs text-slate-600">
@@ -500,7 +514,7 @@ const PaymentPage = () => {
 
               <button
                 onClick={initiatePayment}
-                disabled={paymentProcessing}
+                disabled={paymentProcessing || !isDoctorApproved}
                 className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
               >
                 {paymentProcessing ? (

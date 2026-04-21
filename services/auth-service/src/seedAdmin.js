@@ -3,7 +3,7 @@ dotenv.config();
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-await mongoose.connect(process.env.MONGO_URI);
+await mongoose.connect(process.env.MONGODB_URI);
 const db = mongoose.connection.db;
 
 // Delete old wrong admin record

@@ -67,7 +67,7 @@ export const getAppointmentController = asyncHandler(async (req, res) => {
 });
 
 export const cancelAppointmentController = asyncHandler(async (req, res) => {
-  const appointment = await cancelAppointment(req.params.id, req.user.id);
+  const appointment = await cancelAppointment(req.params.id, req.user.id, req.user.role);
 
   res.status(200).json({
     success: true,
@@ -77,7 +77,12 @@ export const cancelAppointmentController = asyncHandler(async (req, res) => {
 });
 
 export const rescheduleAppointmentController = asyncHandler(async (req, res) => {
-  const appointment = await rescheduleAppointment(req.params.id, req.user.id, req.body);
+  const appointment = await rescheduleAppointment(
+    req.params.id,
+    req.user.id,
+    req.user.role,
+    req.body
+  );
 
   res.status(200).json({
     success: true,

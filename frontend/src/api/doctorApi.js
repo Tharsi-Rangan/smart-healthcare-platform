@@ -80,6 +80,32 @@ export const updateDoctorAppointmentStatus = async (appointmentId, status) => {
   return response.data;
 };
 
+export const cancelDoctorAppointment = async (appointmentId, reason = "") => {
+  const response = await apiClient.put(
+    `/api/appointments/${appointmentId}/cancel`,
+    { reason },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+};
+
+export const rescheduleDoctorAppointment = async (appointmentId, payload) => {
+  const response = await apiClient.put(
+    `/api/appointments/${appointmentId}/reschedule`,
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+};
+
 /* Doctor reports */
 export const getPatientReports = async () => {
   const response = await apiClient.get(`${DOCTOR_BASE}/reports`);

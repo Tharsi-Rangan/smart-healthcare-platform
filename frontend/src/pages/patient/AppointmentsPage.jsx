@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getMyAppointments } from '../../services/appointmentApi';
+import { cancelAppointment, getMyAppointments, rescheduleAppointment } from '../../services/appointmentApi';
 import { getToken } from '../../features/auth/authStorage';
 import { useAuth } from '../../features/auth/AuthContext';
 import axios from 'axios';
@@ -16,6 +16,7 @@ function AppointmentsPage() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [filterType, setFilterType]     = useState('all'); // all, online, offline
   const [filterStatus, setFilterStatus] = useState('all'); // all, confirmed, pending
+  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -145,6 +146,64 @@ function AppointmentsPage() {
     }
   };
 
+  const handleCancelAppointment = async (appt) => {
+    const reason = window.prompt('Optional: enter a reason for cancelling this appointment', '');
+    if (reason === null) {
+      return;
+    }
+
+    try {
+      setActionLoading(`${appt._id}-cancel`);
+      const token = getToken();
+      await cancelAppointment(appt._id, reason, token);
+      await fetchAppointments();
+    } catch (err) {
+      console.error('Error cancelling appointment:', err);
+      alert(err.response?.data?.message || 'Failed to cancel appointment');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRescheduleAppointment = async (appt) => {
+    const appointmentDate = window.prompt(
+      'Enter a new appointment date in YYYY-MM-DD format',
+      new Date(appt.appointmentDate).toISOString().slice(0, 10)
+    );
+
+    if (!appointmentDate) {
+      return;
+    }
+
+    const appointmentTime = window.prompt(
+      'Enter a new appointment time in HH:mm format',
+      appt.appointmentTime
+    );
+
+    if (!appointmentTime) {
+      return;
+    }
+
+    try {
+      setActionLoading(`${appt._id}-reschedule`);
+      const token = getToken();
+      await rescheduleAppointment(
+        appt._id,
+        {
+          appointmentDate,
+          appointmentTime,
+        },
+        token
+      );
+      await fetchAppointments();
+    } catch (err) {
+      console.error('Error rescheduling appointment:', err);
+      alert(err.response?.data?.message || 'Failed to reschedule appointment');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const joinSession = async (appt) => {
     // Step 1: Check if appointment is confirmed by admin
     if (appt.status !== 'confirmed') {
@@ -236,7 +295,7 @@ function AppointmentsPage() {
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-32 bg-gradient-to-r from-cyan-600 to-sky-700 rounded-2xl"></div>
+        <div className="h-32 rounded-2xl border border-slate-200 bg-white"></div>
         <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
           {[1,2,3,4].map(i => <div key={i} className="h-16 bg-slate-200 rounded-lg"></div>)}
         </div>
@@ -246,15 +305,15 @@ function AppointmentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white">
       {/* Header Section */}
-      <div className="rounded-2xl bg-gradient-to-r from-cyan-600 to-sky-700 p-6 text-white shadow-lg">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">My Appointments</h1>
-            <p className="mt-1 text-cyan-100">Manage your online and offline consultations with doctors</p>
+            <p className="mt-1 text-slate-600">Manage your online and offline consultations with doctors</p>
           </div>
-          <div className="rounded-full bg-white/20 backdrop-blur p-4">
+          <div className="rounded-full border border-slate-200 bg-white p-4 shadow-sm">
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -263,38 +322,38 @@ function AppointmentsPage() {
 
         {/* Quick Stats */}
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="rounded-lg bg-white/10 backdrop-blur px-3 py-2">
-            <p className="text-xs text-cyan-100">Total</p>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <p className="text-xs text-slate-500">Total</p>
             <p className="text-2xl font-bold">{appointments.length}</p>
           </div>
-          <div className="rounded-lg bg-white/10 backdrop-blur px-3 py-2">
-            <p className="text-xs text-cyan-100">Confirmed</p>
-            <p className="text-2xl font-bold text-emerald-300">{appointments.filter(a => a.status === 'confirmed').length}</p>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <p className="text-xs text-slate-500">Confirmed</p>
+            <p className="text-2xl font-bold text-emerald-600">{appointments.filter(a => a.status === 'confirmed').length}</p>
           </div>
-          <div className="rounded-lg bg-white/10 backdrop-blur px-3 py-2">
-            <p className="text-xs text-cyan-100">Pending</p>
-            <p className="text-2xl font-bold text-amber-300">{appointments.filter(a => a.status === 'pending').length}</p>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <p className="text-xs text-slate-500">Pending</p>
+            <p className="text-2xl font-bold text-amber-600">{appointments.filter(a => a.status === 'pending').length}</p>
           </div>
         </div>
       </div>
 
       {/* Info Banners */}
       <div className="grid gap-2 md:grid-cols-2">
-        <div className="rounded-xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 px-4 py-3 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex gap-3">
             <div className="flex-shrink-0 text-xl">📹</div>
             <div>
-              <p className="font-semibold text-cyan-900">Video Consultations</p>
-              <p className="text-xs text-cyan-700 mt-1">Ensure camera & microphone are working. Use stable internet connection.</p>
+              <p className="font-semibold text-slate-900">Video Consultations</p>
+              <p className="text-xs text-slate-600 mt-1">Ensure camera & microphone are working. Use stable internet connection.</p>
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-sky-100 px-4 py-3 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex gap-3">
             <div className="flex-shrink-0 text-xl">🏥</div>
             <div>
-              <p className="font-semibold text-sky-900">Clinic Visits</p>
-              <p className="text-xs text-sky-700 mt-1">Visit at the scheduled date and time. Bring required documents.</p>
+              <p className="font-semibold text-slate-900">Clinic Visits</p>
+              <p className="text-xs text-slate-600 mt-1">Visit at the scheduled date and time. Bring required documents.</p>
             </div>
           </div>
         </div>
@@ -382,16 +441,16 @@ function AppointmentsPage() {
       {preSelected && (
         <div className={`rounded-2xl border-2 p-5 shadow-lg transition transform hover:scale-102 ${
           preSelected.consultationType === 'online'
-            ? 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50'
-            : 'border-sky-300 bg-gradient-to-br from-sky-50 to-sky-100'
+            ? 'border-slate-200 bg-white'
+            : 'border-slate-200 bg-white'
         }`}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
                 <div className={`rounded-full p-2.5 ${
                   preSelected.consultationType === 'online'
-                    ? 'bg-cyan-200'
-                    : 'bg-sky-200'
+                    ? 'bg-slate-100'
+                    : 'bg-slate-100'
                 }`}>
                   <span className="text-2xl">
                     {preSelected.consultationType === 'online' ? '📹' : '🏥'}
@@ -400,8 +459,8 @@ function AppointmentsPage() {
                 <div>
                   <p className={`text-xs font-bold uppercase tracking-wide ${
                     preSelected.consultationType === 'online'
-                      ? 'text-cyan-600'
-                      : 'text-sky-600'
+                      ? 'text-slate-600'
+                      : 'text-slate-600'
                   }`}>
                     {preSelected.consultationType === 'online' ? 'Ready to Join Video' : 'Clinic Appointment'}
                   </p>
@@ -419,6 +478,24 @@ function AppointmentsPage() {
               </p>
             </div>
             <div className="flex flex-col gap-2">
+              {preSelected.status !== 'cancelled' && preSelected.status !== 'completed' && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleRescheduleAppointment(preSelected)}
+                    disabled={actionLoading === `${preSelected._id}-reschedule`}
+                    className="rounded-lg border border-cyan-200 bg-white px-4 py-2.5 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {actionLoading === `${preSelected._id}-reschedule` ? 'Rescheduling...' : 'Reschedule'}
+                  </button>
+                  <button
+                    onClick={() => handleCancelAppointment(preSelected)}
+                    disabled={actionLoading === `${preSelected._id}-cancel`}
+                    className="rounded-lg border border-rose-200 bg-white px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {actionLoading === `${preSelected._id}-cancel` ? 'Cancelling...' : 'Cancel'}
+                  </button>
+                </div>
+              )}
               {preSelected.consultationType === 'online' && (
                 <button 
                   onClick={() => joinSession(preSelected)} 
@@ -436,7 +513,7 @@ function AppointmentsPage() {
       )}
 
       {/* All appointments */}
-        <div className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50/50 to-sky-50/50 p-6 shadow-md">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
         <div className="flex items-center justify-between mb-5">
           <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900">
             <span className="text-2xl">📋</span>
@@ -444,7 +521,7 @@ function AppointmentsPage() {
           </h2>
           <button 
             onClick={fetchAppointments}
-            className="flex items-center gap-2 rounded-lg bg-cyan-100 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-200 transition"
+            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -514,9 +591,9 @@ function AppointmentsPage() {
                   className={`rounded-2xl border-2 p-5 transition hover:shadow-lg ${
                     (isOnline && canJoinSession) || (!isOnline && isConfirmed)
                       ? isOnline 
-                        ? 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-md' 
-                        : 'border-sky-300 bg-gradient-to-br from-sky-50 to-sky-100 shadow-md'
-                      : 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-sky-50'
+                        ? 'border-slate-200 bg-white shadow-md' 
+                        : 'border-slate-200 bg-white shadow-md'
+                      : 'border-slate-200 bg-white'
                   }`}
                 >
                   {/* Top Row: Doctor Info */}
@@ -524,7 +601,7 @@ function AppointmentsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <div className={`rounded-full p-1.5 ${
-                          isOnline ? 'bg-cyan-200' : 'bg-sky-200'
+                          isOnline ? 'bg-slate-100' : 'bg-slate-100'
                         }`}>
                           <span className="text-lg">
                             {isOnline ? '📹' : '🏥'}
@@ -537,8 +614,8 @@ function AppointmentsPage() {
                     <div className="flex flex-col gap-1.5">
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
                         isOnline 
-                          ? 'bg-cyan-200 text-cyan-800'
-                          : 'bg-sky-200 text-sky-800'
+                          ? 'bg-slate-100 text-slate-800'
+                          : 'bg-slate-100 text-slate-800'
                       }`}>
                         {isOnline ? '📹 Video' : '🏥 Clinic'}
                       </span>
@@ -567,29 +644,29 @@ function AppointmentsPage() {
 
                   {/* Status Messages */}
                   {!isOnline && isConfirmed && (
-                    <div className="mb-4 rounded-lg bg-blue-100 px-3 py-2">
-                      <p className="text-xs font-medium text-blue-800">
+                    <div className="mb-4 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <p className="text-xs font-medium text-slate-700">
                         📍 Visit the clinic at the scheduled date and time. Bring your insurance card if applicable.
                       </p>
                     </div>
                   )}
                   {isOnline && !isConfirmed && (
-                    <div className="mb-4 rounded-lg bg-amber-100 px-3 py-2">
+                    <div className="mb-4 rounded-lg border border-slate-200 bg-white px-3 py-2">
                       <p className="text-xs font-medium text-amber-800">
                         ⏳ Waiting for admin confirmation. You'll be notified once approved.
                       </p>
                     </div>
                   )}
                   {isOnline && isConfirmed && !isToday && (
-                    <div className="mb-4 rounded-lg bg-sky-100 px-3 py-2">
-                      <p className="text-xs font-medium text-sky-800">
+                    <div className="mb-4 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <p className="text-xs font-medium text-slate-700">
                         📅 Session available only on appointment date.
                       </p>
                     </div>
                   )}
                   {isOnline && isConfirmed && isToday && !isInWindow && (
-                    <div className="mb-4 rounded-lg bg-orange-100 px-3 py-2">
-                      <p className="text-xs font-medium text-orange-800">
+                    <div className="mb-4 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                      <p className="text-xs font-medium text-slate-700">
                         🕐 Available 30 min before to 2 hours after appointment time.
                       </p>
                     </div>
@@ -597,6 +674,24 @@ function AppointmentsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
+                    {appt.status !== 'cancelled' && appt.status !== 'completed' && (
+                      <>
+                        <button
+                          onClick={() => handleRescheduleAppointment(appt)}
+                          disabled={actionLoading === `${appt._id}-reschedule`}
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-cyan-200 px-3 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {actionLoading === `${appt._id}-reschedule` ? 'Rescheduling...' : 'Reschedule'}
+                        </button>
+                        <button
+                          onClick={() => handleCancelAppointment(appt)}
+                          disabled={actionLoading === `${appt._id}-cancel`}
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {actionLoading === `${appt._id}-cancel` ? 'Cancelling...' : 'Cancel'}
+                        </button>
+                      </>
+                    )}
                     {isOnline && (
                       <button
                         onClick={() => joinSession(appt)}

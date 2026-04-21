@@ -1,9 +1,30 @@
-import axios from 'axios';
+const NOTIFICATION_SERVICE_BASE_URL =
+  process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5008/api';
 
-const notificationClient = axios.create({
-  baseURL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5008/api',
-  timeout: 5000,
-});
+const postNotification = async (endpoint, payload, token) => {
+  const response = await fetch(`${NOTIFICATION_SERVICE_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(5000),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Notification request failed with status ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData?.message || errorMessage;
+    } catch {
+      // Ignore JSON parsing failures and keep generic message
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
 
 /**
  * Send appointment booked notification
@@ -25,7 +46,7 @@ export const notifyAppointmentBooked = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/appointment-booked', {
+    const response = await postNotification('/notifications/appointment-booked', {
       patientId,
       patientName,
       patientEmail,
@@ -38,7 +59,7 @@ export const notifyAppointmentBooked = async ({
     });
     
     console.log('[Notification] Appointment booked notification sent successfully');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('[notifyAppointmentBooked] Error:', error.message);
     // Don't throw - notifications shouldn't block main flow
@@ -64,7 +85,7 @@ export const notifyConsultationCompleted = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/consultation-completed', {
+    const response = await postNotification('/notifications/consultation-completed', {
       patientId,
       patientName,
       patientEmail,
@@ -75,7 +96,7 @@ export const notifyConsultationCompleted = async ({
     });
 
     console.log('[Notification] Consultation completed notification sent successfully');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('[notifyConsultationCompleted] Error:', error.message);
     return { success: false, error: error.message };
@@ -101,7 +122,7 @@ export const notifyAppointmentCancelled = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/appointment-cancelled', {
+    const response = await postNotification('/notifications/appointment-cancelled', {
       patientId,
       patientName,
       patientEmail,
@@ -113,7 +134,7 @@ export const notifyAppointmentCancelled = async ({
     });
 
     console.log('[Notification] Appointment cancelled notification sent successfully');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('[notifyAppointmentCancelled] Error:', error.message);
     return { success: false, error: error.message };
@@ -139,7 +160,7 @@ export const notifyPaymentReceived = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/payment-received', {
+    const response = await postNotification('/notifications/payment-received', {
       patientId,
       patientName,
       patientEmail,
@@ -151,7 +172,7 @@ export const notifyPaymentReceived = async ({
     });
 
     console.log('[Notification] Payment received notification sent successfully');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('[notifyPaymentReceived] Error:', error.message);
     return { success: false, error: error.message };
@@ -176,7 +197,7 @@ export const notifyDoctorRegistration = async ({
       return { success: true, skipped: true };
     }
 
-    const response = await notificationClient.post('/notifications/doctor-registration', {
+    const response = await postNotification('/notifications/doctor-registration', {
       doctorId,
       doctorName,
       doctorEmail,
@@ -187,7 +208,7 @@ export const notifyDoctorRegistration = async ({
     });
 
     console.log('[Notification] Doctor registration notification sent successfully');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('[notifyDoctorRegistration] Error:', error.message);
     return { success: false, error: error.message };
@@ -227,27 +248,16 @@ export const buildDoctorRegistrationNotification = (doctor) => {
  * @param {Object} data - Notification data
  * @param {String} token - Temporary token for authorization
  */
-export const sendNotificationViaService = (
-  axiosInstance,
-  endpoint,
-  data,
-  token
-) => {
+export const sendNotificationViaService = (axiosInstance, endpoint, data, token) => {
   // Fire-and-forget - don't await or block
-  if (!data || !axiosInstance) {
-    console.warn('Notification helper: Missing axios or data');
+  if (!data) {
+    console.warn('Notification helper: Missing notification payload');
     return;
   }
 
   try {
     // Send without awaiting - this should never block
-    axiosInstance.post(`http://localhost:5008${endpoint}`, data, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 3000,
-    }).catch((error) => {
+    postNotification(endpoint, data, token).catch((error) => {
       // Silently catch - notifications failing shouldn't affect main flow
       console.debug('Notification delivery failed (non-critical):', error.message);
     });

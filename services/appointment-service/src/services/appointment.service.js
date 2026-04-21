@@ -92,6 +92,18 @@ const ensureOwnership = (appointment, patientId) => {
   }
 };
 
+const ensureEditableByActor = (appointment, actorId, role) => {
+  if (role === "doctor") {
+    if (String(appointment.doctorAuthUserId) !== String(actorId)) {
+      throw new AppError("Unauthorized access to this appointment", 403);
+    }
+
+    return;
+  }
+
+  ensureOwnership(appointment, actorId);
+};
+
 export const createAppointment = async (payload, patientId) => {
   ensureFutureAppointment(payload.appointmentDate, payload.appointmentTime);
 
@@ -205,14 +217,14 @@ export const getAppointmentById = async (appointmentId) => {
   return Appointment.findById(appointmentId);
 };
 
-export const cancelAppointment = async (appointmentId, patientId) => {
+export const cancelAppointment = async (appointmentId, actorId, role) => {
   const appointment = await Appointment.findById(appointmentId);
 
   if (!appointment) {
     throw new AppError("Appointment not found", 404);
   }
 
-  ensureOwnership(appointment, patientId);
+  ensureEditableByActor(appointment, actorId, role);
 
   if (appointment.status === "completed") {
     throw new AppError("Cannot cancel a completed appointment", 400);
@@ -226,14 +238,14 @@ export const cancelAppointment = async (appointmentId, patientId) => {
   return appointment.save();
 };
 
-export const rescheduleAppointment = async (appointmentId, patientId, rescheduleData) => {
+export const rescheduleAppointment = async (appointmentId, actorId, role, rescheduleData) => {
   const appointment = await Appointment.findById(appointmentId);
 
   if (!appointment) {
     throw new AppError("Appointment not found", 404);
   }
 
-  ensureOwnership(appointment, patientId);
+  ensureEditableByActor(appointment, actorId, role);
 
   if (appointment.status === "cancelled") {
     throw new AppError("Cannot reschedule a cancelled appointment", 400);
