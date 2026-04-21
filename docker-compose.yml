@@ -285,10 +285,6 @@ services:
       - api-gateway
     networks:
       - smart-healthcare-network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   mongodb_data:
