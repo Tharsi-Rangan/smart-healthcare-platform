@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
@@ -7,7 +8,8 @@ import {
   AlertCircle,
   FileText,
 } from "lucide-react";
-import apiClient from "../../services/apiClient";
+import { getPendingAppointments, confirmAppointment, updateAppointmentStatus } from "../../services/appointmentApi";
+import { getToken } from "../../features/auth/authStorage";
 
 function AppointmentVerificationPage() {
   const [appointments, setAppointments] = useState([]);
@@ -24,8 +26,9 @@ function AppointmentVerificationPage() {
     try {
       setError("");
       setLoading(true);
-      const response = await apiClient.get("/api/appointments/admin/pending");
-      setAppointments(response.data?.data?.appointments || []);
+      const token = getToken();
+      const response = await getPendingAppointments(token);
+      setAppointments(response?.data?.appointments || response?.appointments || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load appointments");
     } finally {
@@ -39,15 +42,10 @@ function AppointmentVerificationPage() {
       setMessage("");
       setError("");
 
-      const response = await apiClient.put(
-        `/api/appointments/${appointmentId}/confirm`,
-        { confirmedByAdmin: true },
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const token = getToken();
+      const response = await confirmAppointment(appointmentId, token);
 
-      setMessage(response.data?.message || "Appointment confirmed successfully");
+      setMessage(response?.message || "Appointment confirmed successfully");
       await fetchPendingAppointments();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to confirm appointment");
@@ -66,15 +64,10 @@ function AppointmentVerificationPage() {
       setMessage("");
       setError("");
 
-      const response = await apiClient.put(
-        `/api/appointments/${appointmentId}/status`,
-        { status: "cancelled" },
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const token = getToken();
+      const response = await updateAppointmentStatus(appointmentId, { status: "cancelled" }, token);
 
-      setMessage(response.data?.message || "Appointment rejected successfully");
+      setMessage(response?.message || "Appointment rejected successfully");
       await fetchPendingAppointments();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject appointment");
@@ -93,7 +86,7 @@ function AppointmentVerificationPage() {
   return (
     <div className="space-y-4 pb-5">
       {/* Header */}
-      <section className="rounded-2xl border border-cyan-200 bg-gradient-to-r from-cyan-600 to-sky-700 p-4 text-white shadow-sm">
+      <section className="rounded-2xl border border-cyan-200 bg-linear-to-r from-cyan-600 to-sky-700 p-4 text-white shadow-sm">
         <div className="flex flex-col gap-2">
           <p className="text-xs uppercase tracking-wide text-cyan-100">
             Appointment Verification
@@ -139,7 +132,7 @@ function AppointmentVerificationPage() {
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="h-20 rounded-lg bg-gradient-to-r from-cyan-50 to-sky-50 animate-pulse"
+              className="h-20 rounded-lg bg-linear-to-r from-cyan-50 to-sky-50 animate-pulse"
             />
           ))}
         </div>

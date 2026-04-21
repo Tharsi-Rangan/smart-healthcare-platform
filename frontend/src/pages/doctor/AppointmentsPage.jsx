@@ -5,6 +5,7 @@ import {
   rescheduleDoctorAppointment,
   updateDoctorAppointmentStatus,
 } from "../../api/doctorApi";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 
 function AppointmentsPage() {
@@ -32,7 +33,7 @@ function AppointmentsPage() {
 
   useEffect(() => {
     loadAppointments();
-  }, []);
+  }, [loadAppointments]);
 
   const appointmentStats = useMemo(() => {
     const stats = {
@@ -172,7 +173,7 @@ function AppointmentsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => handleStatusUpdate(appointment._id, "confirmed")}
-            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-800 shadow-sm"
+            className="inline-flex items-center gap-1 rounded-lg bg-linear-to-r from-cyan-600 to-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-800 shadow-sm"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -293,7 +294,7 @@ function AppointmentsPage() {
       {/* Header Banner */}
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm"
+        className="relative overflow-hidden rounded-2xl bg-linear-to-r from-cyan-600 via-cyan-700 to-sky-700 p-6 text-white shadow-lg"
       >
         <div className="absolute inset-0 bg-white" />
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -420,7 +421,7 @@ function AppointmentsPage() {
               onClick={() => setActiveTab(tab)}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                 activeTab === tab
-                  ? "bg-slate-900 text-white shadow-sm"
+                  ? "bg-linear-to-r from-cyan-600 to-sky-700 text-white shadow-md shadow-cyan-500/20"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -461,7 +462,7 @@ function AppointmentsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-sky-700 text-white shadow-md">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-cyan-600 to-sky-700 text-white shadow-md">
                           <span className="text-sm font-semibold">
                             {item.patientName?.[0]?.toUpperCase() || "P"}
                           </span>
@@ -543,7 +544,7 @@ function AppointmentsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="lg:min-w-[160px]">
+                <div className="lg:min-w-40">
                   {renderActions(item)}
                 </div>
               </div>

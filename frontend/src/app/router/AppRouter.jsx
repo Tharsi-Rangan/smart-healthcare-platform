@@ -41,6 +41,7 @@ import ManageUsersPage from "../../pages/admin/ManageUsersPage";
 import ManageDoctorsPage from "../../pages/admin/ManageDoctorsPage";
 import TransactionsPage from "../../pages/admin/TransactionsPage";
 import AppointmentVerificationPage from "../../pages/admin/AppointmentVerificationPage";
+import AdminAppointmentsPage from "../../pages/admin/AppointmentsPage_NEW";
 
 import DoctorDetailsPage from "../../pages/shared/DoctorDetailsPage";
 import BookAppointmentPage from "../../pages/shared/BookAppointmentPage";
@@ -115,7 +116,7 @@ function AppRouter() {
             <Route path="manage-users" element={<ManageUsersPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="payment-approvals" element={<TransactionsPage />} />
-            <Route path="appointments" element={<AppointmentVerificationPage />} />
+            <Route path="appointments" element={<AdminAppointmentsPage />} />
           </Route>
         </Route>
       </Routes>

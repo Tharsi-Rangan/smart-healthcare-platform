@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { getAdminDashboardSummary } from "../../api/doctorApi";
 import { getAllUsers } from "../../api/adminUserApi";
@@ -129,7 +130,7 @@ function DashboardPage() {
       >
       <motion.section
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[34px] border border-cyan-200/30 bg-gradient-to-br from-cyan-600 via-sky-700 to-cyan-700 text-white shadow-xl shadow-cyan-500/20"
+        className="relative overflow-hidden rounded-[34px] border border-cyan-200/30 bg-linear-to-br from-cyan-600 via-sky-700 to-cyan-700 text-white shadow-xl shadow-cyan-500/20"
       >
         {/* Abstract shapes for premium depth */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-sky-400/20 blur-3xl" />

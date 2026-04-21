@@ -23,6 +23,18 @@ const appointmentSchema = new mongoose.Schema(
       trim: true,
       maxlength: 100,
     },
+    patientName: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 120,
+    },
+    doctorName: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 120,
+    },
     appointmentDate: {
       type: Date,
       required: true,

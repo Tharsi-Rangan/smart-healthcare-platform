@@ -12,6 +12,8 @@ The Appointment Service handles:
 - cancelling/rescheduling patient appointments
 - listing doctor appointments
 - doctor status updates (confirmed/completed)
+- admin review endpoints (pending, all, stats)
+- admin confirmation of paid appointments
 - double-booking prevention by doctor + date + time
 
 ---
@@ -44,7 +46,7 @@ Authorization: Bearer TOKEN
 
 {
   "userId": "USER_ID",
-  "role": "patient | doctor"
+  "role": "patient | doctor | admin"
 }
 
 ---
@@ -65,8 +67,18 @@ Allowed:
 
 Allowed:
 
+- GET /api/appointments/my
 - GET /api/appointments/doctor/my
 - PUT /api/appointments/:id/status
+
+### Admin role
+
+Allowed:
+
+- GET /api/appointments/admin/pending
+- GET /api/appointments/admin/stats
+- GET /api/appointments/admin/all
+- PUT /api/appointments/:id/confirm
 
 ---
 
@@ -75,9 +87,13 @@ Allowed:
 - appointment date + time must be in the future
 - no double-booking on same doctor/date/time unless existing booking is cancelled
 - patient cannot cancel completed appointments
+- patient cannot cancel already cancelled appointments
 - patient cannot reschedule cancelled or completed appointments
 - doctor can update status only for their own appointments
 - doctor can set status only to `confirmed` or `completed`
+- doctor cannot update cancelled appointments
+- rescheduling resets status to `pending`
+- admin confirmation is allowed only when appointment status is `confirmed` and paymentStatus is `paid`
 
 ---
 
@@ -88,10 +104,14 @@ Stored appointment document:
 {
   "patientId": "ObjectId",
   "doctorId": "ObjectId",
+  "doctorAuthUserId": "string",
   "specialty": "string",
+  "patientName": "string",
+  "doctorName": "string",
   "appointmentDate": "Date",
   "appointmentTime": "HH:mm",
   "consultationType": "online | offline",
+  "consultationFee": "number (default: 500)",
   "reason": "string",
   "patientDetails": {
     "fullName": "string",
@@ -100,6 +120,7 @@ Stored appointment document:
   },
   "status": "pending | confirmed | cancelled | completed",
   "paymentStatus": "pending | paid | failed",
+  "adminConfirmed": "boolean",
   "createdAt": "Date",
   "updatedAt": "Date"
 }
@@ -124,6 +145,9 @@ Required:
 Optional:
 
 - consultationType: `online` or `offline`
+- doctorAuthUserId: string (service also tries to resolve from doctor-service if not sent)
+- doctorName: string (service also tries to resolve from doctor-service if not sent)
+- consultationFee: number (falls back to 500)
 
 ### Reschedule (PUT /api/appointments/:id/reschedule)
 
@@ -137,6 +161,24 @@ Required:
 Required:
 
 - status: `confirmed` or `completed`
+
+### Admin list/filter (GET /api/appointments/admin/all)
+
+Optional query params:
+
+- status: `all | pending | confirmed | completed | cancelled`
+- patientName: string (contains, case-insensitive)
+- doctorName: string (contains, case-insensitive)
+- page: number (default 1)
+- limit: number (default 15, max 50)
+
+### Admin confirm (PUT /api/appointments/:id/confirm)
+
+Rules:
+
+- appointment must exist
+- appointment status must be `confirmed`
+- paymentStatus must be `paid`
 
 ---
 
@@ -152,8 +194,16 @@ Required:
 
 ### Doctor
 
-6. GET /api/appointments/doctor/my
-7. PUT /api/appointments/:id/status
+6. GET /api/appointments/my
+7. GET /api/appointments/doctor/my
+8. PUT /api/appointments/:id/status
+
+### Admin
+
+9. GET /api/appointments/admin/pending
+10. GET /api/appointments/admin/stats
+11. GET /api/appointments/admin/all
+12. PUT /api/appointments/:id/confirm
 
 ---
 
@@ -212,6 +262,7 @@ Validation failures include:
 - Appointment Service does not issue tokens; always use auth-service token.
 - Frontend should prefer API Gateway route base (`http://localhost:5000/api/appointments`).
 - Older appointment records created before `patientDetails` became mandatory may not contain that object.
+- Older appointment records may also miss newer fields (for example `consultationFee`), and controllers currently normalize missing fees to `500` in list/detail responses.
 
 ---
 

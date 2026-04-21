@@ -77,19 +77,12 @@ export const getDoctorAppointments = async (token) => {
   return response.data;
 };
 
+// ======================== ADMIN ENDPOINTS (CONFIRMATION) ========================
+
 export const confirmAppointment = async (appointmentId, token) => {
-  const response = await appointmentClient.patch(
+  const response = await appointmentClient.put(
     `/api/appointments/${appointmentId}/confirm`,
     {},
-    getAuthConfig(token)
-  );
-  return response.data;
-};
-
-export const completeAppointment = async (appointmentId, notes = "", token) => {
-  const response = await appointmentClient.patch(
-    `/api/appointments/${appointmentId}/complete`,
-    { notes },
     getAuthConfig(token)
   );
   return response.data;
@@ -115,9 +108,20 @@ export const cancelAppointment = async (appointmentId, reason = "", token) => {
   return response.data;
 };
 
-// ======================== ADMIN ENDPOINTS ========================
+// ======================== ADMIN ENDPOINTS (LIST PENDING) ========================
 
-export const getAllAppointmentsAdmin = async (params = {}, token) => {
+export const getPendingAppointments = async (token) => {
+  const response = await appointmentClient.get(
+    "/api/appointments/admin/pending",
+    getAuthConfig(token)
+  );
+  return response.data;
+};
+
+// ======================== ADMIN ENDPOINTS (GET ALL) ========================
+
+export const getAllAppointmentsAdmin = async (params = {}) => {
+  const token = getToken();
   const response = await appointmentClient.get(
     "/api/appointments/admin/all",
     {
@@ -128,23 +132,10 @@ export const getAllAppointmentsAdmin = async (params = {}, token) => {
   return response.data;
 };
 
-export const getAppointmentStats = async (token) => {
+export const getAppointmentStats = async () => {
+  const token = getToken();
   const response = await appointmentClient.get(
     "/api/appointments/admin/stats",
-    getAuthConfig(token)
-  );
-  return response.data;
-};
-
-export const updateAppointmentPaymentStatus = async (
-  appointmentId,
-  paymentId,
-  paymentStatus,
-  token
-) => {
-  const response = await appointmentClient.patch(
-    `/api/appointments/${appointmentId}/payment-status`,
-    { paymentId, paymentStatus },
     getAuthConfig(token)
   );
   return response.data;

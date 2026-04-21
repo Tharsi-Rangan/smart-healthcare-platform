@@ -18,6 +18,12 @@ const ALLOWED_SPECIALTIES = [
 const DISCLAIMER =
   "This is a preliminary AI-assisted suggestion and not a medical diagnosis.";
 
+const DEFAULT_HOME_CARE_TIPS = [
+  "Get adequate rest and stay hydrated.",
+  "Monitor your symptoms and avoid overexertion.",
+  "Seek medical care promptly if symptoms worsen.",
+];
+
 const buildRuleBasedAnalysis = ({ symptoms }) => {
   const normalized = String(symptoms || "").toLowerCase();
 
@@ -190,9 +196,53 @@ const extractGeminiText = (responseData) => {
   );
 };
 
+const extractJsonCandidate = (text) => {
+  const cleaned = String(text || "")
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error("Gemini response does not contain a valid JSON object");
+  }
+
+  return cleaned.slice(firstBrace, lastBrace + 1);
+};
+
 const parseGeminiJson = (text) => {
-  const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-  return JSON.parse(cleaned);
+  return JSON.parse(extractJsonCandidate(text));
+};
+
+const normalizeUrgency = (urgency, isEmergency = false) => {
+  if (urgency === "Low" || urgency === "Medium" || urgency === "High") {
+    return urgency;
+  }
+
+  return isEmergency ? "High" : "Medium";
+};
+
+const normalizeHomeCareTips = (tips) => {
+  const normalized = Array.isArray(tips)
+    ? tips
+        .map((tip) => String(tip || "").trim())
+        .filter(Boolean)
+        .slice(0, 3)
+    : [];
+
+  for (const fallbackTip of DEFAULT_HOME_CARE_TIPS) {
+    if (normalized.length >= 3) {
+      break;
+    }
+
+    if (!normalized.includes(fallbackTip)) {
+      normalized.push(fallbackTip);
+    }
+  }
+
+  return normalized;
 };
 
 const normalizeSpecialty = (specialty, symptoms = "") => {
@@ -236,12 +286,57 @@ const normalizeSpecialty = (specialty, symptoms = "") => {
   return "General Physician";
 };
 
-const buildPrompt = ({ symptoms, duration, severity, ageGroup }) => {
+const formatFollowUpAnswers = (followUpAnswers) => {
+  if (!followUpAnswers) {
+    return "None provided";
+  }
+
+  if (Array.isArray(followUpAnswers)) {
+    const lines = followUpAnswers
+      .map((item) => {
+        if (!item) {
+          return "";
+        }
+
+        const question = String(item.question || item.prompt || "").trim();
+        const answer = String(item.answer || item.value || "").trim();
+
+        if (!question && !answer) {
+          return "";
+        }
+
+        return `- ${question || "Follow-up"}: ${answer || "Not answered"}`;
+      })
+      .filter(Boolean);
+
+    return lines.length ? lines.join("\n") : "None provided";
+  }
+
+  if (typeof followUpAnswers === "object") {
+    const lines = Object.entries(followUpAnswers)
+      .filter(([, value]) => value !== undefined && value !== null && String(value).trim())
+      .map(([key, value]) => {
+        const label = String(key)
+          .replace(/([A-Z])/g, " $1")
+          .replace(/[_-]/g, " ")
+          .trim();
+        return `- ${label || key}: ${String(value).trim()}`;
+      });
+
+    return lines.length ? lines.join("\n") : "None provided";
+  }
+
+  return String(followUpAnswers).trim() || "None provided";
+};
+
+const buildPrompt = ({ symptoms, duration, severity, ageGroup, followUpAnswers }) => {
+  const followUpSection = formatFollowUpAnswers(followUpAnswers);
+
   return `
 You are an AI-assisted healthcare triage helper for a university project.
 
 Rules:
-- Return ONLY valid JSON
+- Return ONLY valid JSON object
 - Do NOT include markdown
 - Do NOT include explanation outside JSON
 - This is NOT a diagnosis
@@ -251,14 +346,18 @@ Rules:
   Cardiology, Dermatology, Pediatrics, Neurology, General Physician, Orthopedics, ENT, Psychiatry, Gynecology
 - Keep language kind, simple, and user-friendly
 - Do NOT prescribe medicines or dosage
-- Give only safe, general home care tips
+- Give exactly 3 safe, general home care tips (short bullet-like sentences)
 - If symptoms seem severe or emergency-related, mention emergency help clearly in whenToSeekHelp
+- Set isEmergency to true only when immediate/urgent care is likely needed
+- If unclear, prefer General Physician rather than inventing a specialty
 
 Patient Input:
 Symptoms: ${symptoms}
 Duration: ${duration || "Not provided"}
 Severity: ${severity || "Not provided"}
 Age Group: ${ageGroup || "Not provided"}
+Follow-up Answers:
+${followUpSection}
 
 Return JSON in this exact structure:
 {
@@ -290,6 +389,10 @@ const analyzeWithGemini = async (payload) => {
         ],
       },
     ],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 700,
+    },
   };
 
   const response = await axios.post(url, requestBody, {
@@ -306,25 +409,22 @@ const analyzeWithGemini = async (payload) => {
   }
 
   const parsed = parseGeminiJson(text);
+  const isEmergency = Boolean(parsed.isEmergency);
 
   return {
     recommendedSpecialty: normalizeSpecialty(
       parsed.recommendedSpecialty,
       payload.symptoms
     ),
-    urgency: ["Low", "Medium", "High"].includes(parsed.urgency)
-      ? parsed.urgency
-      : "Low",
+    urgency: normalizeUrgency(parsed.urgency, isEmergency),
     preliminarySuggestion:
       parsed.preliminarySuggestion ||
       "A doctor can help evaluate your symptoms and guide you properly.",
-    homeCareTips: Array.isArray(parsed.homeCareTips)
-      ? parsed.homeCareTips.slice(0, 3)
-      : [],
+    homeCareTips: normalizeHomeCareTips(parsed.homeCareTips),
     whenToSeekHelp:
       parsed.whenToSeekHelp ||
       "Please seek medical help if symptoms become severe or worsen.",
-    isEmergency: Boolean(parsed.isEmergency),
+    isEmergency,
     disclaimer: parsed.disclaimer || DISCLAIMER,
     source: "gemini",
     apiRawResponse: response.data,
