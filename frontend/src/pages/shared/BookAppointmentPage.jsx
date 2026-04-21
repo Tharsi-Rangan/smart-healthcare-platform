@@ -29,6 +29,14 @@ function BookAppointmentPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  // Auth guard: Redirect to login if not authenticated
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !user) {
+      navigate('/login', { state: { from: location.pathname + location.search } });
+    }
+  }, [user, navigate, location]);
+  
   // Get doctor ID from query parameter, not route params
   const searchParams = new URLSearchParams(location.search);
   const doctorIdFromQuery = searchParams.get('doctorId');
@@ -47,6 +55,7 @@ function BookAppointmentPage() {
   const [phone, setPhone]         = useState(user?.phone || '');
   const [address, setAddress]     = useState(user?.address || '');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     (async () => {
       try {
@@ -126,10 +135,6 @@ function BookAppointmentPage() {
   const availableDates = getAvailableDates();
   const selectedDaySlot = selectedDate ? getAvailabilityForDate(selectedDate) : null;
 
-  const getNextDate = (dateStr) => {
-    return new Date(dateStr + 'T00:00:00');
-  };
-
   const timeSlots = selectedDaySlot
     ? generateTimeSlots(selectedDaySlot.startTime, selectedDaySlot.endTime, selectedDaySlot.slotDuration || 30)
     : [];
@@ -187,7 +192,36 @@ function BookAppointmentPage() {
 
       console.log('Creating appointment with payload:', payload);
       const token = getToken();
-      await createAppointment(payload, token);
+      const response = await createAppointment(payload, token);
+
+      const appointmentId = response?.data?._id || response?.data?.id;
+      const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/notifications/appointment-booked`;
+
+      // Fire-and-forget in-app notifications so booking flow is never blocked.
+      fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          patientId: user?.id || user?.userId || user?._id,
+          patientName: user?.name || 'Patient',
+          patientEmail: user?.email || '',
+          patientPhone: phone.trim(),
+          doctorId: doctorAuthUserId || String(doctorId),
+          doctorName: doctor?.name || 'Doctor',
+          doctorEmail: doctor?.email || '',
+          doctorPhone: doctor?.phone || '',
+          appointmentId,
+          appointmentDate: selectedDate,
+          timeSlot: selectedSlot,
+          reason: reason.trim(),
+        }),
+      }).catch((notifyError) => {
+        console.error('Failed to send appointment notifications:', notifyError);
+      });
+
       setSuccess(true);
     } catch (err) {
       console.error('Booking error details:', {

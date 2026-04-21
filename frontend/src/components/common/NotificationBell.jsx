@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Bell, Check, Trash2, CheckCheck } from "lucide-react";
 import {
   getNotifications,
@@ -8,11 +9,15 @@ import {
 
 const normalizeType = (type = "") => {
   if (!type) return "system";
+  if (type.startsWith("doctor_")) return "verification";
+  if (type.startsWith("payment_")) return "payment";
   if (type.includes("_")) return type.split("_")[0];
   return type;
 };
 
 function NotificationBell({ role = "patient" }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -113,12 +118,23 @@ function NotificationBell({ role = "patient" }) {
     return colorMap[type] || "bg-slate-50 border-slate-200";
   };
 
+  const notificationsPath = `/${role}/notifications`;
+
+  const handleBellClick = () => {
+    if (location.pathname !== notificationsPath) {
+      navigate(notificationsPath);
+      return;
+    }
+
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="relative">
       {/* Bell Icon Button */}
       <button
         ref={bellRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleBellClick}
         className="relative p-2 hover:bg-slate-100 rounded-lg transition duration-200"
         title="Notifications"
       >
@@ -226,8 +242,7 @@ function NotificationBell({ role = "patient" }) {
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  // Navigate to notifications page if needed
-                  // navigate(`/${role}/notifications`);
+                  navigate(notificationsPath);
                 }}
                 className="text-xs text-cyan-600 hover:text-cyan-700 font-semibold transition"
               >

@@ -248,30 +248,49 @@ export const buildDoctorRegistrationNotification = (doctor) => {
  * @param {Object} data - Notification data
  * @param {String} token - Temporary token for authorization
  */
-export const sendNotificationViaService = (
-  axiosInstance,
-  endpoint,
-  data,
-  token
-) => {
+export const sendNotificationViaService = (axiosInstance, endpoint, data, token) => {
   // Fire-and-forget - don't await or block
-  if (!data || !axiosInstance) {
-    console.warn('Notification helper: Missing axios or data');
+  if (!data) {
+    console.warn('Notification helper: Missing notification data');
     return;
   }
 
+  const url = `http://localhost:5008${endpoint}`;
+
   try {
-    // Send without awaiting - this should never block
-    axiosInstance.post(`http://localhost:5008${endpoint}`, data, {
+    // Prefer provided HTTP client when available (axios-like API).
+    if (axiosInstance && typeof axiosInstance.post === 'function') {
+      axiosInstance.post(url, data, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 3000,
+      }).catch((error) => {
+        // Silently catch - notifications failing shouldn't affect main flow
+        console.debug('Notification delivery failed (non-critical):', error.message);
+      });
+      return;
+    }
+
+    // Fallback for services that don't pass axios.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    fetch(url, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      timeout: 3000,
-    }).catch((error) => {
-      // Silently catch - notifications failing shouldn't affect main flow
-      console.debug('Notification delivery failed (non-critical):', error.message);
-    });
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    })
+      .catch((error) => {
+        console.debug('Notification delivery failed (non-critical):', error.message);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
   } catch (error) {
     // Silently fail - this should never throw
     console.debug('Notification service error (non-critical):', error.message);

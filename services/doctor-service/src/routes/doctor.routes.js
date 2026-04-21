@@ -27,6 +27,7 @@ import {
   approveDoctorController,
   rejectDoctorController,
   getDoctorByIdController,
+  getDoctorByAuthUserIdController,
   toggleDoctorActiveStatusController,
 } from "../controllers/admin.controller.js";
 
@@ -53,6 +54,8 @@ const router = express.Router();
 
 /* Public endpoint for getting approved doctors (no authentication required) */
 router.get("/public/list", getPublicDoctorsController);
+
+router.get("/public/by-auth/:authUserId", getDoctorByAuthUserIdController);
 
 router.get("/public/:id", getDoctorByIdController);
 

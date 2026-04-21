@@ -20,6 +20,13 @@ app.get("/health", (req, res) => {
   });
 });
 
+app.get("/api/auth/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Auth service is running",
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 

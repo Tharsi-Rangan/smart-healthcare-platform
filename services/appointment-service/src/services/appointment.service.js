@@ -92,6 +92,85 @@ const ensureOwnership = (appointment, patientId) => {
   }
 };
 
+const ensureEditableByActor = (appointment, actorId, role) => {
+  if (role === "doctor") {
+    if (String(appointment.doctorAuthUserId) !== String(actorId)) {
+      throw new AppError("Unauthorized access to this appointment", 403);
+    }
+
+    return;
+  }
+
+  ensureOwnership(appointment, actorId);
+};
+
+const enrichAppointmentWithDoctorInfo = async (appointment) => {
+  const aptData = appointment.toObject ? appointment.toObject() : { ...appointment };
+
+  try {
+    const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
+    const doctorUrls = [];
+
+    if (aptData.doctorId) {
+      doctorUrls.push(`${DOCTOR_SERVICE_URL}/api/doctors/public/${aptData.doctorId}`);
+    }
+
+    if (aptData.doctorAuthUserId) {
+      doctorUrls.push(`${DOCTOR_SERVICE_URL}/api/doctors/public/by-auth/${aptData.doctorAuthUserId}`);
+    }
+
+    // Some older appointment records stored the auth user id in doctorId.
+    if (aptData.doctorId && String(aptData.doctorId) !== String(aptData.doctorAuthUserId || "")) {
+      doctorUrls.push(`${DOCTOR_SERVICE_URL}/api/doctors/public/by-auth/${aptData.doctorId}`);
+    }
+
+    let doctor = null;
+
+    for (const doctorUrl of [...new Set(doctorUrls)]) {
+      const response = await fetch(doctorUrl, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = await response.json();
+      doctor = data?.data?.doctor || data?.doctor;
+
+      if (doctor) {
+        break;
+      }
+    }
+
+    if (doctor) {
+      aptData.doctorId = doctor._id || aptData.doctorId;
+      aptData.doctorAuthUserId = doctor.authUserId || aptData.doctorAuthUserId;
+      aptData.doctorName =
+        doctor.doctorName ||
+        doctor.fullName ||
+        doctor.name ||
+        aptData.doctorName ||
+        'Doctor';
+      aptData.specialization =
+        doctor.specialization ||
+        doctor.specialty ||
+        aptData.specialization ||
+        aptData.specialty ||
+        'General';
+      aptData.consultationFee = doctor.consultationFee || aptData.consultationFee;
+    }
+  } catch (error) {
+    console.error(`Could not fetch doctor info for doctorId ${aptData.doctorId}:`, error.message);
+  }
+
+  aptData.doctorName = aptData.doctorName || 'Doctor';
+  aptData.specialization = aptData.specialization || aptData.specialty || 'General';
+
+  return aptData;
+};
+
 export const createAppointment = async (payload, patientId) => {
   ensureFutureAppointment(payload.appointmentDate, payload.appointmentTime);
 
@@ -111,9 +190,10 @@ export const createAppointment = async (payload, patientId) => {
   // Use doctorAuthUserId from payload if provided, otherwise try to fetch it
   let doctorAuthUserId = payload.doctorAuthUserId || null;
   let consultationFee = payload.consultationFee || 500; // Default fee
+  let doctorName = payload.doctorName || null; // Extract doctor name if provided
   
   // Only fetch from doctor service if doctorAuthUserId is not provided
-  if (!doctorAuthUserId) {
+  if (!doctorAuthUserId || !doctorName) {
     try {
       const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
       const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${payload.doctorId}`, {
@@ -124,25 +204,36 @@ export const createAppointment = async (payload, patientId) => {
       if (response.ok) {
         const data = await response.json();
         const doctor = data?.data?.doctor || data?.doctor;
-        if (doctor?.authUserId) {
+        if (doctor?.authUserId && !doctorAuthUserId) {
           doctorAuthUserId = doctor.authUserId;
         }
-        if (doctor?.consultationFee) {
+        if (doctor?.doctorName && !doctorName) {
+          doctorName = doctor.doctorName;
+        }
+        if (doctor?.consultationFee && !consultationFee) {
           consultationFee = doctor.consultationFee;
         }
       }
     } catch (error) {
-      console.error("Could not fetch doctor authUserId or fee:", error.message);
+      console.error("Could not fetch doctor info:", error.message);
     }
   }
+
+  // Extract patient name from patientDetails
+  const patientName = payload.patientDetails?.fullName || payload.patientName || "Unknown Patient";
 
   // Update payload with fetched/provided values
   if (doctorAuthUserId) {
     appointmentPayload.doctorAuthUserId = doctorAuthUserId;
   }
+  if (doctorName) {
+    appointmentPayload.doctorName = doctorName;
+  }
   if (consultationFee) {
     appointmentPayload.consultationFee = consultationFee;
   }
+  // Always set patient name
+  appointmentPayload.patientName = patientName;
 
   // Ensure doctorAuthUserId is set
   if (!appointmentPayload.doctorAuthUserId) {
@@ -168,51 +259,25 @@ export const getMyAppointments = async (userId, role) => {
   
   // Fetch doctor information for each appointment to populate doctorName and specialization
   const appointmentsWithDoctorInfo = await Promise.all(
-    appointments.map(async (appointment) => {
-      const aptData = appointment.toObject ? appointment.toObject() : appointment;
-      
-      try {
-        const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
-        const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${appointment.doctorId}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          const doctor = data?.data?.doctor || data?.doctor;
-          if (doctor) {
-            // Populate doctor information
-            aptData.doctorName = doctor.fullName || doctor.name || 'Doctor';
-            aptData.specialization = doctor.specialty || doctor.specialization || aptData.specialty || 'General';
-          }
-        }
-      } catch (error) {
-        console.error(`Could not fetch doctor info for doctorId ${appointment.doctorId}:`, error.message);
-        // Use fallback values
-        aptData.doctorName = 'Doctor';
-        aptData.specialization = aptData.specialty || 'General';
-      }
-      
-      return aptData;
-    })
+    appointments.map((appointment) => enrichAppointmentWithDoctorInfo(appointment))
   );
   
   return appointmentsWithDoctorInfo;
 };
 
 export const getAppointmentById = async (appointmentId) => {
-  return Appointment.findById(appointmentId);
+  const appointment = await Appointment.findById(appointmentId);
+  return appointment ? enrichAppointmentWithDoctorInfo(appointment) : null;
 };
 
-export const cancelAppointment = async (appointmentId, patientId) => {
+export const cancelAppointment = async (appointmentId, actorId, role) => {
   const appointment = await Appointment.findById(appointmentId);
 
   if (!appointment) {
     throw new AppError("Appointment not found", 404);
   }
 
-  ensureOwnership(appointment, patientId);
+  ensureEditableByActor(appointment, actorId, role);
 
   if (appointment.status === "completed") {
     throw new AppError("Cannot cancel a completed appointment", 400);
@@ -222,18 +287,22 @@ export const cancelAppointment = async (appointmentId, patientId) => {
     throw new AppError("Appointment is already cancelled", 400);
   }
 
-  appointment.status = "cancelled";
-  return appointment.save();
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  return await Appointment.findByIdAndUpdate(
+    appointmentId,
+    { status: "cancelled" },
+    { new: true, runValidators: false }
+  );
 };
 
-export const rescheduleAppointment = async (appointmentId, patientId, rescheduleData) => {
+export const rescheduleAppointment = async (appointmentId, actorId, role, rescheduleData) => {
   const appointment = await Appointment.findById(appointmentId);
 
   if (!appointment) {
     throw new AppError("Appointment not found", 404);
   }
 
-  ensureOwnership(appointment, patientId);
+  ensureEditableByActor(appointment, actorId, role);
 
   if (appointment.status === "cancelled") {
     throw new AppError("Cannot reschedule a cancelled appointment", 400);
@@ -255,19 +324,16 @@ export const rescheduleAppointment = async (appointmentId, patientId, reschedule
     excludeId: appointment._id,
   });
 
-  appointment.appointmentDate = normalizeAppointmentDate(rescheduleData.appointmentDate);
-  appointment.appointmentTime = normalizeAppointmentTime(rescheduleData.appointmentTime);
-  appointment.status = "pending";
-
-  try {
-    return await appointment.save();
-  } catch (error) {
-    if (error.code === 11000) {
-      throw new AppError("Appointment slot already booked", 409);
-    }
-
-    throw error;
-  }
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  return await Appointment.findByIdAndUpdate(
+    appointmentId,
+    {
+      appointmentDate: normalizeAppointmentDate(rescheduleData.appointmentDate),
+      appointmentTime: normalizeAppointmentTime(rescheduleData.appointmentTime),
+      status: "pending",
+    },
+    { new: true, runValidators: false }
+  );
 };
 
 export const getDoctorAppointments = async (authUserId) => {
@@ -275,34 +341,7 @@ export const getDoctorAppointments = async (authUserId) => {
   
   // Fetch doctor information for each appointment to populate doctorName and specialization
   const appointmentsWithDoctorInfo = await Promise.all(
-    appointments.map(async (appointment) => {
-      const aptData = appointment.toObject ? appointment.toObject() : appointment;
-      
-      try {
-        const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
-        const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${appointment.doctorId}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          const doctor = data?.data?.doctor || data?.doctor;
-          if (doctor) {
-            // Populate doctor information
-            aptData.doctorName = doctor.fullName || doctor.name || 'Doctor';
-            aptData.specialization = doctor.specialty || doctor.specialization || aptData.specialty || 'General';
-          }
-        }
-      } catch (error) {
-        console.error(`Could not fetch doctor info for doctorId ${appointment.doctorId}:`, error.message);
-        // Use fallback values
-        aptData.doctorName = 'Doctor';
-        aptData.specialization = aptData.specialty || 'General';
-      }
-      
-      return aptData;
-    })
+    appointments.map((appointment) => enrichAppointmentWithDoctorInfo(appointment))
   );
   
   return appointmentsWithDoctorInfo;
@@ -323,7 +362,13 @@ export const updateAppointmentStatus = async (appointmentId, doctorAuthUserId, s
     throw new AppError("Cannot update a cancelled appointment", 400);
   }
 
-  appointment.status = status;
-  appointment.doctorAuthUserId = doctorAuthUserId;
-  return appointment.save();
+  // Use findByIdAndUpdate to avoid validation errors on old documents
+  return await Appointment.findByIdAndUpdate(
+    appointmentId,
+    {
+      status,
+      doctorAuthUserId,
+    },
+    { new: true, runValidators: false }
+  );
 };

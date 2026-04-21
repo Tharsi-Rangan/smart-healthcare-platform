@@ -5,7 +5,7 @@ dotenv.config();
 export const env = {
   port: Number(process.env.PORT) || 5007,
   nodeEnv: process.env.NODE_ENV || "development",
-  mongoUri: process.env.MONGO_URI,
+  mongoUri: process.env.MONGODB_URI,
   jwtSecret: process.env.JWT_SECRET || "change-me-in-production",
   geminiApiKey: process.env.GEMINI_API_KEY || "",
   geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",

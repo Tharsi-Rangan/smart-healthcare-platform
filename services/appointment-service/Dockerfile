@@ -1,12 +1,12 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY src ./src
 
 EXPOSE 5003
 
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "dev"]

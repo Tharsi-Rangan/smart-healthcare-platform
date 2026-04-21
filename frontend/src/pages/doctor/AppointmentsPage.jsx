@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getDoctorAppointments,
+  cancelDoctorAppointment,
+  rescheduleDoctorAppointment,
   updateDoctorAppointmentStatus,
 } from "../../api/doctorApi";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 
 function AppointmentsPage() {
@@ -11,6 +14,7 @@ function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [actionLoading, setActionLoading] = useState("");
 
   const tabs = ["All", "Pending", "Confirmed", "Completed", "Cancelled"];
 
@@ -29,7 +33,7 @@ function AppointmentsPage() {
 
   useEffect(() => {
     loadAppointments();
-  }, []);
+  }, [loadAppointments]);
 
   const appointmentStats = useMemo(() => {
     const stats = {
@@ -74,6 +78,67 @@ function AppointmentsPage() {
     }
   };
 
+  const handleCancelAppointment = async (appointmentId) => {
+    const reason = window.prompt("Optional: enter a reason for cancelling this appointment", "");
+
+    if (reason === null) {
+      return;
+    }
+
+    try {
+      setActionLoading(`${appointmentId}-cancel`);
+      setMessage("");
+      setError("");
+
+      const response = await cancelDoctorAppointment(appointmentId, reason);
+      setMessage(response.message || "Appointment cancelled");
+
+      await loadAppointments();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to cancel appointment");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleRescheduleAppointment = async (appointment) => {
+    const appointmentDate = window.prompt(
+      "Enter a new appointment date in YYYY-MM-DD format",
+      new Date(appointment.appointmentDate).toISOString().slice(0, 10)
+    );
+
+    if (!appointmentDate) {
+      return;
+    }
+
+    const appointmentTime = window.prompt(
+      "Enter a new appointment time in HH:mm format",
+      appointment.appointmentTime
+    );
+
+    if (!appointmentTime) {
+      return;
+    }
+
+    try {
+      setActionLoading(`${appointment._id}-reschedule`);
+      setMessage("");
+      setError("");
+
+      const response = await rescheduleDoctorAppointment(appointment._id, {
+        appointmentDate,
+        appointmentTime,
+      });
+      setMessage(response.message || "Appointment rescheduled");
+
+      await loadAppointments();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to reschedule appointment");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
   const getStatusBadgeClasses = (status) => {
     switch ((status || "").toLowerCase()) {
       case "pending":
@@ -105,10 +170,10 @@ function AppointmentsPage() {
 
     if (status === "pending") {
       return (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => handleStatusUpdate(appointment._id, "confirmed")}
-            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-cyan-600 to-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-800 shadow-sm"
+            className="inline-flex items-center gap-1 rounded-lg bg-linear-to-r from-cyan-600 to-sky-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:from-cyan-700 hover:to-sky-800 shadow-sm"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -125,13 +190,40 @@ function AppointmentsPage() {
             </svg>
             Reject
           </button>
+
+          <button
+            onClick={() => handleRescheduleAppointment(appointment)}
+            disabled={actionLoading === `${appointment._id}-reschedule`}
+            className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-white px-3 py-1.5 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {actionLoading === `${appointment._id}-reschedule` ? "Rescheduling..." : "Reschedule"}
+          </button>
+
+          <button
+            onClick={() => handleCancelAppointment(appointment._id)}
+            disabled={actionLoading === `${appointment._id}-cancel`}
+            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {actionLoading === `${appointment._id}-cancel` ? "Cancelling..." : "Cancel"}
+          </button>
         </div>
       );
     }
 
     if (status === "confirmed") {
       return (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-cyan-700 border border-cyan-200 cursor-default"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Accepted
+          </button>
+
           <button
             onClick={() => handleStatusUpdate(appointment._id, "completed")}
             className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 shadow-sm"
@@ -150,6 +242,22 @@ function AppointmentsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
             Cancel
+          </button>
+
+          <button
+            onClick={() => handleRescheduleAppointment(appointment)}
+            disabled={actionLoading === `${appointment._id}-reschedule`}
+            className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-white px-3 py-1.5 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {actionLoading === `${appointment._id}-reschedule` ? "Rescheduling..." : "Reschedule"}
+          </button>
+
+          <button
+            onClick={() => handleCancelAppointment(appointment._id)}
+            disabled={actionLoading === `${appointment._id}-cancel`}
+            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {actionLoading === `${appointment._id}-cancel` ? "Cancelling..." : "Cancel"}
           </button>
         </div>
       );
@@ -181,30 +289,29 @@ function AppointmentsPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-5"
+      className="space-y-5 bg-white"
     >
       {/* Header Banner */}
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-600 via-cyan-700 to-sky-700 p-6 text-white shadow-lg"
+        className="relative overflow-hidden rounded-2xl bg-linear-to-r from-cyan-600 via-cyan-700 to-sky-700 p-6 text-white shadow-lg"
       >
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 h-40 w-40 rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="absolute inset-0 bg-white" />
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-100">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Appointment Management
             </p>
             <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
               Manage Appointments
             </h1>
-            <p className="mt-1 text-sm text-cyan-50">
+            <p className="mt-1 text-sm text-slate-600">
               Review and manage patient bookings
             </p>
           </div>
 
-          <div className="rounded-xl bg-white/15 px-4 py-2.5 backdrop-blur-sm border border-white/20 text-center">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-cyan-100">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center shadow-sm">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
               Total Appointments
             </p>
             <p className="mt-0.5 text-2xl font-bold">{appointmentStats.total}</p>
@@ -214,7 +321,7 @@ function AppointmentsPage() {
 
       {/* Messages */}
       {message && (
-        <motion.div variants={itemVariants} className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
+        <motion.div variants={itemVariants} className="rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -225,7 +332,7 @@ function AppointmentsPage() {
       )}
 
       {error && (
-        <motion.div variants={itemVariants} className="rounded-xl bg-rose-50 border border-rose-200 px-4 py-3">
+        <motion.div variants={itemVariants} className="rounded-xl border border-rose-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -237,7 +344,7 @@ function AppointmentsPage() {
 
       {/* Stats Cards */}
       <motion.div variants={itemVariants} className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">All</p>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100">
@@ -249,7 +356,7 @@ function AppointmentsPage() {
           <p className="mt-3 text-2xl font-bold text-slate-900">{appointmentStats.total}</p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Pending</p>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
@@ -261,7 +368,7 @@ function AppointmentsPage() {
           <p className="mt-3 text-2xl font-bold text-amber-600">{appointmentStats.pending}</p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Confirmed</p>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50">
@@ -273,7 +380,7 @@ function AppointmentsPage() {
           <p className="mt-3 text-2xl font-bold text-cyan-600">{appointmentStats.confirmed}</p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Completed</p>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
@@ -285,7 +392,7 @@ function AppointmentsPage() {
           <p className="mt-3 text-2xl font-bold text-emerald-600">{appointmentStats.completed}</p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Cancelled</p>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50">
@@ -299,7 +406,7 @@ function AppointmentsPage() {
       </motion.div>
 
       {/* Filter Tabs */}
-      <motion.div variants={itemVariants} className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+      <motion.div variants={itemVariants} className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-bold text-slate-900">Appointment Requests</h2>
@@ -314,7 +421,7 @@ function AppointmentsPage() {
               onClick={() => setActiveTab(tab)}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                 activeTab === tab
-                  ? "bg-gradient-to-r from-cyan-600 to-sky-700 text-white shadow-md shadow-cyan-500/20"
+                  ? "bg-linear-to-r from-cyan-600 to-sky-700 text-white shadow-md shadow-cyan-500/20"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -334,7 +441,7 @@ function AppointmentsPage() {
       {/* Appointment List */}
       <motion.div variants={itemVariants} className="space-y-3">
         {loading ? (
-          <div className="rounded-2xl bg-white border border-slate-100 p-8 shadow-sm">
+          <div className="rounded-2xl bg-white border border-slate-200 p-8 shadow-sm">
             <div className="flex items-center justify-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent"></div>
               <p className="text-sm text-slate-500">Loading appointments...</p>
@@ -347,7 +454,7 @@ function AppointmentsPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="group rounded-2xl bg-white border border-slate-100 p-5 shadow-sm hover:shadow-md transition-all duration-200"
+              className="group rounded-2xl bg-white border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all duration-200"
             >
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex-1">
@@ -355,7 +462,7 @@ function AppointmentsPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-sky-700 text-white shadow-md">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-cyan-600 to-sky-700 text-white shadow-md">
                           <span className="text-sm font-semibold">
                             {item.patientName?.[0]?.toUpperCase() || "P"}
                           </span>
@@ -437,7 +544,7 @@ function AppointmentsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="lg:min-w-[160px]">
+                <div className="lg:min-w-40">
                   {renderActions(item)}
                 </div>
               </div>

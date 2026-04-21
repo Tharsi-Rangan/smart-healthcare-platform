@@ -5,6 +5,10 @@ import { getToken } from '../../features/auth/authStorage';
 import { useAuth } from '../../features/auth/AuthContext';
 import axios from 'axios';
 
+const getConsultationRoomName = (appointmentId, existingRoomName = '') => {
+  return existingRoomName || `mediconnect-${appointmentId}`;
+};
+
 function ConsultationPage() {
   const location  = useLocation();
   const navigate  = useNavigate();
@@ -211,7 +215,7 @@ function ConsultationPage() {
       );
 
       // Open video room
-      const roomName = appt.consultationRoomId || `mediconnect-${appt._id}`;
+      const roomName = getConsultationRoomName(appt._id, appt.consultationRoomId);
       console.log('Opening Jitsi room:', roomName);
       const jitsiUrl = `https://meet.jit.si/${encodeURIComponent(roomName)}`;
       window.open(jitsiUrl, '_blank', 'width=1200,height=700');

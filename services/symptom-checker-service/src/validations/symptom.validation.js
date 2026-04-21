@@ -38,6 +38,20 @@ export const analyzeSymptomsValidation = [
     .bail()
     .isLength({ max: 50 })
     .withMessage("ageGroup must not exceed 50 characters"),
+
+  body("followUpAnswers")
+    .optional()
+    .custom((value) => {
+      if (Array.isArray(value)) {
+        return true;
+      }
+
+      if (value && typeof value === "object") {
+        return true;
+      }
+
+      throw new Error("followUpAnswers must be an object or array");
+    }),
 ];
 
 export const validateRequest = (req, res, next) => {

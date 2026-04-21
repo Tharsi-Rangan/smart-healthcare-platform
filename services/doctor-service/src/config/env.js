@@ -4,6 +4,6 @@ dotenv.config();
 
 export const env = {
   port: process.env.PORT || 5006,
-  mongoUri: process.env.MONGO_URI,
+  mongoUri: process.env.MONGODB_URI,
   jwtSecret: process.env.JWT_SECRET,
 };

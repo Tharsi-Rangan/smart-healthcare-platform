@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getPatientPayments, initiatePayment } from '../../services/paymentApi';
+import { getMyAppointments } from '../../services/appointmentApi';
 import { useAuth } from '../../features/auth/AuthContext';
 import html2pdf from 'html2pdf.js';
 import { Download, Printer, Eye, AlertCircle, CheckCircle, Clock, XCircle, RotateCcw } from 'lucide-react';
@@ -12,6 +13,27 @@ const statusConfig = {
   refunded:  { label: 'Refunded',color: 'text-cyan-600',    bg: 'bg-cyan-50 border-cyan-200', icon: RotateCcw },
 };
 
+const getFeeBreakdown = (paymentLike = {}) => {
+  const doctorFee = Number(paymentLike.consultationFee) || Number(paymentLike.amount) || 0;
+  const platformFee = Number(paymentLike.platformFee);
+  const serviceFee = Number(paymentLike.serviceFee);
+  const taxAmount = Number(paymentLike.taxAmount);
+
+  const resolvedPlatformFee = Number.isFinite(platformFee) ? platformFee : Math.round(doctorFee * 0.05);
+  const resolvedServiceFee = Number.isFinite(serviceFee) ? serviceFee : 100;
+  const subtotal = doctorFee + resolvedPlatformFee + resolvedServiceFee;
+  const resolvedTaxAmount = Number.isFinite(taxAmount) ? taxAmount : 0;
+  const total = Number(paymentLike.amount) || (subtotal + resolvedTaxAmount);
+
+  return {
+    doctorFee,
+    platformFee: resolvedPlatformFee,
+    serviceFee: resolvedServiceFee,
+    taxAmount: resolvedTaxAmount,
+    total,
+  };
+};
+
 function PaymentsPage() {
   const { user }  = useAuth();
   const location  = useLocation();
@@ -19,6 +41,7 @@ function PaymentsPage() {
   const receiptRef = useRef();
   
   const [payments, setPayments]     = useState([]);
+  const [approvedAppointments, setApprovedAppointments] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [payModal, setPayModal]     = useState(null);
   const [paying, setPaying]         = useState(false);
@@ -82,6 +105,7 @@ function PaymentsPage() {
   };
 
   const downloadReceipt = (payment) => {
+    const fees = getFeeBreakdown(payment);
     const element = document.createElement('div');
     element.innerHTML = `
       <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 600px;">
@@ -140,16 +164,24 @@ function PaymentsPage() {
         <div style="margin-bottom: 30px; background-color: #f3f4f6; padding: 20px; border-radius: 8px;">
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
-              <td style="padding: 8px 0; color: #666;"><strong>Subtotal:</strong></td>
-              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${payment.amount.toLocaleString()}</td>
+              <td style="padding: 8px 0; color: #666;"><strong>Doctor Fee:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.doctorFee.toLocaleString()}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; color: #666;"><strong>Tax (0%):</strong></td>
-              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR 0</td>
+              <td style="padding: 8px 0; color: #666;"><strong>Platform Fee:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.platformFee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Service Fee:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.serviceFee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Tax:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.taxAmount.toLocaleString()}</td>
             </tr>
             <tr style="border-top: 2px solid #d1d5db;">
               <td style="padding: 12px 0; color: #1f2937; font-size: 18px; font-weight: bold;"><strong>Total Amount:</strong></td>
-              <td style="padding: 12px 0; color: #0d9488; text-align: right; font-size: 20px; font-weight: bold;">LKR ${payment.amount.toLocaleString()}</td>
+              <td style="padding: 12px 0; color: #0d9488; text-align: right; font-size: 20px; font-weight: bold;">LKR ${fees.total.toLocaleString()}</td>
             </tr>
           </table>
         </div>
@@ -181,6 +213,7 @@ function PaymentsPage() {
   };
 
   const printReceipt = (payment) => {
+    const fees = getFeeBreakdown(payment);
     const element = document.createElement('div');
     element.innerHTML = `
       <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 600px;">
@@ -229,8 +262,24 @@ function PaymentsPage() {
         <div style="margin-bottom: 30px; background-color: #f3f4f6; padding: 20px; border-radius: 8px;">
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Doctor Fee:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.doctorFee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Platform Fee:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.platformFee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Service Fee:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.serviceFee.toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Tax:</strong></td>
+              <td style="padding: 8px 0; color: #1f2937; text-align: right;">LKR ${fees.taxAmount.toLocaleString()}</td>
+            </tr>
+            <tr>
               <td style="padding: 8px 0; color: #1f2937; font-size: 18px; font-weight: bold;"><strong>Total Amount:</strong></td>
-              <td style="padding: 8px 0; color: #0d9488; text-align: right; font-size: 20px; font-weight: bold;">LKR ${payment.amount.toLocaleString()}</td>
+              <td style="padding: 8px 0; color: #0d9488; text-align: right; font-size: 20px; font-weight: bold;">LKR ${fees.total.toLocaleString()}</td>
             </tr>
           </table>
         </div>
@@ -283,10 +332,34 @@ function PaymentsPage() {
       const paymentsData = res.data?.payments || res.payments || [];
       console.log('[PaymentsPage] Extracted payments:', paymentsData);
       
-      setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+      const normalizedPayments = Array.isArray(paymentsData) ? paymentsData : [];
+      setPayments(normalizedPayments);
+
+      // Also surface confirmed doctor-approved appointments that are not yet paid.
+      const appointmentsRes = await getMyAppointments();
+      const appointmentList =
+        appointmentsRes?.data?.appointments ||
+        appointmentsRes?.appointments ||
+        [];
+
+      const confirmedAppointments = (Array.isArray(appointmentList) ? appointmentList : []).filter(
+        (appt) => appt?.status === 'confirmed'
+      );
+
+      const payableAppointments = confirmedAppointments.filter((appt) => {
+        const activePayment = normalizedPayments.find(
+          (payment) =>
+            String(payment?.appointmentId) === String(appt?._id) &&
+            ['pending', 'completed'].includes(payment?.status)
+        );
+        return !activePayment;
+      });
+
+      setApprovedAppointments(payableAppointments);
     } catch (error) {
       console.error('[PaymentsPage] Error fetching payments:', error);
       setPayments([]);
+      setApprovedAppointments([]);
     } finally {
       setLoading(false);
     }
@@ -529,6 +602,65 @@ function PaymentsPage() {
       </div>
 
       {/* Payment List */}
+      {approvedAppointments.length > 0 && (
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Approved Appointments Awaiting Payment</h3>
+              <p className="text-xs text-slate-600">These were approved by doctors and are ready for payment.</p>
+            </div>
+            <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-700">
+              {approvedAppointments.length} due
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {approvedAppointments.map((appt) => (
+              <div
+                key={appt._id}
+                className="rounded-xl border border-cyan-200 bg-white px-4 py-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{appt.doctorName || 'Doctor'}</p>
+                    <p className="text-xs text-slate-600">
+                      Appointment Date: {new Date(appt.appointmentDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </p>
+                    <p className="text-xs text-slate-600">Time: {appt.appointmentTime || 'N/A'}</p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-cyan-700">
+                      LKR {(appt.consultationFee || 1500).toLocaleString()}
+                    </p>
+                    <button
+                      onClick={() => {
+                        setPaymentMethod('payhere');
+                        setPayModal({
+                          _id: appt._id,
+                          doctorName: appt.doctorName,
+                          consultationFee: appt.consultationFee || 1500,
+                          specialization: appt.specialization || appt.specialty || '',
+                          doctorId: appt.doctorAuthUserId || appt.doctorAuthId || appt.doctorId,
+                          doctorAuthId: appt.doctorAuthUserId || appt.doctorAuthId || appt.doctorId,
+                        });
+                      }}
+                      className="mt-1 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-700"
+                    >
+                      Pay Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[1,2,3].map(i => <div key={i} className="animate-pulse h-20 rounded-2xl border bg-slate-100" />)}
@@ -638,7 +770,11 @@ function PaymentsPage() {
                           onClick={() => setPayModal({ 
                             _id: payment.appointmentId,
                             doctorName: payment.doctorName,
-                            consultationFee: payment.amount,
+                            consultationFee: payment.consultationFee || payment.amount,
+                            platformFee: payment.platformFee,
+                            serviceFee: payment.serviceFee,
+                            taxAmount: payment.taxAmount,
+                            amount: payment.amount,
                             doctorId: payment.doctorId,
                             doctorAuthId: payment.doctorId,
                           })}
@@ -731,20 +867,33 @@ function PaymentsPage() {
               </div>
 
               {/* Amount Summary */}
+              {(() => {
+                const fees = getFeeBreakdown(receiptModal);
+                return (
               <div className="mb-6 rounded-lg bg-cyan-50 p-4 space-y-2 border border-cyan-200">
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Subtotal:</span>
-                  <span className="font-medium">LKR {receiptModal.amount.toLocaleString()}</span>
+                  <span className="text-slate-600">Doctor Fee:</span>
+                  <span className="font-medium">LKR {fees.doctorFee.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Tax (0%):</span>
-                  <span className="font-medium">LKR 0</span>
+                  <span className="text-slate-600">Platform Fee:</span>
+                  <span className="font-medium">LKR {fees.platformFee.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Service Fee:</span>
+                  <span className="font-medium">LKR {fees.serviceFee.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Tax:</span>
+                  <span className="font-medium">LKR {fees.taxAmount.toLocaleString()}</span>
                 </div>
                 <div className="border-t border-slate-200 pt-2 flex justify-between">
                   <span className="font-bold text-slate-900">Total Amount:</span>
-                  <span className="font-bold text-cyan-700 text-lg">LKR {receiptModal.amount.toLocaleString()}</span>
+                  <span className="font-bold text-cyan-700 text-lg">LKR {fees.total.toLocaleString()}</span>
                 </div>
               </div>
+                );
+              })()}
 
               {receiptModal.status === 'completed' && (
                 <div className="mb-6 rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-center text-emerald-700 font-medium">
@@ -858,6 +1007,10 @@ function PaymentsPage() {
             </p>
 
             <div className="rounded-lg bg-sky-50 p-3 mb-3 space-y-1 text-xs border border-sky-200">
+              {(() => {
+                const fees = getFeeBreakdown(payModal);
+                return (
+                  <>
               <div className="flex justify-between">
                 <span className="text-slate-500">Doctor</span>
                 <span className="font-medium text-slate-800">{payModal.doctorName}</span>
@@ -866,12 +1019,31 @@ function PaymentsPage() {
                 <span className="text-slate-500">Specialization</span>
                 <span className="text-slate-700">{payModal.specialization}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Doctor Fee</span>
+                <span className="text-slate-700">LKR {fees.doctorFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Platform Fee</span>
+                <span className="text-slate-700">LKR {fees.platformFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Service Fee</span>
+                <span className="text-slate-700">LKR {fees.serviceFee.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Tax</span>
+                <span className="text-slate-700">LKR {fees.taxAmount.toLocaleString()}</span>
+              </div>
               <div className="flex justify-between border-t border-slate-200 pt-2 mt-2">
                 <span className="font-semibold text-slate-700">Total</span>
                 <span className="font-bold text-cyan-700 text-base">
-                  LKR {(payModal.consultationFee || 1500).toLocaleString()}
+                  LKR {fees.total.toLocaleString()}
                 </span>
               </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Payment Method Selection */}

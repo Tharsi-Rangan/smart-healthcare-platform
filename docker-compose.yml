@@ -61,9 +61,10 @@ services:
     container_name: smart-healthcare-auth
     ports:
       - "5001:5001"
+    env_file:
+      - ./services/auth-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/auth_db
-      JWT_SECRET: your_auth_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5001
       NODE_ENV: production
     depends_on:
@@ -73,6 +74,7 @@ services:
       - smart-healthcare-network
     volumes:
       - ./services/auth-service:/app
+      - ./shared:/shared
       - /app/node_modules
     command: npm run dev
 
@@ -84,9 +86,10 @@ services:
     container_name: smart-healthcare-patient
     ports:
       - "5002:5002"
+    env_file:
+      - ./services/patient-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/patient_db
-      JWT_SECRET: your_patient_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5002
       NODE_ENV: production
       CLIENT_URL: http://localhost:5173
@@ -109,9 +112,10 @@ services:
     container_name: smart-healthcare-appointment
     ports:
       - "5003:5003"
+    env_file:
+      - ./services/appointment-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/appointment_db
-      JWT_SECRET: your_appointment_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5003
       NODE_ENV: production
       PATIENT_SERVICE_URL: http://patient-service:5002
@@ -135,9 +139,10 @@ services:
     container_name: smart-healthcare-consultation
     ports:
       - "5004:5004"
+    env_file:
+      - ./services/consultation-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/consultation_db
-      JWT_SECRET: your_consultation_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5004
       NODE_ENV: production
       APPOINTMENT_SERVICE_URL: http://appointment-service:5003
@@ -162,9 +167,10 @@ services:
     container_name: smart-healthcare-payment
     ports:
       - "5005:5005"
+    env_file:
+      - ./services/payment-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/payment_db
-      JWT_SECRET: your_payment_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5005
       NODE_ENV: production
       STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-pk_test_your_stripe_public_key}
@@ -188,9 +194,10 @@ services:
     container_name: smart-healthcare-doctor
     ports:
       - "5006:5006"
+    env_file:
+      - ./services/doctor-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/doctor_db
-      JWT_SECRET: your_doctor_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5006
       NODE_ENV: production
       APPOINTMENT_SERVICE_URL: http://appointment-service:5003
@@ -214,9 +221,10 @@ services:
     container_name: smart-healthcare-symptom-checker
     ports:
       - "5007:5007"
+    env_file:
+      - ./services/symptom-checker-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/symptom_checker_db
-      JWT_SECRET: your_symptom_checker_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5007
       NODE_ENV: production
     depends_on:
@@ -237,9 +245,10 @@ services:
     container_name: smart-healthcare-notification
     ports:
       - "5008:5008"
+    env_file:
+      - ./services/notification-service/.env
     environment:
-      MONGODB_URI: mongodb://mongodb:27017/notification_db
-      JWT_SECRET: your_notification_service_secret_key_change_in_production
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key_change_in_production}
       PORT: 5008
       NODE_ENV: production
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -265,19 +274,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000
+        VITE_API_BASE_URL: http://localhost:5000
     container_name: smart-healthcare-frontend
     ports:
-      - "5173:5173"
-    environment:
-      VITE_API_BASE_URL: http://api-gateway:5000
+      - "5173:80"
     depends_on:
       - api-gateway
     networks:
       - smart-healthcare-network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev
 
 volumes:
   mongodb_data:

@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../../features/auth/AuthContext";
+import NotificationBell from "./NotificationBell";
 import "./Navbar.css";
 
 function Navbar() {
@@ -47,6 +48,7 @@ function Navbar() {
         <div className="navbar-auth">
           {isAuthenticated ? (
             <div className="user-menu">
+              <NotificationBell role={user?.role || "patient"} />
               <div className="user-info">
                 <span className="user-name">{user?.name}</span>
                 <span className="user-role badge badge-primary">{user?.role}</span>
