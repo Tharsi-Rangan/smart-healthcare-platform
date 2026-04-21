@@ -99,6 +99,34 @@ export const getDoctorByIdController = asyncHandler(async (req, res) => {
   });
 });
 
+export const getDoctorByAuthUserIdController = asyncHandler(async (req, res) => {
+  const doctor = await Doctor.findOne({
+    authUserId: req.params.authUserId,
+    approvalStatus: "approved",
+    isActive: true,
+  });
+
+  if (!doctor) {
+    throw new AppError("Doctor not found", 404);
+  }
+
+  const availability = await Availability.find({
+    doctorAuthUserId: doctor.authUserId,
+    isActive: true,
+  }).sort({
+    createdAt: -1,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Doctor fetched successfully",
+    data: {
+      doctor,
+      availability: availability || [],
+    },
+  });
+});
+
 export const approveDoctorController = asyncHandler(async (req, res) => {
   const { adminReviewMessage = "" } = req.body;
 

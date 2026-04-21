@@ -104,6 +104,73 @@ const ensureEditableByActor = (appointment, actorId, role) => {
   ensureOwnership(appointment, actorId);
 };
 
+const enrichAppointmentWithDoctorInfo = async (appointment) => {
+  const aptData = appointment.toObject ? appointment.toObject() : { ...appointment };
+
+  try {
+    const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
+    const doctorUrls = [];
+
+    if (aptData.doctorId) {
+      doctorUrls.push(`${DOCTOR_SERVICE_URL}/api/doctors/public/${aptData.doctorId}`);
+    }
+
+    if (aptData.doctorAuthUserId) {
+      doctorUrls.push(`${DOCTOR_SERVICE_URL}/api/doctors/public/by-auth/${aptData.doctorAuthUserId}`);
+    }
+
+    // Some older appointment records stored the auth user id in doctorId.
+    if (aptData.doctorId && String(aptData.doctorId) !== String(aptData.doctorAuthUserId || "")) {
+      doctorUrls.push(`${DOCTOR_SERVICE_URL}/api/doctors/public/by-auth/${aptData.doctorId}`);
+    }
+
+    let doctor = null;
+
+    for (const doctorUrl of [...new Set(doctorUrls)]) {
+      const response = await fetch(doctorUrl, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = await response.json();
+      doctor = data?.data?.doctor || data?.doctor;
+
+      if (doctor) {
+        break;
+      }
+    }
+
+    if (doctor) {
+      aptData.doctorId = doctor._id || aptData.doctorId;
+      aptData.doctorAuthUserId = doctor.authUserId || aptData.doctorAuthUserId;
+      aptData.doctorName =
+        doctor.doctorName ||
+        doctor.fullName ||
+        doctor.name ||
+        aptData.doctorName ||
+        'Doctor';
+      aptData.specialization =
+        doctor.specialization ||
+        doctor.specialty ||
+        aptData.specialization ||
+        aptData.specialty ||
+        'General';
+      aptData.consultationFee = doctor.consultationFee || aptData.consultationFee;
+    }
+  } catch (error) {
+    console.error(`Could not fetch doctor info for doctorId ${aptData.doctorId}:`, error.message);
+  }
+
+  aptData.doctorName = aptData.doctorName || 'Doctor';
+  aptData.specialization = aptData.specialization || aptData.specialty || 'General';
+
+  return aptData;
+};
+
 export const createAppointment = async (payload, patientId) => {
   ensureFutureAppointment(payload.appointmentDate, payload.appointmentTime);
 
@@ -192,41 +259,15 @@ export const getMyAppointments = async (userId, role) => {
   
   // Fetch doctor information for each appointment to populate doctorName and specialization
   const appointmentsWithDoctorInfo = await Promise.all(
-    appointments.map(async (appointment) => {
-      const aptData = appointment.toObject ? appointment.toObject() : appointment;
-      
-      try {
-        const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
-        const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${appointment.doctorId}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          const doctor = data?.data?.doctor || data?.doctor;
-          if (doctor) {
-            // Populate doctor information
-            aptData.doctorName = doctor.fullName || doctor.name || 'Doctor';
-            aptData.specialization = doctor.specialty || doctor.specialization || aptData.specialty || 'General';
-          }
-        }
-      } catch (error) {
-        console.error(`Could not fetch doctor info for doctorId ${appointment.doctorId}:`, error.message);
-        // Use fallback values
-        aptData.doctorName = 'Doctor';
-        aptData.specialization = aptData.specialty || 'General';
-      }
-      
-      return aptData;
-    })
+    appointments.map((appointment) => enrichAppointmentWithDoctorInfo(appointment))
   );
   
   return appointmentsWithDoctorInfo;
 };
 
 export const getAppointmentById = async (appointmentId) => {
-  return Appointment.findById(appointmentId);
+  const appointment = await Appointment.findById(appointmentId);
+  return appointment ? enrichAppointmentWithDoctorInfo(appointment) : null;
 };
 
 export const cancelAppointment = async (appointmentId, actorId, role) => {
@@ -300,34 +341,7 @@ export const getDoctorAppointments = async (authUserId) => {
   
   // Fetch doctor information for each appointment to populate doctorName and specialization
   const appointmentsWithDoctorInfo = await Promise.all(
-    appointments.map(async (appointment) => {
-      const aptData = appointment.toObject ? appointment.toObject() : appointment;
-      
-      try {
-        const DOCTOR_SERVICE_URL = process.env.DOCTOR_SERVICE_URL || "http://localhost:5006";
-        const response = await fetch(`${DOCTOR_SERVICE_URL}/api/doctors/public/${appointment.doctorId}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          const doctor = data?.data?.doctor || data?.doctor;
-          if (doctor) {
-            // Populate doctor information
-            aptData.doctorName = doctor.fullName || doctor.name || 'Doctor';
-            aptData.specialization = doctor.specialty || doctor.specialization || aptData.specialty || 'General';
-          }
-        }
-      } catch (error) {
-        console.error(`Could not fetch doctor info for doctorId ${appointment.doctorId}:`, error.message);
-        // Use fallback values
-        aptData.doctorName = 'Doctor';
-        aptData.specialization = aptData.specialty || 'General';
-      }
-      
-      return aptData;
-    })
+    appointments.map((appointment) => enrichAppointmentWithDoctorInfo(appointment))
   );
   
   return appointmentsWithDoctorInfo;

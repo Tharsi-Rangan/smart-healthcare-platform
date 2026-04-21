@@ -98,6 +98,55 @@ app.get('/api/public/doctors', async (req, res) => {
   }
 });
 
+app.get('/api/public/doctors/by-auth/:authUserId', async (req, res) => {
+  try {
+    const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
+
+    const response = await fetch(
+      `${doctorServiceUrl}/api/doctors/public/by-auth/${req.params.authUserId}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        message: payload?.message || 'Failed to fetch doctor details',
+      });
+    }
+
+    const doctor = payload?.data?.doctor;
+    const availability = payload?.data?.availability || [];
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Doctor fetched successfully',
+      data: {
+        doctor,
+        availability,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching public doctor details by auth user:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching doctor details',
+    });
+  }
+});
+
 app.get('/api/public/doctors/:id', async (req, res) => {
   try {
     const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
@@ -192,6 +241,55 @@ app.get('/api/doctors/public/list', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching doctors',
+    });
+  }
+});
+
+app.get('/api/doctors/public/by-auth/:authUserId', async (req, res) => {
+  try {
+    const doctorServiceUrl = process.env.DOCTOR_SERVICE_URL || 'http://localhost:5006';
+
+    const response = await fetch(
+      `${doctorServiceUrl}/api/doctors/public/by-auth/${req.params.authUserId}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        message: payload?.message || 'Failed to fetch doctor details',
+      });
+    }
+
+    const doctor = payload?.data?.doctor;
+    const availability = payload?.data?.availability || [];
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Doctor fetched successfully',
+      data: {
+        doctor,
+        availability,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching public doctor details by auth user:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching doctor details',
     });
   }
 });
