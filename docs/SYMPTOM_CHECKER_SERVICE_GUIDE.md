@@ -235,7 +235,7 @@ Note: `followUpAnswers` is request-only context for AI prompt construction and i
 Required:
 
 - `PORT` (default `5007`)
-- `MONGO_URI`
+- `MONGODB_URI`
 - `JWT_SECRET`
 
 Optional (AI path):
