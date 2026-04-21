@@ -24,6 +24,16 @@ const DEFAULT_HOME_CARE_TIPS = [
   "Seek medical care promptly if symptoms worsen.",
 ];
 
+const GEMINI_MAX_RETRIES = 2;
+const GEMINI_RETRY_DELAY_MS = 800;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRetryableGeminiError = (error) => {
+  const status = error?.response?.status;
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+};
+
 const buildRuleBasedAnalysis = ({ symptoms }) => {
   const normalized = String(symptoms || "").toLowerCase();
 
@@ -216,6 +226,31 @@ const parseGeminiJson = (text) => {
   return JSON.parse(extractJsonCandidate(text));
 };
 
+const postGeminiRequest = async (url, requestBody) => {
+  let lastError;
+
+  for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt += 1) {
+    try {
+      return await axios.post(url, requestBody, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 20000,
+      });
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableGeminiError(error) || attempt === GEMINI_MAX_RETRIES) {
+        throw error;
+      }
+
+      await sleep(GEMINI_RETRY_DELAY_MS * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+};
+
 const normalizeUrgency = (urgency, isEmergency = false) => {
   if (urgency === "Low" || urgency === "Medium" || urgency === "High") {
     return urgency;
@@ -391,16 +426,12 @@ const analyzeWithGemini = async (payload) => {
     ],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 700,
+      maxOutputTokens: 900,
+      responseMimeType: "application/json",
     },
   };
 
-  const response = await axios.post(url, requestBody, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    timeout: 20000,
-  });
+  const response = await postGeminiRequest(url, requestBody);
 
   const text = extractGeminiText(response.data);
 
