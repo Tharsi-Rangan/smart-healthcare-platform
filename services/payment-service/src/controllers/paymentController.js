@@ -2,8 +2,11 @@ import Payment from '../models/Payment.js';
 import Notification from '../models/Notification.js';
 import { sendEmail, paymentConfirmationEmail } from '../utils/emailService.js';
 import { sendSMS, sendWhatsApp } from '../utils/smsService.js';
-import { validatePayhereSignature, getPayhereStatusMessage } from '../utils/payhereUtils.js';
-import crypto from 'crypto';
+import {
+  generatePayhereCheckoutHash,
+  validatePayhereSignature,
+  getPayhereStatusMessage,
+} from '../utils/payhereUtils.js';
 import axios from 'axios';
 
 const parseFeeNumber = (value, fallback = 0) => {
@@ -129,19 +132,31 @@ export const initiatePayment = async (req, res) => {
     });
 
     // PayHere checkout data
-    const merchantId = process.env.PAYHERE_MERCHANT_ID || '1226148';
+    const merchantId = process.env.PAYHERE_MERCHANT_ID || '';
     const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET || '';
     const sandbox = process.env.PAYHERE_SANDBOX === 'true';
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const publicApiUrl = process.env.PUBLIC_API_URL || 'http://localhost:5000';
+    const notifyUrl = process.env.PAYHERE_NOTIFY_URL || `${publicApiUrl}/api/payments/notify`;
+    const payhereCurrency = currency || 'LKR';
+    const payhereAmount = totalAmount.toFixed(2);
+
+    if (!merchantId || !merchantSecret) {
+      return res.status(500).json({
+        success: false,
+        message: 'PayHere merchant credentials are not configured.',
+      });
+    }
     
     const payhereData = {
       merchant_id:   merchantId,
-      return_url:    'http://localhost:5173/payment-return',
-      cancel_url:    'http://localhost:5173/patient/payments',
-      notify_url:    `http://localhost:5006/api/payments/notify`,
+      return_url:    `${clientUrl}/payment-return`,
+      cancel_url:    `${clientUrl}/patient/payments`,
+      notify_url:    notifyUrl,
       order_id:      payment._id.toString(),
       items:         `Consultation with ${finalDoctorName}`,
-      currency:      currency || 'LKR',
-      amount:        totalAmount.toFixed(2),
+      currency:      payhereCurrency,
+      amount:        payhereAmount,
       first_name:    (patientName?.split(' ')[0] || req.user.name?.split(' ')[0] || 'Patient'),
       last_name:     (patientName?.split(' ').slice(1).join(' ') || req.user.name?.split(' ').slice(1).join(' ') || ''),
       email:         patientEmail || req.user.email || '',
@@ -152,11 +167,13 @@ export const initiatePayment = async (req, res) => {
       sandbox:       sandbox,
     };
 
-    // Calculate hash if merchant secret is provided
-    if (merchantSecret) {
-      const hashString = `${merchantId}${payhereData.order_id}${payhereData.amount}${payhereData.currency}${merchantSecret}`;
-      payhereData.hash = crypto.createHash('md5').update(hashString).digest('hex');
-    }
+    payhereData.hash = generatePayhereCheckoutHash({
+      merchantId,
+      orderId: payhereData.order_id,
+      amount: payhereAmount,
+      currency: payhereCurrency,
+      merchantSecret,
+    });
 
     res.status(201).json({
       success: true,

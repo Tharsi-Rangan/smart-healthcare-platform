@@ -26,12 +26,13 @@ function VideoRoomPage() {
         const appointmentRes = await apiClient.get(`/api/appointments/${appointmentId}`);
         setAppointment(appointmentRes.data.data?.appointment || appointmentRes.data.data);
 
-        // Fetch payment status to verify consultation access
-        try {
-          const paymentRes = await apiClient.get(`/api/payments/status/${appointmentId}`);
-          setPaymentStatus(paymentRes.data.data);
-        } catch (err) {
-          console.error("Failed to fetch payment status:", err);
+        if (user?.role === "patient") {
+          try {
+            const paymentRes = await apiClient.get(`/api/payments/status/${appointmentId}`);
+            setPaymentStatus(paymentRes.data.data);
+          } catch (err) {
+            console.error("Failed to fetch payment status:", err);
+          }
         }
 
         setLoading(false);
@@ -44,7 +45,7 @@ function VideoRoomPage() {
     if (appointmentId) {
       fetchData();
     }
-  }, [appointmentId]);
+  }, [appointmentId, user?.role]);
 
   if (loading) {
     return <div className="video-room-loading">Loading consultation room...</div>;
@@ -77,7 +78,7 @@ function VideoRoomPage() {
   }
 
   // Check if payment is approved before allowing consultation
-  if (paymentStatus && !paymentStatus.consultationAvailable) {
+  if (user?.role === "patient" && paymentStatus && !paymentStatus.consultationAvailable) {
     return (
       <div className="video-room-blocked">
         <h2>Consultation Not Available</h2>

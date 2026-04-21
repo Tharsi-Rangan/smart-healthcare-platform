@@ -43,7 +43,7 @@ router.get(
 
 router.get(
   "/:id",
-  requireRole("patient"),
+  requireRole("patient", "doctor"),
   appointmentIdValidation,
   validateRequest,
   getAppointmentController

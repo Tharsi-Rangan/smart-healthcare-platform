@@ -1,5 +1,23 @@
 import crypto from 'crypto';
 
+export const generatePayhereCheckoutHash = ({
+  merchantId,
+  orderId,
+  amount,
+  currency,
+  merchantSecret,
+}) => {
+  const formattedAmount = Number(amount).toFixed(2);
+  const hashedSecret = crypto
+    .createHash('md5')
+    .update(String(merchantSecret))
+    .digest('hex')
+    .toUpperCase();
+  const hashString = `${merchantId}${orderId}${formattedAmount}${currency}${hashedSecret}`;
+
+  return crypto.createHash('md5').update(hashString).digest('hex').toUpperCase();
+};
+
 /**
  * Validate PayHere webhook signature
  * PayHere sends a hash that we need to verify
@@ -15,7 +33,7 @@ export const validatePayhereSignature = (req) => {
     const { merchant_id, order_id, status_code, payhere_amount, payhere_currency } = req.body;
     
     // PayHere verification formula
-    const hashedSecret = crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
+    const hashedSecret = crypto.createHash('md5').update(String(merchantSecret)).digest('hex').toUpperCase();
     const hashString = `${merchant_id}${order_id}${payhere_amount}${payhere_currency}${status_code}${hashedSecret}`;
     const expectedHash = crypto.createHash('md5').update(hashString).digest('hex').toUpperCase();
     
