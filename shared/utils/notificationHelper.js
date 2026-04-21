@@ -1,28 +1,29 @@
-const NOTIFICATION_BASE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5008/api';
+const notificationBaseUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5008/api';
 
 const postNotification = async (endpoint, payload) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const response = await fetch(`${notificationBaseUrl}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(5000),
+  });
 
+  let data = null;
   try {
-    const response = await fetch(`${NOTIFICATION_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const responseText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${responseText || response.statusText}`);
-    }
-
-    return await response.json();
-  } finally {
-    clearTimeout(timeoutId);
+    data = await response.json();
+  } catch {
+    data = null;
   }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message || `Notification request failed (${response.status} ${response.statusText})`
+    );
+  }
+
+  return data;
 };
 
 /**
@@ -45,7 +46,7 @@ export const notifyAppointmentBooked = async ({
       return { success: true, skipped: true };
     }
 
-    const responseData = await postNotification('/notifications/appointment-booked', {
+    const data = await postNotification('/notifications/appointment-booked', {
       patientId,
       patientName,
       patientEmail,
@@ -58,7 +59,7 @@ export const notifyAppointmentBooked = async ({
     });
     
     console.log('[Notification] Appointment booked notification sent successfully');
-    return responseData;
+    return data;
   } catch (error) {
     console.error('[notifyAppointmentBooked] Error:', error.message);
     // Don't throw - notifications shouldn't block main flow
@@ -84,7 +85,7 @@ export const notifyConsultationCompleted = async ({
       return { success: true, skipped: true };
     }
 
-    const responseData = await postNotification('/notifications/consultation-completed', {
+    const data = await postNotification('/notifications/consultation-completed', {
       patientId,
       patientName,
       patientEmail,
@@ -95,7 +96,7 @@ export const notifyConsultationCompleted = async ({
     });
 
     console.log('[Notification] Consultation completed notification sent successfully');
-    return responseData;
+    return data;
   } catch (error) {
     console.error('[notifyConsultationCompleted] Error:', error.message);
     return { success: false, error: error.message };
@@ -121,7 +122,7 @@ export const notifyAppointmentCancelled = async ({
       return { success: true, skipped: true };
     }
 
-    const responseData = await postNotification('/notifications/appointment-cancelled', {
+    const data = await postNotification('/notifications/appointment-cancelled', {
       patientId,
       patientName,
       patientEmail,
@@ -133,7 +134,7 @@ export const notifyAppointmentCancelled = async ({
     });
 
     console.log('[Notification] Appointment cancelled notification sent successfully');
-    return responseData;
+    return data;
   } catch (error) {
     console.error('[notifyAppointmentCancelled] Error:', error.message);
     return { success: false, error: error.message };
@@ -159,7 +160,7 @@ export const notifyPaymentReceived = async ({
       return { success: true, skipped: true };
     }
 
-    const responseData = await postNotification('/notifications/payment-received', {
+    const data = await postNotification('/notifications/payment-received', {
       patientId,
       patientName,
       patientEmail,
@@ -171,7 +172,7 @@ export const notifyPaymentReceived = async ({
     });
 
     console.log('[Notification] Payment received notification sent successfully');
-    return responseData;
+    return data;
   } catch (error) {
     console.error('[notifyPaymentReceived] Error:', error.message);
     return { success: false, error: error.message };
@@ -196,7 +197,7 @@ export const notifyDoctorRegistration = async ({
       return { success: true, skipped: true };
     }
 
-    const responseData = await postNotification('/notifications/doctor-registration', {
+    const data = await postNotification('/notifications/doctor-registration', {
       doctorId,
       doctorName,
       doctorEmail,
@@ -207,7 +208,7 @@ export const notifyDoctorRegistration = async ({
     });
 
     console.log('[Notification] Doctor registration notification sent successfully');
-    return responseData;
+    return data;
   } catch (error) {
     console.error('[notifyDoctorRegistration] Error:', error.message);
     return { success: false, error: error.message };
