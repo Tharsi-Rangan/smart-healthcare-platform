@@ -12,7 +12,10 @@ import {
   resetPassword,
   getCurrentUser,
 } from "../services/auth.service.js";
-import { buildDoctorRegistrationNotification, sendNotificationViaService } from "/shared/utils/notificationHelper.js";
+import {
+  buildDoctorRegistrationNotification,
+  sendNotificationViaService,
+} from "../../../../shared/utils/notificationHelper.js";
 
 const handleValidationErrors = (req) => {
   const errors = validationResult(req);

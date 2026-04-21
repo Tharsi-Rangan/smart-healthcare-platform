@@ -1,20 +1,23 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
+
+ENV NODE_ENV=production
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy application source
 COPY . .
 
+# Run as non-root user
+USER node
+
 # Expose port
 EXPOSE 5000
-
-CMD ["npm", "run", "dev"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
