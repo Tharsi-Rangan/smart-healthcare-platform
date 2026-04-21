@@ -6,6 +6,10 @@ import { getToken } from '../../features/auth/authStorage';
 import { useAuth } from '../../features/auth/AuthContext';
 import axios from 'axios';
 
+const getConsultationRoomName = (appointmentId, existingRoomName = '') => {
+  return existingRoomName || `mediconnect-${appointmentId}`;
+};
+
 const emptyRx = () => ({ name: '', dosage: '', frequency: '', duration: '', notes: '' });
 
 function VideoSessionPage() {
@@ -235,7 +239,7 @@ function VideoSessionPage() {
       );
 
       // Open video room
-      const roomName = consultationData.roomName || `mediconnect-${appt._id}`;
+      const roomName = getConsultationRoomName(appt._id, consultationData.roomName);
       console.log('Opening Jitsi room:', roomName);
       window.open(`https://meet.jit.si/${encodeURIComponent(roomName)}`, '_blank', 'width=1200,height=700');
     } catch (err) {
@@ -333,7 +337,11 @@ function VideoSessionPage() {
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => window.open(`https://meet.jit.si/${consultation?.roomName}`, '_blank')}
+            <button
+              onClick={() => {
+                const roomName = getConsultationRoomName(activeSession?._id, consultation?.roomName);
+                window.open(`https://meet.jit.si/${encodeURIComponent(roomName)}`, '_blank');
+              }}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
               <svg className="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />

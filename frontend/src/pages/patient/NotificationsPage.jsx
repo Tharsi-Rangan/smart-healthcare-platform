@@ -1,11 +1,5 @@
-import React from 'react'
+import SharedNotificationsPage from "../shared/NotificationsPage";
 
-const NotificationsPage = () => {
-  return (
-    <div>
-      NotificationsPage
-    </div>
-  )
-}
+const NotificationsPage = () => <SharedNotificationsPage />;
 
-export default NotificationsPage
+export default NotificationsPage;

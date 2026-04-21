@@ -1,15 +1,86 @@
 import Notification from '../models/Notification.js';
 import { sendEmail, appointmentConfirmationEmail, appointmentBookedEmail } from '../utils/emailService.js';
 import { sendSMS, sendWhatsApp } from '../utils/smsService.js';
+import axios from 'axios';
+
+const APPOINTMENT_SERVICE_URL = process.env.APPOINTMENT_SERVICE_URL || 'http://localhost:5003';
+
+const normalizeNotificationType = (type = 'system') => {
+  if (!type) return 'system';
+  if (type === 'doctor_registration' || type === 'doctor_approval') return 'verification';
+  if (['appointment', 'payment', 'consultation', 'verification', 'system'].includes(type)) {
+    return type;
+  }
+  if (type.includes('_')) {
+    const firstSegment = type.split('_')[0];
+    if (['appointment', 'payment', 'consultation'].includes(firstSegment)) {
+      return firstSegment;
+    }
+  }
+  return 'system';
+};
+
+const getCurrentUserId = (user = {}) => user.userId || user.id || user._id || '';
+
+const getNotificationAccessFilter = (user = {}) => {
+  const currentUserId = getCurrentUserId(user);
+  const role = user.role;
+
+  if (!currentUserId || !role) {
+    return { userId: '__no_user__' };
+  }
+
+  return {
+    $or: [
+      { userId: String(currentUserId) },
+      { userId: role, role },
+    ],
+  };
+};
+
+const fetchAppointmentById = async (appointmentId, authHeader) => {
+  if (!appointmentId) return null;
+
+  try {
+    const response = await axios.get(`${APPOINTMENT_SERVICE_URL}/api/appointments/${appointmentId}`, {
+      timeout: 5000,
+      headers: authHeader ? { Authorization: authHeader } : undefined,
+    });
+
+    return response.data?.data?.appointment || response.data?.data || null;
+  } catch (error) {
+    console.warn('[Notifications] Could not resolve appointment for notification routing:', error.message);
+    return null;
+  }
+};
 
 // POST /api/notifications/send — internal use
 export const sendNotification = async (req, res) => {
   try {
-    const { userId, role, title, message, type, relatedId } = req.body;
+    const {
+      userId,
+      role,
+      title,
+      message,
+      type,
+      relatedId,
+      recipientRole,
+      data,
+    } = req.body;
+
+    const resolvedRole = role || recipientRole || 'patient';
+    const resolvedUserId =
+      userId ||
+      data?.userId ||
+      data?.doctorId ||
+      (resolvedRole === 'admin' ? 'admin' : resolvedRole);
 
     const notification = await Notification.create({
-      userId, role, title, message,
-      type:      type || 'system',
+      userId: String(resolvedUserId),
+      role: resolvedRole,
+      title: title || 'Notification',
+      message: message || 'You have a new notification.',
+      type: normalizeNotificationType(type),
       relatedId: relatedId || '',
     });
 
@@ -23,16 +94,60 @@ export const sendNotification = async (req, res) => {
 export const notifyAppointmentBooked = async (req, res) => {
   try {
     const {
-      userId, role, title, message, type, relatedId,
-      doctorEmail, doctorPhone, patientName, appointmentDate, timeSlot, reason
+      patientId,
+      patientName,
+      patientEmail,
+      patientPhone,
+      doctorId,
+      doctorName,
+      doctorEmail,
+      doctorPhone,
+      appointmentId,
+      appointmentDate,
+      timeSlot,
+      reason,
     } = req.body;
 
-    // Save notification for doctor
-    await Notification.create({
-      userId, role, title, message,
-      type: type || 'appointment',
-      relatedId: relatedId || '',
-    });
+    if (!patientId || !doctorId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: patientId, doctorId.',
+      });
+    }
+
+    const appointment = await fetchAppointmentById(appointmentId, req.headers.authorization);
+    const resolvedDoctorId =
+      appointment?.doctorAuthUserId ||
+      appointment?.doctorAuthId ||
+      appointment?.doctorId ||
+      doctorId;
+
+    const resolvedPatientId =
+      appointment?.patientAuthUserId ||
+      appointment?.patientAuthId ||
+      appointment?.patientId ||
+      patientId;
+
+    const formattedDate = appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-LK') : 'N/A';
+
+    await Notification.create([
+      {
+        userId: String(resolvedPatientId),
+        role: 'patient',
+        title: 'Appointment Request Submitted',
+        message: `Your appointment with ${doctorName || 'your doctor'} on ${formattedDate} at ${timeSlot || 'N/A'} is pending doctor approval.`,
+        type: 'appointment',
+        relatedId: appointmentId || '',
+      },
+      {
+        userId: String(resolvedDoctorId),
+        role: 'doctor',
+        title: 'Pending Appointment Approval',
+        message: `${patientName || 'A patient'} booked an appointment for ${formattedDate} at ${timeSlot || 'N/A'}. Please review and approve.`,
+        type: 'appointment',
+        relatedId: appointmentId || '',
+      },
+    ]);
 
     // Send Email to doctor
     if (doctorEmail) {
@@ -45,10 +160,15 @@ export const notifyAppointmentBooked = async (req, res) => {
 
     // Send SMS and WhatsApp to doctor
     if (doctorPhone) {
-      const formattedDate = appointmentDate ? new Date(appointmentDate).toLocaleDateString('en-LK') : 'N/A';
       const smsBody = `MediConnect: You have a new appointment with ${patientName} on ${formattedDate} at ${timeSlot}.`;
       await sendSMS({ to: doctorPhone, body: smsBody }).catch(err => console.error(err));
       await sendWhatsApp({ to: doctorPhone, body: smsBody }).catch(err => console.error(err));
+    }
+
+    // Optional patient confirmation message.
+    if (patientPhone) {
+      const smsBody = `MediConnect: Your appointment request with ${doctorName || 'the doctor'} on ${formattedDate} at ${timeSlot} is pending doctor approval.`;
+      await sendSMS({ to: patientPhone, body: smsBody }).catch(err => console.error(err));
     }
 
     res.status(200).json({ success: true, message: 'Notifications sent.' });
@@ -163,7 +283,7 @@ export const notifyPatientJoinedSession = async (req, res) => {
 // GET /api/notifications — user's notifications
 export const getMyNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ userId: req.user.userId })
+    const notifications = await Notification.find(getNotificationAccessFilter(req.user))
       .sort({ createdAt: -1 })
       .limit(50);
     res.status(200).json({ success: true, data: { notifications } });
@@ -175,7 +295,19 @@ export const getMyNotifications = async (req, res) => {
 // PATCH /api/notifications/:id/read — mark single as read
 export const markAsRead = async (req, res) => {
   try {
-    await Notification.findByIdAndUpdate(req.params.id, { isRead: true });
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        ...getNotificationAccessFilter(req.user),
+      },
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
+    }
+
     res.status(200).json({ success: true, message: 'Marked as read.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -185,7 +317,13 @@ export const markAsRead = async (req, res) => {
 // PATCH /api/notifications/read-all — mark all as read
 export const markAllAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ userId: req.user.userId, isRead: false }, { isRead: true });
+    await Notification.updateMany(
+      {
+        ...getNotificationAccessFilter(req.user),
+        isRead: false,
+      },
+      { isRead: true }
+    );
     res.status(200).json({ success: true, message: 'All notifications marked as read.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -197,7 +335,7 @@ export const deleteNotification = async (req, res) => {
   try {
     const notification = await Notification.findOneAndDelete({
       _id: req.params.id,
-      userId: req.user.userId,
+      ...getNotificationAccessFilter(req.user),
     });
 
     if (!notification) {
@@ -213,7 +351,7 @@ export const deleteNotification = async (req, res) => {
 // DELETE /api/notifications/delete-all — delete all notifications for current user
 export const deleteAllNotifications = async (req, res) => {
   try {
-    const result = await Notification.deleteMany({ userId: req.user.userId });
+    const result = await Notification.deleteMany(getNotificationAccessFilter(req.user));
     res.status(200).json({
       success: true,
       message: 'All notifications deleted.',
@@ -227,7 +365,10 @@ export const deleteAllNotifications = async (req, res) => {
 // GET /api/notifications/unread-count
 export const getUnreadCount = async (req, res) => {
   try {
-    const count = await Notification.countDocuments({ userId: req.user.userId, isRead: false });
+    const count = await Notification.countDocuments({
+      ...getNotificationAccessFilter(req.user),
+      isRead: false,
+    });
     res.status(200).json({ success: true, data: { count } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
