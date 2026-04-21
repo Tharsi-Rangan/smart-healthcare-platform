@@ -51,7 +51,7 @@ services:
     volumes:
       - ./services/api-gateway:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Auth Service - User authentication and JWT token management
   auth-service:
@@ -63,9 +63,11 @@ services:
       - "5001:5001"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/auth_db
-      JWT_SECRET: your_auth_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/auth_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5001
       NODE_ENV: production
+      NOTIFICATION_SERVICE_URL: http://notification-service:5008/api
     depends_on:
       mongodb:
         condition: service_healthy
@@ -73,8 +75,9 @@ services:
       - smart-healthcare-network
     volumes:
       - ./services/auth-service:/app
+      - ./shared:/shared
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Patient Service - Patient profile and health information management
   patient-service:
@@ -86,7 +89,8 @@ services:
       - "5002:5002"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/patient_db
-      JWT_SECRET: your_patient_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/patient_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5002
       NODE_ENV: production
       CLIENT_URL: http://localhost:5173
@@ -99,7 +103,7 @@ services:
       - ./services/patient-service:/app
       - ./services/patient-service/uploads:/app/uploads
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Appointment Service - Appointment booking and management
   appointment-service:
@@ -111,7 +115,8 @@ services:
       - "5003:5003"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/appointment_db
-      JWT_SECRET: your_appointment_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/appointment_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5003
       NODE_ENV: production
       PATIENT_SERVICE_URL: http://patient-service:5002
@@ -125,7 +130,7 @@ services:
     volumes:
       - ./services/appointment-service:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Consultation Service - Video consultations and communication
   consultation-service:
@@ -137,7 +142,8 @@ services:
       - "5004:5004"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/consultation_db
-      JWT_SECRET: your_consultation_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/consultation_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5004
       NODE_ENV: production
       APPOINTMENT_SERVICE_URL: http://appointment-service:5003
@@ -152,7 +158,7 @@ services:
     volumes:
       - ./services/consultation-service:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Payment Service - Payment processing and transactions
   payment-service:
@@ -164,7 +170,8 @@ services:
       - "5005:5005"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/payment_db
-      JWT_SECRET: your_payment_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/payment_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5005
       NODE_ENV: production
       STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-pk_test_your_stripe_public_key}
@@ -178,7 +185,7 @@ services:
     volumes:
       - ./services/payment-service:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Doctor Service - Doctor profile and availability management
   doctor-service:
@@ -190,7 +197,8 @@ services:
       - "5006:5006"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/doctor_db
-      JWT_SECRET: your_doctor_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/doctor_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5006
       NODE_ENV: production
       APPOINTMENT_SERVICE_URL: http://appointment-service:5003
@@ -204,7 +212,7 @@ services:
       - ./services/doctor-service:/app
       - ./services/doctor-service/uploads:/app/uploads
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Symptom Checker Service - AI-powered symptom analysis
   symptom-checker-service:
@@ -216,7 +224,8 @@ services:
       - "5007:5007"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/symptom_checker_db
-      JWT_SECRET: your_symptom_checker_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/symptom_checker_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5007
       NODE_ENV: production
     depends_on:
@@ -227,7 +236,7 @@ services:
     volumes:
       - ./services/symptom-checker-service:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Notification Service - Email, SMS, and in-app notifications
   notification-service:
@@ -239,7 +248,8 @@ services:
       - "5008:5008"
     environment:
       MONGODB_URI: mongodb://mongodb:27017/notification_db
-      JWT_SECRET: your_notification_service_secret_key_change_in_production
+      MONGO_URI: mongodb://mongodb:27017/notification_db
+      JWT_SECRET: super_secure_shared_jwt_secret_key_2026_for_viva
       PORT: 5008
       NODE_ENV: production
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
@@ -258,7 +268,7 @@ services:
     volumes:
       - ./services/notification-service:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm start
 
   # Frontend (React + Vite) - Web interface for patients, doctors, and admins
   frontend:
@@ -269,7 +279,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_BASE_URL: http://api-gateway:5000
+      VITE_API_BASE_URL: http://localhost:5000
     depends_on:
       - api-gateway
     networks:
@@ -277,7 +287,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   mongodb_data:
